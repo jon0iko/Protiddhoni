@@ -21,12 +21,11 @@ Protiddhoni/
 │
 ├── frontend/            # Next.js 14 + TypeScript
 │   └── protiddhoni/
-│       ├── src/
-│       │   ├── app/           # Next.js App Router pages
-│       │   ├── components/    # React components
-│       │   ├── lib/          # Utilities & API client
-│       │   ├── stores/       # Zustand state management
-│       │   └── types/        # TypeScript types
+│       │── app/           # Next.js App Router pages
+│       │──components/    # React components
+│       │──lib/          # Utilities & API client
+│       │──stores/       # Zustand state management
+│       │──types/        # TypeScript types
 │       └── public/       # Static assets
 │
 ├── plan.md              # Detailed implementation plan
