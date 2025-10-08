@@ -1,14 +1,36 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import AuthForm from '@/components/auth/AuthForm';
+import { useAuth } from '@/contexts/AuthContext';
+
 /**
  * Login Page
  */
-
 export default function LoginPage() {
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const { login } = useAuth();
+
+    const handleLogin = async (formData: any) => {
+        setIsLoading(true);
+        
+        try {
+            await login(formData.email, formData.password);
+            router.push('/');
+        } catch (error: any) {
+            alert(error.message || 'লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="max-w-md w-full p-8 border rounded-lg">
-                <h1 className="text-2xl font-bold mb-4">লগইন</h1>
-                <p className="text-gray-500">Login form - To be implemented</p>
-            </div>
-        </div>
+        <AuthForm 
+            type="login" 
+            onSubmit={handleLogin} 
+            isLoading={isLoading}
+        />
     );
 }
