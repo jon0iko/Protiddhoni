@@ -1,13 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 /**
- * DatabaseConnection - Singleton Pattern Implementation
- * 
- * Ensures only one instance of Supabase client exists throughout the application lifecycle.
- * This prevents multiple connections and ensures efficient resource management.
- * 
  * Design Pattern: Singleton
- * Purpose: Single database connection instance across the application
  */
 class DatabaseConnection {
     constructor() {

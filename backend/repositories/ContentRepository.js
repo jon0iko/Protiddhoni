@@ -1,7 +1,4 @@
 /**
- * Content Repository - Repository Pattern
- * Abstracts database operations for content table
- * 
  * Design Pattern: Repository
  */
 

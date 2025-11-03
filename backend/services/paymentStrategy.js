@@ -1,7 +1,4 @@
 /**
- * Payment Strategy - Strategy Pattern
- * Multiple payment methods (SSLCommerz, bKash)
- * 
  * Design Pattern: Strategy
  */
 

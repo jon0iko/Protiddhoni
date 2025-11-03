@@ -1,7 +1,4 @@
 /**
- * Font Size Strategy - Strategy Pattern
- * Multiple font size options
- * 
  * Design Pattern: Strategy
  */
 

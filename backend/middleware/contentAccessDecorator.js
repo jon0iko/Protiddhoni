@@ -1,7 +1,4 @@
 /**
- * Content Access Decorator Pattern
- * Adds dynamic access control layers (free vs premium content)
- * 
  * Design Pattern: Decorator
  */
 
