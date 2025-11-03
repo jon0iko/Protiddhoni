@@ -1,7 +1,4 @@
 /**
- * Series Repository - Repository Pattern
- * Abstracts database operations for series table
- * 
  * Design Pattern: Repository
  */
 

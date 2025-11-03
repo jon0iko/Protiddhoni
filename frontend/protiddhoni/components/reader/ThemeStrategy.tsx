@@ -1,7 +1,4 @@
 /**
- * Theme Strategy - Strategy Pattern
- * Multiple reading themes (Light, Dark, Sepia)
- * 
  * Design Pattern: Strategy
  */
 

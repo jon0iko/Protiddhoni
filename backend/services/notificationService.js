@@ -1,7 +1,4 @@
 /**
- * Notification Service - Observer Pattern
- * Notifies followers when authors publish new content
- * 
  * Design Pattern: Observer
  */
 

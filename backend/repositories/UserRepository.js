@@ -1,7 +1,4 @@
 /**
- * User Repository - Repository Pattern
- * Abstracts database operations for users table
- * 
  * Design Pattern: Repository
  */
 

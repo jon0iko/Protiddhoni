@@ -1,7 +1,4 @@
 /**
- * Content Factory - Factory Pattern
- * Creates different types of content objects (Story, Poem, Chapter)
- * 
  * Design Pattern: Factory
  */
 

@@ -1,7 +1,4 @@
 /**
- * Logger - Singleton Pattern Implementation
- * 
- * Centralized logging utility for the application
  * Design Pattern: Singleton
  */
 class Logger {

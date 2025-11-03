@@ -1,7 +1,4 @@
 /**
- * Review Repository - Repository Pattern
- * Abstracts database operations for reviews table
- * 
  * Design Pattern: Repository
  */
 

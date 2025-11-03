@@ -1,7 +1,4 @@
 /**
- * Cache Manager - Singleton Pattern
- * In-memory cache for frequently accessed data
- * 
  * Design Pattern: Singleton
  */
 
