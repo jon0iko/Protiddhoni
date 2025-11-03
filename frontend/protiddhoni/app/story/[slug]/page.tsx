@@ -13,7 +13,6 @@ import {
   Download,
   Play,
   Lock,
-  User,
   Calendar,
   Tag
 } from 'lucide-react';
@@ -62,7 +61,7 @@ const getStoryData = (slug: string) => {
       followers: '16K',
       avatar: 'https://ui-avatars.com/api/?name=মেঘবর্ণ&background=4F46E5&color=fff'
     },
-    coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop',
+    coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
     description: 'দেশের নামকরা নিউজ চ্যানেলগুলোতে রেগুলার নিউজ হিসেবে একটা খবর বারবার দেখানো হচ্ছে, "বিদেশে মাত্রিত্বে অনুষ্ঠিত আন্তর্জাতিক টুর্নামেন্ট উদঘাটন কালে প্রথমবার অংশগ্রহণ করার সুযোগ পেয়ে দমদম এয়ারপোর্ট ..."',
   rating: 4.9,
   totalRatings: 69000,

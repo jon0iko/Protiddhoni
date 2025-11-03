@@ -16,7 +16,7 @@ export default function Footer() {
                             </div>
                             <div>
                                 <h3 className="text-xl font-bold bengali-text">প্রতিধ্বনি</h3>
-                                <p className="text-gray-400 text-sm">Protiddhoni</p>
+                                {/* <p className="text-gray-400 text-sm">Protiddhoni</p> */}
                             </div>
                         </div>
                         <p className="text-gray-300 mb-4 bengali-text leading-relaxed">
@@ -116,11 +116,11 @@ export default function Footer() {
                         <Link href="/terms" className="text-gray-400 hover:text-white text-sm transition-colors bengali-text">
                             ব্যবহারের শর্তাবলী
                         </Link>
-                        <div className="flex items-center space-x-1 text-gray-400 text-sm">
+                        {/* <div className="flex items-center space-x-1 text-gray-400 text-sm">
                             <span className="bengali-text">তৈরি করা হয়েছে</span>
                             <Heart className="w-4 h-4 text-red-500" />
                             <span className="bengali-text">দিয়ে বাংলাদেশে</span>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

@@ -27,7 +27,6 @@ export default function Navbar() {
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-gray-900 bengali-text">প্রতিধ্বনি</span>
-                <span className="text-xs text-gray-500 -mt-1">Protiddhoni</span>
               </div>
             </Link>
           </div>

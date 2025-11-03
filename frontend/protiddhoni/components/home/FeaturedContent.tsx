@@ -32,7 +32,7 @@ const featuredContent = [
         author: 'সুমিত্রা দেবী',
         slug: 'mayer-chithi',
         category: 'সামাজিক',
-        coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop',
+        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
         isPremium: true,
         rating: 4.9,
         views: 8900,
@@ -51,7 +51,7 @@ const featuredContent = [
         author: 'মাহমুদুল হক',
         slug: 'rater-nishobdota',
         category: 'ভৌতিক',
-        coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=300&h=400&fit=crop',
+        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
         isPremium: false,
         rating: 4.7,
         views: 15600,
@@ -70,7 +70,7 @@ const featuredContent = [
         author: 'নাসির উদ্দিন',
         slug: 'boshonter-kobita',
         category: 'কবিতা',
-        coverImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=400&fit=crop',
+        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
         isPremium: false,
         rating: 4.6,
         views: 6700,
@@ -93,7 +93,7 @@ const categories = [
 
 export default function FeaturedContent() {
     const [activeCategory, setActiveCategory] = useState('all');
-    const [currentSlide, setCurrentSlide] = useState(0);
+    const [, setCurrentSlide] = useState(0);
 
     const nextSlide = () => {
         setCurrentSlide((prev) => (prev + 1) % Math.ceil(featuredContent.length / 3));
@@ -112,7 +112,7 @@ export default function FeaturedContent() {
                         বিশেষ নির্বাচিত রচনা
                     </h2>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto bengali-text">
-                        আমাদের সম্পাদক মণ্ডলী কর্তৃক নির্বাচিত সেরা গল্প, কবিতা এবং ধারাবাহিক
+                        নির্বাচিত সেরা গল্প, কবিতা এবং ধারাবাহিক
                     </p>
                 </div>
 
