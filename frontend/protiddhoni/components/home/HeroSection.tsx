@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, Edit3, Users, Award } from 'lucide-react';
+import { BookOpen, Edit3 } from 'lucide-react';
 
 export default function HeroSection() {
     return (

@@ -138,8 +138,11 @@ describe('ContentRepository - Repository Pattern', () => {
 
         test('Repository should provide clean API for data access', () => {
             // Verify the repository hides database complexity
-            const methods = Object.keys(ContentRepository);
-            expect(methods.length).toBeGreaterThan(0);
+            // Check that repository has the expected methods
+            expect(ContentRepository.create).toBeDefined();
+            expect(ContentRepository.findById).toBeDefined();
+            expect(ContentRepository.update).toBeDefined();
+            expect(ContentRepository.delete).toBeDefined();
             
             // Repository should not expose raw database client
             expect(ContentRepository.getClient).toBeUndefined();
