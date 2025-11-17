@@ -5,8 +5,8 @@ import { BookOpen, Edit3, Users, Award } from 'lucide-react';
 
 export default function HeroSection() {
     return (
-        <section className="bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 flex items-center">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="text-center">
                     {/* Main Heading */}
                     <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 bengali-text">
@@ -40,7 +40,7 @@ export default function HeroSection() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                    {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                         <div className="text-center">
                             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <BookOpen className="w-8 h-8 text-blue-600" />
@@ -53,7 +53,7 @@ export default function HeroSection() {
                             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Users className="w-8 h-8 text-purple-600" />
                             </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-2">৫,০০+</h3>
+                            <h3 className="text-3xl font-bold text-gray-900 mb-2">৫০০+</h3>
                             <p className="text-gray-600 bengali-text">সক্রিয় লেখক ও পাঠক</p>
                         </div>
                         
@@ -61,19 +61,38 @@ export default function HeroSection() {
                             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Award className="w-8 h-8 text-green-600" />
                             </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-2">৫০০+</h3>
+                            <h3 className="text-3xl font-bold text-gray-900 mb-2">৫০+</h3>
                             <p className="text-gray-600 bengali-text">পুরস্কারপ্রাপ্ত রচনা</p>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
             {/* Background Pattern */}
-            <div className="absolute inset-0 -z-10 opacity-5">
-                <div className="absolute top-20 left-10 text-8xl text-gray-400 bengali-text">প</div>
-                <div className="absolute top-40 right-20 text-6xl text-gray-400 bengali-text">র</div>
-                <div className="absolute bottom-40 left-20 text-7xl text-gray-400 bengali-text">তি</div>
-                <div className="absolute bottom-20 right-10 text-5xl text-gray-400 bengali-text">ধ্বনি</div>
+            <div className="absolute inset-0 z-10 opacity-30 overflow-hidden">
+                {/* Top row */}
+                <div className="absolute top-10 left-5 text-7xl text-gray-300 bengali-text font-light">প্র</div>
+                <div className="absolute top-20 left-32 text-6xl text-gray-300 bengali-text font-light">তি</div>
+                <div className="absolute top-12 left-1/2 text-8xl text-gray-300 bengali-text font-light">ধ্বনি</div>
+                <div className="absolute top-24 right-32 text-5xl text-gray-300 bengali-text font-light">সা</div>
+                <div className="absolute top-16 right-10 text-6xl text-gray-300 bengali-text font-light">হি</div>
+                
+                {/* Middle row */}
+                <div className="absolute top-1/3 left-10 text-5xl text-gray-300 bengali-text font-light">তে</div>
+                <div className="absolute top-1/2 right-20 text-7xl text-gray-300 bengali-text font-light">র</div>
+                <div className="absolute top-2/5 left-1/4 text-6xl text-gray-300 bengali-text font-light">বাং</div>
+                <div className="absolute top-1/3 right-1/3 text-8xl text-gray-300 bengali-text font-light">লা</div>
+                
+                {/* Bottom row */}
+                <div className="absolute bottom-32 left-20 text-7xl text-gray-300 bengali-text font-light">ধ্ব</div>
+                <div className="absolute bottom-20 left-1/3 text-6xl text-gray-300 bengali-text font-light">লা</div>
+                <div className="absolute bottom-40 right-1/4 text-5xl text-gray-300 bengali-text font-light">নি</div>
+                <div className="absolute bottom-24 right-10 text-8xl text-gray-300 bengali-text font-light">প্র</div>
+                <div className="absolute bottom-32 right-40 text-6xl text-gray-300 bengali-text font-light">সা</div>
+                
+                {/* Additional scattered elements */}
+                <div className="absolute top-2/3 left-1/2 text-5xl text-gray-300 bengali-text font-light">হি</div>
+                <div className="absolute top-3/4 right-1/3 text-7xl text-gray-300 bengali-text font-light">তে</div>
             </div>
         </section>
     );
