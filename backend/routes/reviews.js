@@ -9,6 +9,7 @@ const { authenticate } = require('../middleware/auth');
 
 // Public routes
 router.get('/content/:contentId', reviewController.getByContentId);
+router.get('/user/:userId', reviewController.getByUserId);
 
 // Protected routes
 router.post('/', authenticate, reviewController.create);

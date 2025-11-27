@@ -1,76 +1,65 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, Ghost, Search, BookOpen, Users, Laugh, Baby, Clock } from 'lucide-react';
+import { Heart, Ghost, Search, BookOpen, Users, Laugh, Baby, Clock, Rocket } from 'lucide-react';
+import { api } from '@/lib/api';
 
-const categories = [
-    {
-        name: 'প্রেমের গল্প',
-        slug: 'romance',
-        description: 'ভালোবাসার অনুভূতিময় গল্প',
-        icon: Heart,
-        color: 'from-pink-500 to-rose-500',
-        count: 2850
-    },
-    {
-        name: 'ভৌতিক',
-        slug: 'horror',
-        description: 'রহস্যময় ও রোমাঞ্চকর গল্প',
-        icon: Ghost,
-        color: 'from-purple-500 to-indigo-500',
-        count: 1200
-    },
-    {
-        name: 'রহস্য',
-        slug: 'mystery',
-        description: 'থ্রিলিং ও রহস্য ভরা কাহিনী',
-        icon: Search,
-        color: 'from-gray-500 to-slate-500',
-        count: 980
-    },
-    {
-        name: 'কবিতা',
-        slug: 'poetry',
-        description: 'হৃদয়ছোঁয়া কাব্য রচনা',
-        icon: BookOpen,
-        color: 'from-emerald-500 to-teal-500',
-        count: 3200
-    },
-    {
-        name: 'সামাজিক',
-        slug: 'social',
-        description: 'সমাজ ও জীবনের বাস্তব চিত্র',
-        icon: Users,
-        color: 'from-blue-500 to-cyan-500',
-        count: 1800
-    },
-    {
-        name: 'হাস্যরস',
-        slug: 'comedy',
-        description: 'মজার ও হাসির গল্প',
-        icon: Laugh,
-        color: 'from-yellow-500 to-orange-500',
-        count: 750
-    },
-    {
-        name: 'শিশুতোষ',
-        slug: 'children',
-        description: 'ছোটদের জন্য বিশেষ গল্প',
-        icon: Baby,
-        color: 'from-green-500 to-lime-500',
-        count: 650
-    },
-    {
-        name: 'ঐতিহাসিক',
-        slug: 'historical',
-        description: 'ইতিহাসের পাতা থেকে',
-        icon: Clock,
-        color: 'from-amber-500 to-yellow-500',
-        count: 420
-    }
-];
+const iconMap: Record<string, any> = {
+    '❤️': Heart,
+    '👻': Ghost,
+    '🔍': Search,
+    '📜': BookOpen,
+    '👥': Users,
+    '😂': Laugh,
+    '🧸': Baby,
+    '🏛️': Clock,
+    '🚀': Rocket,
+};
+
+const colorMap: Record<string, string> = {
+    'romance': 'from-pink-500 to-rose-500',
+    'horror': 'from-purple-500 to-indigo-500',
+    'mystery': 'from-gray-500 to-slate-500',
+    'poetry': 'from-emerald-500 to-teal-500',
+    'social': 'from-blue-500 to-cyan-500',
+    'comedy': 'from-yellow-500 to-orange-500',
+    'children': 'from-green-500 to-lime-500',
+    'historical': 'from-amber-500 to-yellow-500',
+    'sci-fi': 'from-indigo-500 to-purple-500',
+};
 
 export default function CategoryShowcase() {
+    const [categories, setCategories] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await api.categories.getAll(true);
+                setCategories(response.data || []);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCategories();
+    }, []);
+
+    if (loading) {
+        return (
+            <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center py-12">
+                        <p className="text-gray-600 bengali-text">লোড হচ্ছে...</p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -87,7 +76,9 @@ export default function CategoryShowcase() {
                 {/* Categories Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {categories.map((category) => {
-                        const IconComponent = category.icon;
+                        const IconComponent = iconMap[category.icon] || BookOpen;
+                        const colorClass = colorMap[category.slug] || 'from-blue-500 to-cyan-500';
+                        
                         return (
                             <Link
                                 key={category.slug}
@@ -96,11 +87,11 @@ export default function CategoryShowcase() {
                             >
                                 <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1">
                                     {/* Header with gradient */}
-                                    <div className={`bg-gradient-to-r ${category.color} p-6 text-white`}>
+                                    <div className={`bg-gradient-to-r ${colorClass} p-6 text-white`}>
                                         <div className="flex items-center justify-between mb-2">
                                             <IconComponent className="w-8 h-8" />
                                             <span className="text-sm font-medium bg-white/20 px-2 py-1 rounded-full">
-                                                {category.count.toLocaleString()} টি
+                                                {(category.contentCount || 0).toLocaleString()} টি
                                             </span>
                                         </div>
                                         <h3 className="text-xl font-bold bengali-text">
