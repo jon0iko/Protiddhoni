@@ -9,12 +9,13 @@ const { authenticate } = require('../middleware/auth');
 
 // Public routes
 router.get('/:username', userController.getProfile);
-router.get('/:username/followers', userController.getFollowers);
-router.get('/:username/following', userController.getFollowing);
+router.get('/:userId/followers', userController.getFollowers);
+router.get('/:userId/following', userController.getFollowing);
+router.get('/:userId/content', userController.getContent);
 
 // Protected routes
-router.put('/profile', authenticate, userController.updateProfile);
-router.post('/:username/follow', authenticate, userController.follow);
-router.delete('/:username/follow', authenticate, userController.unfollow);
+router.put('/:userId', authenticate, userController.updateProfile);
+router.post('/:userId/follow', authenticate, userController.follow);
+router.post('/:userId/unfollow', authenticate, userController.unfollow);
 
 module.exports = router;

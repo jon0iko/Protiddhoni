@@ -34,11 +34,12 @@ app.get('/health', (req, res) => {
     });
 });
 
-// API routes will be mounted here
-// app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/content', require('./routes/content'));
-// app.use('/api/users', require('./routes/users'));
-// app.use('/api/reviews', require('./routes/reviews'));
+// API routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/content', require('./routes/content'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/categories', require('./routes/categories'));
 
 // 404 handler
 app.use((req, res) => {

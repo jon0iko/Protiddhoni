@@ -1,88 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ContentCard from '@/components/content/ContentCard';
-
-// Mock data - replace with actual data from API
-const featuredContent = [
-    {
-        id: '1',
-        title: 'অন্তরালের গল্প',
-        excerpt: 'একটি রহস্যময় প্রেমের গল্প যা আপনাকে মুগ্ধ করবে...',
-        author: 'রফিকুল ইসলাম',
-        slug: 'ontoraler-golpo',
-        category: 'প্রেমের গল্প',
-        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-        isPremium: false,
-        rating: 4.8,
-        views: 12500,
-        publishedAt: '২ দিন আগে',
-        readTime: '15 মিনিট',
-        status: 'completed',
-        chapters: 1,
-        tags: ['প্রেম', 'রহস্য'],
-        totalRatings: 250,
-        likes: 85
-    },
-    {
-        id: '2',
-        title: 'মায়ের চিঠি',
-        excerpt: 'একটি মর্মস্পর্শী গল্প যা প্রতিটি সন্তানের হৃদয় ছুঁয়ে যাবে...',
-        author: 'সুমিত্রা দেবী',
-        slug: 'mayer-chithi',
-        category: 'সামাজিক',
-        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-        isPremium: true,
-        rating: 4.9,
-        views: 8900,
-        publishedAt: '৫ দিন আগে',
-        readTime: '20 মিনিট',
-        status: 'completed',
-        chapters: 1,
-        tags: ['সামাজিক', 'পারিবারিক'],
-        totalRatings: 189,
-        likes: 156
-    },
-    {
-        id: '3',
-        title: 'রাতের নিঃশব্দতা',
-        excerpt: 'একটি ভৌতিক রহস্য যা আপনার রাতের ঘুম কেড়ে নেবে...',
-        author: 'মাহমুদুল হক',
-        slug: 'rater-nishobdota',
-        category: 'ভৌতিক',
-        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-        isPremium: false,
-        rating: 4.7,
-        views: 15600,
-        publishedAt: '১ সপ্তাহ আগে',
-        readTime: '25 মিনিট',
-        status: 'completed',
-        chapters: 1,
-        tags: ['ভৌতিক', 'রহস্য', 'রাত'],
-        totalRatings: 312,
-        likes: 203
-    },
-    {
-        id: '4',
-        title: 'বসন্তের কবিতা',
-        excerpt: 'প্রকৃতির সৌন্দর্য নিয়ে লেখা একটি মনোমুগ্ধকর কবিতা...',
-        author: 'নাসির উদ্দিন',
-        slug: 'boshonter-kobita',
-        category: 'কবিতা',
-        coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-        isPremium: false,
-        rating: 4.6,
-        views: 6700,
-        publishedAt: '৩ দিন আগে',
-        readTime: '5 মিনিট',
-        status: 'completed',
-        chapters: 1,
-        tags: ['কবিতা', 'প্রকৃতি', 'বসন্ত'],
-        totalRatings: 134,
-        likes: 78
-    }
-];
+import { api } from '@/lib/api';
 
 const categories = [
     { name: 'সবগুলো', slug: 'all', active: true },
@@ -94,14 +15,59 @@ const categories = [
 export default function FeaturedContent() {
     const [activeCategory, setActiveCategory] = useState('all');
     const [, setCurrentSlide] = useState(0);
+    const [contents, setContents] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchContent = async () => {
+            try {
+                setLoading(true);
+                const filters: any = { limit: 6 };
+                
+                if (activeCategory === 'premium') {
+                    filters.is_premium = 'true';
+                }
+                
+                const response = await api.content.getPublished(filters);
+                setContents(response.data || []);
+            } catch (error) {
+                console.error('Error fetching content:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchContent();
+    }, [activeCategory]);
 
     const nextSlide = () => {
-        setCurrentSlide((prev) => (prev + 1) % Math.ceil(featuredContent.length / 3));
+        setCurrentSlide((prev) => (prev + 1) % Math.ceil(contents.length / 3));
     };
 
     const prevSlide = () => {
-        setCurrentSlide((prev) => (prev - 1 + Math.ceil(featuredContent.length / 3)) % Math.ceil(featuredContent.length / 3));
+        setCurrentSlide((prev) => (prev - 1 + Math.ceil(contents.length / 3)) % Math.ceil(contents.length / 3));
     };
+
+    // Transform backend data to frontend format
+    const transformContent = (content: any) => ({
+        id: content.id,
+        title: content.title,
+        excerpt: content.excerpt || '',
+        author: content.author?.full_name || 'Unknown',
+        slug: content.slug,
+        category: content.category?.name || '',
+        coverImage: content.cover_image_url || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
+        isPremium: content.is_premium || false,
+        rating: content.stats?.averageRating || 0,
+        views: content.view_count || 0,
+        publishedAt: content.published_at ? new Date(content.published_at).toLocaleDateString('bn-BD') : '',
+        readTime: '15 মিনিট',
+        status: 'completed',
+        chapters: 1,
+        tags: [],
+        totalRatings: content.stats?.totalReviews || 0,
+        likes: 0
+    });
 
     return (
         <section className="py-16 bg-white">
@@ -134,32 +100,46 @@ export default function FeaturedContent() {
                 </div>
 
                 {/* Content Grid */}
-                <div className="relative">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        {featuredContent.map((content) => (
-                            <ContentCard
-                                key={content.id}
-                                story={content}
-                            />
-                        ))}
+                {loading ? (
+                    <div className="text-center py-12">
+                        <p className="text-gray-600 bengali-text">লোড হচ্ছে...</p>
                     </div>
+                ) : contents.length === 0 ? (
+                    <div className="text-center py-12">
+                        <p className="text-gray-600 bengali-text">কোন রচনা পাওয়া যায়নি</p>
+                    </div>
+                ) : (
+                    <div className="relative">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                            {contents.map((content) => (
+                                <ContentCard
+                                    key={content.id}
+                                    story={transformContent(content)}
+                                />
+                            ))}
+                        </div>
 
-                    {/* Navigation Arrows */}
-                    <button
-                        onClick={prevSlide}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-                        aria-label="Previous"
-                    >
-                        <ChevronLeft className="w-6 h-6 text-gray-600" />
-                    </button>
-                    <button
-                        onClick={nextSlide}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-                        aria-label="Next"
-                    >
-                        <ChevronRight className="w-6 h-6 text-gray-600" />
-                    </button>
-                </div>
+                        {/* Navigation Arrows */}
+                        {contents.length > 3 && (
+                            <>
+                                <button
+                                    onClick={prevSlide}
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
+                                    aria-label="Previous"
+                                >
+                                    <ChevronLeft className="w-6 h-6 text-gray-600" />
+                                </button>
+                                <button
+                                    onClick={nextSlide}
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
+                                    aria-label="Next"
+                                >
+                                    <ChevronRight className="w-6 h-6 text-gray-600" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 {/* View All Button */}
                 <div className="text-center">

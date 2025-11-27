@@ -1,5 +1,6 @@
 /**
  * Design Pattern: Observer
+ * Notification service for user events
  */
 
 const db = require('../config/database');
@@ -9,53 +10,164 @@ class NotificationService {
         this.observers = new Map();
     }
 
-    // Subscribe followers to an author
+    // Subscribe followers to an author (when user follows)
     async subscribe(authorId, followerId) {
-        // TODO: Implement subscription logic
+        if (!this.observers.has(authorId)) {
+            this.observers.set(authorId, new Set());
+        }
+        this.observers.get(authorId).add(followerId);
     }
 
-    // Unsubscribe follower from an author
+    // Unsubscribe follower from an author (when user unfollows)
     async unsubscribe(authorId, followerId) {
-        // TODO: Implement unsubscribe logic
+        if (this.observers.has(authorId)) {
+            this.observers.get(authorId).delete(followerId);
+        }
     }
 
-    // Notify all followers when author publishes
+    // Notify all followers when author publishes new content
     async notifyFollowers(authorId, content) {
-        // TODO: Implement notification logic
-        const { data: followers } = await db.getClient()
-            .from('follows')
-            .select('follower_id')
-            .eq('following_id', authorId);
+        try {
+            const { data: followers } = await db.getClient()
+                .from('follows')
+                .select('follower_id')
+                .eq('following_id', authorId);
 
-        if (!followers) return;
+            if (!followers || followers.length === 0) return;
 
-        const notifications = followers.map(f => ({
-            user_id: f.follower_id,
-            type: 'new_content',
-            title: 'New Content Published',
-            message: `New content: ${content.title}`,
-            related_entity_type: 'content',
-            related_entity_id: content.id
-        }));
+            const notifications = followers.map(f => ({
+                user_id: f.follower_id,
+                type: 'new_content',
+                title: 'নতুন লেখা প্রকাশিত',
+                message: `আপনার অনুসরণকৃত লেখক একটি নতুন লেখা প্রকাশ করেছেন: ${content.title}`,
+                related_entity_type: 'content',
+                related_entity_id: content.id
+            }));
 
-        await db.getClient()
-            .from('notifications')
-            .insert(notifications);
+            await db.getClient()
+                .from('notifications')
+                .insert(notifications);
+        } catch (error) {
+            console.error('Error notifying followers:', error);
+        }
     }
 
     // Notify author of new review
-    async notifyAuthorOfReview(authorId, review) {
-        // TODO: Implement review notification
+    async notifyAuthorOfReview(content, review) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: content.author_id,
+                    type: 'new_review',
+                    title: 'নতুন রিভিউ',
+                    message: `আপনার লেখা "${content.title}" তে নতুন রিভিউ এসেছে`,
+                    related_entity_type: 'review',
+                    related_entity_id: review.id
+                });
+        } catch (error) {
+            console.error('Error notifying author of review:', error);
+        }
     }
 
     // Notify author of content approval
-    async notifyContentApproved(authorId, content) {
-        // TODO: Implement approval notification
+    async notifyContentApproved(content) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: content.author_id,
+                    type: 'content_approved',
+                    title: 'লেখা অনুমোদিত হয়েছে',
+                    message: `আপনার লেখা "${content.title}" অনুমোদিত এবং প্রকাশিত হয়েছে`,
+                    related_entity_type: 'content',
+                    related_entity_id: content.id
+                });
+
+            // Also notify followers
+            await this.notifyFollowers(content.author_id, content);
+        } catch (error) {
+            console.error('Error notifying content approval:', error);
+        }
     }
 
     // Notify author of content rejection
-    async notifyContentRejected(authorId, content, reason) {
-        // TODO: Implement rejection notification
+    async notifyContentRejected(content) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: content.author_id,
+                    type: 'content_rejected',
+                    title: 'লেখা প্রত্যাখ্যাত হয়েছে',
+                    message: `আপনার লেখা "${content.title}" প্রত্যাখ্যাত হয়েছে। কারণ: ${content.rejection_reason}`,
+                    related_entity_type: 'content',
+                    related_entity_id: content.id
+                });
+        } catch (error) {
+            console.error('Error notifying content rejection:', error);
+        }
+    }
+
+    // Notify user of new follower
+    async notifyNewFollower(followedUserId, followerUser) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: followedUserId,
+                    type: 'new_follower',
+                    title: 'নতুন অনুসরণকারী',
+                    message: `${followerUser.full_name} আপনাকে অনুসরণ করতে শুরু করেছেন`,
+                    related_entity_type: 'user',
+                    related_entity_id: followerUser.id
+                });
+        } catch (error) {
+            console.error('Error notifying new follower:', error);
+        }
+    }
+
+    // Get user notifications
+    async getUserNotifications(userId, limit = 20) {
+        try {
+            const { data, error } = await db.getClient()
+                .from('notifications')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error getting notifications:', error);
+            return [];
+        }
+    }
+
+    // Mark notification as read
+    async markAsRead(notificationId) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', notificationId);
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+
+    // Mark all user notifications as read
+    async markAllAsRead(userId) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', userId)
+                .eq('is_read', false);
+        } catch (error) {
+            console.error('Error marking all notifications as read:', error);
+        }
     }
 }
 

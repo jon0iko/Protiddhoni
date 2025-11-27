@@ -38,33 +38,6 @@ export default function HeroSection() {
                             <span className="bengali-text">লেখা শুরু করুন</span>
                         </Link>
                     </div>
-
-                    {/* Stats */}
-                    {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <BookOpen className="w-8 h-8 text-blue-600" />
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-2">১,০০০+</h3>
-                            <p className="text-gray-600 bengali-text">প্রকাশিত গল্প ও কবিতা</p>
-                        </div>
-                        
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Users className="w-8 h-8 text-purple-600" />
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-2">৫০০+</h3>
-                            <p className="text-gray-600 bengali-text">সক্রিয় লেখক ও পাঠক</p>
-                        </div>
-                        
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Award className="w-8 h-8 text-green-600" />
-                            </div>
-                            <h3 className="text-3xl font-bold text-gray-900 mb-2">৫০+</h3>
-                            <p className="text-gray-600 bengali-text">পুরস্কারপ্রাপ্ত রচনা</p>
-                        </div>
-                    </div> */}
                 </div>
             </div>
 

@@ -9,11 +9,15 @@ const { authenticate } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
 
 // Public routes
+router.get('/search', contentController.advancedSearch);
 router.get('/published', contentController.getPublished);
+router.get('/category/:categorySlug', contentController.getByCategory);
+router.get('/author/:authorId', contentController.getByAuthor);
 router.get('/slug/:slug', contentController.getBySlug);
 router.get('/:id', contentController.getById);
 
 // User routes (authenticated)
+router.get('/my/drafts', authenticate, contentController.getMyDrafts);
 router.post('/', authenticate, contentController.create);
 router.put('/:id', authenticate, contentController.update);
 router.delete('/:id', authenticate, contentController.delete);
