@@ -228,6 +228,11 @@ export const api = {
         getContent: async (userId: string) => {
             const response = await fetch(`${API_URL}/api/users/${userId}/content`);
             return handleResponse(response);
+        },
+        
+        getSeries: async (userId: string) => {
+            const response = await fetch(`${API_URL}/api/users/${userId}/series`);
+            return handleResponse(response);
         }
     },
     
@@ -265,6 +270,59 @@ export const api = {
             const response = await fetch(`${API_URL}/api/reviews/${id}`, {
                 method: 'DELETE',
                 headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        }
+    },
+
+    // Bookmarks endpoints
+    bookmarks: {
+        getMyBookmarks: async (token: string) => {
+            const response = await fetch(`${API_URL}/api/bookmarks`, {
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        },
+
+        addBookmark: async (contentId: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/bookmarks`, {
+                method: 'POST',
+                headers: getHeaders(token),
+                body: JSON.stringify({ contentId })
+            });
+            return handleResponse(response);
+        },
+
+        removeBookmark: async (contentId: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/bookmarks/${contentId}`, {
+                method: 'DELETE',
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        },
+
+        checkBookmark: async (contentId: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/bookmarks/check/${contentId}`, {
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        }
+    },
+
+    // Reading Preferences endpoints
+    readingPreferences: {
+        getPreferences: async (token: string) => {
+            const response = await fetch(`${API_URL}/api/reading-preferences`, {
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        },
+
+        updatePreferences: async (data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/reading-preferences`, {
+                method: 'PUT',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
             });
             return handleResponse(response);
         }

@@ -47,7 +47,6 @@ exports.register = async (req, res) => {
             full_name: full_name || username,
             password_hash,
             is_admin: false,
-            is_verified: false,
             profile_picture_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
         };
 

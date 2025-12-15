@@ -12,6 +12,7 @@ router.get('/:username', userController.getProfile);
 router.get('/:userId/followers', userController.getFollowers);
 router.get('/:userId/following', userController.getFollowing);
 router.get('/:userId/content', userController.getContent);
+router.get('/:userId/series', userController.getSeries);
 
 // Protected routes
 router.put('/:userId', authenticate, userController.updateProfile);

@@ -1,384 +1,322 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 import { 
-  Save, 
-  Eye, 
-  Settings, 
-  ArrowLeft, 
-  Image, 
-  Bold, 
-  Italic, 
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
-  ListOrdered,
-  Quote,
-  Undo,
-  Redo,
-  Type,
-  Upload,
-  Globe,
-  Lock,
-  Users
-} from 'lucide-react';
+  Tiptap, 
+  EditorHeader, 
+  SaveDraftModal, 
+  DraftsListModal, 
+  PublishModal 
+} from '@/components/editor';
+import type { TiptapRef, Draft } from '@/components/editor/types';
+import { storage, countWordsInHtml } from '@/lib/utils';
+import { api } from '@/lib/api';
 
-interface StoryData {
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  coverImage: string;
-  status: 'draft' | 'published' | 'private';
-  language: string;
-}
-
-const categories = [
-  'গল্প', 'কবিতা', 'উপন্যাস', 'প্রবন্ধ', 'রহস্য', 'রোমান্স', 'ইতিহাস', 'বিজ্ঞান কল্পকাহিনী'
-];
-
-const languages = [
-  { code: 'bn', name: 'বাংলা' },
-  { code: 'en', name: 'English' }
-];
+// Storage key constants
+const STORAGE_KEYS = {
+  CONTENT: 'editor_content',
+  WORD_COUNT: 'editor_word_count',
+  DRAFT_ID: 'current_draft_id',
+  DRAFT_NAME: 'current_draft_name',
+} as const;
 
 export default function EditorPage() {
+  const { user, isLoading: authLoading, isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const storyType = searchParams.get('type') || 'short-story';
+  const tiptapRef = useRef<TiptapRef>(null);
   
-  const [storyData, setStoryData] = useState<StoryData>({
-    title: '',
-    content: '',
-    category: '',
-    tags: [],
-    coverImage: '',
-    status: 'draft',
-    language: 'bn'
-  });
-
-  const [showSettings, setShowSettings] = useState(false);
-  const [tagInput, setTagInput] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  // Editor state
   const [wordCount, setWordCount] = useState(0);
+  const [content, setContent] = useState('');
+  const [initialContent, setInitialContent] = useState('');
+  const [isPageReady, setIsPageReady] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Modal state
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showSaveDraftModal, setShowSaveDraftModal] = useState(false);
+  const [showDraftsListModal, setShowDraftsListModal] = useState(false);
+  
+  // Draft tracking
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [currentDraftName, setCurrentDraftName] = useState<string>('');
+  
+  // Loading states
+  const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    // Count words in content
-    const words = storyData.content.trim().split(/\s+/).filter(word => word.length > 0);
-    setWordCount(words.length);
-  }, [storyData.content]);
-
-  const handleSave = async (publish = false) => {
-    setIsSaving(true);
+  // Load a specific draft by ID
+  const loadDraftById = useCallback(async (draftId: string) => {
     try {
-      // Here you would typically save to your backend
-      const saveData = {
-        ...storyData,
-        status: publish ? 'published' : 'draft',
-        type: storyType,
-        lastSaved: new Date().toISOString()
-      };
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.content.getById(draftId);
+      const draft = response.data;
       
-      console.log('Saving story:', saveData);
-      
-      if (publish) {
-        alert('গল্প সফলভাবে প্রকাশিত হয়েছে!');
-      } else {
-        alert('খসড়া সংরক্ষিত হয়েছে!');
+      if (draft) {
+        setContent(draft.body || '');
+        setInitialContent(draft.body || '');
+        setCurrentDraftId(draft.id);
+        setCurrentDraftName(draft.title || '');
+        setWordCount(countWordsInHtml(draft.body || ''));
+        
+        // Update local storage
+        storage.set(user?.id, STORAGE_KEYS.CONTENT, draft.body || '');
+        storage.set(user?.id, STORAGE_KEYS.DRAFT_ID, draft.id);
+        storage.set(user?.id, STORAGE_KEYS.DRAFT_NAME, draft.title || '');
+        
+        // Update editor content
+        if (tiptapRef.current) {
+          tiptapRef.current.setContent(draft.body || '');
+        }
       }
     } catch (error) {
-      alert('সংরক্ষণে সমস্যা হয়েছে!');
+      console.error('Error loading draft:', error);
+    }
+  }, [user?.id]);
+  
+  // Load content from local storage on mount (user-specific)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !authLoading) {
+      const savedContent = storage.get(user?.id, STORAGE_KEYS.CONTENT) || '';
+      const savedWordCount = parseInt(storage.get(user?.id, STORAGE_KEYS.WORD_COUNT) || '0', 10);
+      const savedDraftId = storage.get(user?.id, STORAGE_KEYS.DRAFT_ID) || null;
+      const savedDraftName = storage.get(user?.id, STORAGE_KEYS.DRAFT_NAME) || '';
+      
+      // Check if we should load a specific draft from URL
+      const draftId = searchParams.get('draft');
+      if (draftId) {
+        loadDraftById(draftId);
+      } else {
+        setInitialContent(savedContent);
+        setContent(savedContent);
+        setWordCount(savedWordCount);
+        setCurrentDraftId(savedDraftId);
+        setCurrentDraftName(savedDraftName);
+      }
+      
+      setIsPageReady(true);
+    }
+  }, [user?.id, authLoading, searchParams, loadDraftById]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      router.push('/login?redirect=/write/editor');
+    }
+  }, [authLoading, isLoggedIn, router]);
+
+  // Handle content changes
+  const handleContentChange = useCallback((html: string) => {
+    setContent(html);
+    setHasUnsavedChanges(true);
+    
+    // Save to local storage immediately
+    if (typeof window !== 'undefined' && isPageReady) {
+      storage.set(user?.id, STORAGE_KEYS.CONTENT, html);
+    }
+  }, [user?.id, isPageReady]);
+
+  // Handle word count changes
+  const handleWordCountChange = useCallback((count: number) => {
+    setWordCount(count);
+    
+    // Save word count to localStorage
+    if (isPageReady && typeof window !== 'undefined') {
+      storage.set(user?.id, STORAGE_KEYS.WORD_COUNT, count.toString());
+    }
+  }, [user?.id, isPageReady]);
+
+  // Open save draft modal
+  const handleSaveDraft = useCallback(() => {
+    if (!content || content === '<p></p>') {
+      alert('কিছু লিখুন সংরক্ষণ করার আগে।');
+      return;
+    }
+    setShowSaveDraftModal(true);
+  }, [content]);
+
+  // Actually save the draft
+  const handleSaveDraftConfirm = useCallback(async (name: string) => {
+    if (!user?.id) {
+      throw new Error('লগইন করুন');
+    }
+
+    setIsSaving(true);
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) throw new Error('লগইন করুন');
+
+      if (currentDraftId) {
+        // Update existing draft
+        await api.content.update(currentDraftId, {
+          title: name,
+          body: content,
+        }, token);
+      } else {
+        // Create new draft
+        const response = await api.content.create({
+          title: name,
+          body: content,
+          content_type: 'story',
+          status: 'draft',
+        }, token);
+        
+        setCurrentDraftId(response.data.id);
+        storage.set(user?.id, STORAGE_KEYS.DRAFT_ID, response.data.id);
+      }
+      
+      setCurrentDraftName(name);
+      storage.set(user?.id, STORAGE_KEYS.DRAFT_NAME, name);
+      setHasUnsavedChanges(false);
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [user?.id, content, currentDraftId]);
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !storyData.tags.includes(tagInput.trim())) {
-      setStoryData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()]
-      }));
-      setTagInput('');
+  // Open drafts list modal
+  const handleViewDrafts = useCallback(() => {
+    setShowDraftsListModal(true);
+  }, []);
+
+  // Load a draft into the editor
+  const handleLoadDraft = useCallback((draft: Draft) => {
+    // Update state
+    setContent(draft.body);
+    setCurrentDraftId(draft.id);
+    setCurrentDraftName(draft.title);
+    setHasUnsavedChanges(false);
+    
+    // Calculate word count
+    const count = countWordsInHtml(draft.body);
+    setWordCount(count);
+    
+    // Save to local storage
+    if (typeof window !== 'undefined' && user?.id) {
+      storage.set(user?.id, STORAGE_KEYS.CONTENT, draft.body);
+      storage.set(user?.id, STORAGE_KEYS.WORD_COUNT, count.toString());
+      storage.set(user?.id, STORAGE_KEYS.DRAFT_ID, draft.id);
+      storage.set(user?.id, STORAGE_KEYS.DRAFT_NAME, draft.title);
     }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setStoryData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
-  const getStoryTypeTitle = () => {
-    switch (storyType) {
-      case 'short-story': return 'ছোটগল্প';
-      case 'novel': return 'উপন্যাস';
-      case 'poetry': return 'কবিতা';
-      case 'article': return 'প্রবন্ধ';
-      default: return 'লেখা';
+    
+    // Update the editor directly via ref
+    if (tiptapRef.current) {
+      tiptapRef.current.setContent(draft.body);
     }
-  };
+  }, [user?.id]);
+
+  // Open publish modal
+  const handlePublish = useCallback(() => {
+    if (!content || content === '<p></p>') {
+      alert('প্রকাশ করার আগে কিছু লিখুন।');
+      return;
+    }
+    setShowPublishModal(true);
+  }, [content]);
+
+  // Handle publish success
+  const handlePublishSuccess = useCallback(() => {
+    // Clear local storage
+    if (typeof window !== 'undefined' && user?.id) {
+      storage.remove(user?.id, STORAGE_KEYS.CONTENT);
+      storage.remove(user?.id, STORAGE_KEYS.WORD_COUNT);
+      storage.remove(user?.id, STORAGE_KEYS.DRAFT_ID);
+      storage.remove(user?.id, STORAGE_KEYS.DRAFT_NAME);
+    }
+    
+    // Reset editor
+    setContent('');
+    setWordCount(0);
+    setCurrentDraftId(null);
+    setCurrentDraftName('');
+    setHasUnsavedChanges(false);
+    
+    if (tiptapRef.current) {
+      tiptapRef.current.clearContent();
+    }
+    
+    // Navigate to write hub
+    router.push('/write');
+  }, [user?.id, router]);
+
+  // Handle draft deletion from modal
+  const handleDeleteDraft = useCallback((draftId: string) => {
+    if (draftId === currentDraftId) {
+      // Clear current draft if it's the one being deleted
+      setCurrentDraftId(null);
+      setCurrentDraftName('');
+      storage.remove(user?.id, STORAGE_KEYS.DRAFT_ID);
+      storage.remove(user?.id, STORAGE_KEYS.DRAFT_NAME);
+    }
+  }, [currentDraftId, user?.id]);
+
+  // Show loading screen while checking auth
+  if (authLoading || !isPageReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+          <p className="text-gray-500 bengali-text">লোড হচ্ছে...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Left side */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.back()}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900 bengali-text">
-                  {getStoryTypeTitle()} লিখুন
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {wordCount} শব্দ • {storyData.status === 'draft' ? 'খসড়া' : 'প্রকাশিত'}
-                </p>
-              </div>
-            </div>
+      <EditorHeader
+        wordCount={wordCount}
+        isSaving={isSaving}
+        hasUnsavedChanges={hasUnsavedChanges}
+        currentDraftName={currentDraftName}
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublish}
+        onViewDrafts={handleViewDrafts}
+      />
 
-            {/* Right side */}
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => handleSave(false)}
-                disabled={isSaving}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition-colors bengali-text disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                <span>{isSaving ? 'সংরক্ষণ...' : 'সংরক্ষণ'}</span>
-              </button>
-              <button
-                onClick={() => handleSave(true)}
-                disabled={isSaving || !storyData.title.trim() || !storyData.content.trim()}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors bengali-text disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Globe className="w-4 h-4" />
-                <span>প্রকাশ করুন</span>
-              </button>
-            </div>
-          </div>
+      {/* Editor Container */}
+      <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">
+        <div className="h-[calc(100vh-180px)]">
+          <Tiptap
+            ref={tiptapRef}
+            initialContent={initialContent}
+            onContentChange={handleContentChange}
+            onWordCountChange={handleWordCountChange}
+            placeholder="আপনার গল্প এখানে লিখুন..."
+          />
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Main Editor */}
-          <div className="flex-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Title Input */}
-              <div className="p-6 border-b border-gray-200">
-                <input
-                  type="text"
-                  placeholder="আপনার গল্পের শিরোনাম লিখুন..."
-                  value={storyData.title}
-                  onChange={(e) => setStoryData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none bengali-text resize-none"
-                />
-              </div>
+      {/* Save Draft Modal */}
+      <SaveDraftModal
+        isOpen={showSaveDraftModal}
+        onClose={() => setShowSaveDraftModal(false)}
+        onSave={handleSaveDraftConfirm}
+        defaultName={currentDraftName}
+        isUpdate={!!currentDraftId}
+      />
 
-              {/* Toolbar */}
-              <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1 border-r border-gray-300 pr-3 mr-3">
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <Bold className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <Italic className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <Underline className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center space-x-1 border-r border-gray-300 pr-3 mr-3">
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <AlignLeft className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <AlignCenter className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <AlignRight className="w-4 h-4" />
-                    </button>
-                  </div>
+      {/* Drafts List Modal */}
+      <DraftsListModal
+        isOpen={showDraftsListModal}
+        onClose={() => setShowDraftsListModal(false)}
+        onLoadDraft={handleLoadDraft}
+        onDeleteDraft={handleDeleteDraft}
+      />
 
-                  <div className="flex items-center space-x-1 border-r border-gray-300 pr-3 mr-3">
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <List className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <ListOrdered className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                      <Quote className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors">
-                    <Image className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Content Editor */}
-              <div className="p-6">
-                <textarea
-                  placeholder="আপনার গল্প এখানে লিখুন..."
-                  value={storyData.content}
-                  onChange={(e) => setStoryData(prev => ({ ...prev, content: e.target.value }))}
-                  className="w-full h-96 text-lg text-gray-900 placeholder-gray-400 border-none outline-none resize-none bengali-text leading-relaxed"
-                  style={{ minHeight: '500px' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Settings Sidebar */}
-          {showSettings && (
-            <div className="w-80">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 bengali-text">
-                  গল্পের বিবরণ
-                </h3>
-
-                {/* Category */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
-                    বিভাগ
-                  </label>
-                  <select
-                    value={storyData.category}
-                    onChange={(e) => setStoryData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
-                  >
-                    <option value="">বিভাগ নির্বাচন করুন</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Tags */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
-                    ট্যাগ
-                  </label>
-                  <div className="flex space-x-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="ট্যাগ যোগ করুন"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                      className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
-                    />
-                    <button
-                      onClick={handleAddTag}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {storyData.tags.map(tag => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full bengali-text"
-                      >
-                        {tag}
-                        <button
-                          onClick={() => handleRemoveTag(tag)}
-                          className="ml-2 text-blue-600 hover:text-blue-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Language */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
-                    ভাষা
-                  </label>
-                  <select
-                    value={storyData.language}
-                    onChange={(e) => setStoryData(prev => ({ ...prev, language: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
-                  >
-                    {languages.map(lang => (
-                      <option key={lang.code} value={lang.code}>{lang.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Status */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
-                    প্রকাশনার অবস্থা
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="status"
-                        value="draft"
-                        checked={storyData.status === 'draft'}
-                        onChange={(e) => setStoryData(prev => ({ ...prev, status: e.target.value as any }))}
-                        className="mr-3"
-                      />
-                      <span className="bengali-text">খসড়া</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="status"
-                        value="private"
-                        checked={storyData.status === 'private'}
-                        onChange={(e) => setStoryData(prev => ({ ...prev, status: e.target.value as any }))}
-                        className="mr-3"
-                      />
-                      <span className="bengali-text">ব্যক্তিগত</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Cover Image */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
-                    কভার ছবি
-                  </label>
-                  <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                    <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 bengali-text">ছবি আপলোড করুন</p>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Publish Modal */}
+      <PublishModal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        content={content}
+        onPublishSuccess={handlePublishSuccess}
+      />
     </div>
   );
 }

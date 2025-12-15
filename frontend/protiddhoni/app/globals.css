@@ -48,6 +48,10 @@ body {
   letter-spacing: 0.02em;
 }
 
+.prose {
+  color: var(--background);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

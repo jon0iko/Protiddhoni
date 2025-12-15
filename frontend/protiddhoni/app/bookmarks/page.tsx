@@ -1,85 +1,70 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bookmark, Clock, Eye, Star, Search, Filter, Trash2, BookOpen } from 'lucide-react';
+import { Bookmark, Trash2, BookOpen, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-
-// Mock data
-const getBookmarks = () => ([
-  {
-    id: '1',
-    story: {
-      id: '1',
-      title: 'শান্তরী',
-      author: 'মেঘবর্ণ',
-      coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=300&fit=crop',
-      category: 'অনুপ্রেরণামূলক',
-      rating: 4.8,
-      views: '895K+'
-    },
-    chapter: {
-      id: 3,
-      title: 'শান্তরী ( পর্ব - তিন )',
-      progress: 75
-    },
-    bookmarkedAt: '২ দিন আগে',
-    lastRead: '১ দিন আগে'
-  },
-  {
-    id: '2',
-    story: {
-      id: '2',
-      title: 'অনন্ত প্রেমের গল্প',
-      author: 'তানিয়া রহমান',
-      coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=300&fit=crop',
-      category: 'রোমান্স',
-      rating: 4.6,
-      views: '234K+'
-    },
-    chapter: {
-      id: 1,
-      title: 'প্রথম সাক্ষাৎ',
-      progress: 100
-    },
-    bookmarkedAt: '১ সপ্তাহ আগে',
-    lastRead: '৩ দিন আগে'
-  },
-  {
-    id: '3',
-    story: {
-      id: '3',
-      title: 'রহস্যময় রাত্রি',
-      author: 'আকাশ চৌধুরী',
-      coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=200&h=300&fit=crop',
-      category: 'রহস্য',
-      rating: 4.9,
-      views: '567K+'
-    },
-    chapter: {
-      id: 5,
-      title: 'গুপ্ত সংকেত',
-      progress: 30
-    },
-    bookmarkedAt: '৩ দিন আগে',
-    lastRead: '২ দিন আগে'
-  }
-]);
+import { api } from '@/lib/api';
+import ContentCard from '@/components/content/ContentCard';
 
 export default function BookmarksPage() {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, isLoading, user } = useAuth();
+  const router = useRouter();
   const [bookmarks, setBookmarks] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('recent');
-  const [filterBy, setFilterBy] = useState('all');
-  const [selectedBookmarks, setSelectedBookmarks] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      const bookmarkData = getBookmarks();
-      setBookmarks(bookmarkData);
+    if (!isLoading && !isLoggedIn) {
+      router.push('/login?redirect=/bookmarks');
+    } else if (isLoggedIn) {
+      loadBookmarks();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isLoading]);
+
+  const loadBookmarks = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await api.bookmarks.getMyBookmarks(token);
+      if (response.success) {
+        setBookmarks(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading bookmarks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveBookmark = async (contentId: string) => {
+    if (!confirm('এই বুকমার্কটি মুছে ফেলতে চান?')) return;
+
+    setDeleting(contentId);
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      await api.bookmarks.removeBookmark(contentId, token);
+      setBookmarks(bookmarks.filter(b => b.content_id !== contentId));
+    } catch (error) {
+      console.error('Error removing bookmark:', error);
+      alert('বুকমার্ক মুছতে সমস্যা হয়েছে।');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  if (isLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -102,6 +87,55 @@ export default function BookmarksPage() {
       </div>
     );
   }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">বুকমার্ক</h1>
+          <p className="text-gray-600">{bookmarks.length}টি সংরক্ষিত রচনা</p>
+        </div>
+
+        {/* Bookmarks Grid */}
+        {bookmarks.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+            <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">কোনো বুকমার্ক নেই</h3>
+            <p className="text-gray-500 mb-6">
+              আপনার পছন্দের রচনা বুকমার্ক করুন এবং সহজে খুঁজে পান
+            </p>
+            <Link
+              href="/"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              রচনা খুঁজুন
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {bookmarks.map((bookmark) => (
+              <div key={bookmark.id} className="relative">
+                <ContentCard content={bookmark.content} />
+                <button
+                  onClick={() => handleRemoveBookmark(bookmark.content_id)}
+                  disabled={deleting === bookmark.content_id}
+                  className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-lg hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50"
+                  title="বুকমার্ক মুছুন"
+                >
+                  {deleting === bookmark.content_id ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
   const filteredBookmarks = bookmarks.filter(bookmark => {
     const matchesSearch = bookmark.story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

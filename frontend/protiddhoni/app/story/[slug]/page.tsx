@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Star, 
@@ -9,399 +9,279 @@ import {
   Eye, 
   BookOpen, 
   Heart, 
-  Share2, 
-  Download,
-  Play,
-  Lock,
+  Share2,
+  Loader2,
   Calendar,
   Tag
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
-// Mock story data based on slug
-const getStoryData = (slug: string) => {
-  const stories: { [key: string]: any } = {
-    'ontoraler-golpo': {
-      id: '1',
-      title: 'অন্তরালের গল্প',
-      subtitle: 'Bengali Love Story',
-      category: 'প্রেমের গল্প',
-    },
-    'mayer-chithi': {
-      id: '2',
-      title: 'মায়ের চিঠি',
-      subtitle: 'Bengali Emotional Story',
-      category: 'সামাজিক',
-    },
-    'rater-nishobdota': {
-      id: '3',
-      title: 'রাতের নিঃশব্দতা',
-      subtitle: 'Bengali Horror Story',
-      category: 'ভৌতিক',
-    },
-    'boshonter-kobita': {
-      id: '4',
-      title: 'বসন্তের কবিতা',
-      subtitle: 'Bengali Poetry',
-      category: 'কবিতা',
-    }
-  };
-
-  const storyData = stories[slug] || {
-    id: '1',
-    title: 'শান্তরী',
-    subtitle: 'Bengali Love Story',
-    category: 'অনুপ্রেরণামূলক',
-  };
-
-  return {
-    ...storyData,
-    author: {
-      name: 'মেঘবর্ণ',
-      followers: '16K',
-      avatar: 'https://ui-avatars.com/api/?name=মেঘবর্ণ&background=4F46E5&color=fff'
-    },
-    coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-    description: 'দেশের নামকরা নিউজ চ্যানেলগুলোতে রেগুলার নিউজ হিসেবে একটা খবর বারবার দেখানো হচ্ছে, "বিদেশে মাত্রিত্বে অনুষ্ঠিত আন্তর্জাতিক টুর্নামেন্ট উদঘাটন কালে প্রথমবার অংশগ্রহণ করার সুযোগ পেয়ে দমদম এয়ারপোর্ট ..."',
-  rating: 4.9,
-  totalRatings: 69000,
-  readTime: '22 ঘন্টা',
-  views: '895979+',
-  publishDate: '29 ডিসেম্বর 2022',
-  totalChapters: 6,
-  status: 'সম্পূর্ণ',
-  tags: ['প্রেম', 'জীবনবোধ', 'সমাজ', 'অনুপ্রেরণা'],
-  chapters: [
-    {
-      id: 1,
-      title: 'শান্তরী',
-      views: '7K+',
-      rating: 4.8,
-      readTime: '5 মিনিট',
-      publishDate: '29 ডিসেম্বর 2022',
-      isLocked: false
-    },
-    {
-      id: 2,
-      title: 'শান্তরী ( পর্ব - দুই )',
-      views: '4K+',
-      rating: 4.9,
-      readTime: '6 মিনিট',
-      publishDate: '31 ডিসেম্বর 2022',
-      isLocked: false
-    },
-    {
-      id: 3,
-      title: 'শান্তরী ( পর্ব - তিন )',
-      views: '4K+',
-      rating: 4.8,
-      readTime: '6 মিনিট',
-      publishDate: '01 জানুয়ারী 2023',
-      isLocked: false
-    },
-    {
-      id: 4,
-      title: 'শান্তরী ( পর্ব - চার )',
-      views: '3K+',
-      rating: 4.7,
-      readTime: '5 মিনিট',
-      publishDate: '03 জানুয়ারী 2023',
-      isLocked: true,
-      lockMessage: 'পর্বটি পড়ার জন্য প্রিমিয়াম অ্যাপ ডাউনলোড করুন'
-    },
-    {
-      id: 5,
-      title: 'শান্তরী ( পর্ব - পাঁচ )',
-      views: '2K+',
-      rating: 4.6,
-      readTime: '7 মিনিট',
-      publishDate: '05 জানুয়ারী 2023',
-      isLocked: true,
-      lockMessage: 'পর্বটি পড়ার জন্য প্রিমিয়াম অ্যাপ ডাউনলোড করুন'
-    },
-    {
-      id: 6,
-      title: 'শান্তরী ( পর্ব - ছয় )',
-      views: '1K+',
-      rating: 4.5,
-      readTime: '8 মিনিট',
-      publishDate: '07 জানুয়ারী 2023',
-      isLocked: true,
-      lockMessage: 'পর্বটি পড়ার জন্য প্রিমিয়াম অ্যাপ ডাউনলোড করুন'
-    }
-  ]
-  };
-};
-
-export default function StoryOverviewPage() {
+export default function StoryPage() {
   const params = useParams();
+  const router = useRouter();
   const { isLoggedIn } = useAuth();
-  const [story, setStory] = useState<any>(null);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const slug = params.slug as string;
+
+  const [content, setContent] = useState<any>(null);
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storyData = getStoryData(params.slug as string);
-    setStory(storyData);
-  }, [params.slug]);
+    loadStoryData();
+  }, [slug]);
 
-  if (!story) {
+  const loadStoryData = async () => {
+    setLoading(true);
+    try {
+      const response = await api.content.getBySlug(slug);
+      if (response.success) {
+        setContent(response.data);
+        
+        // If it's a series, load all chapters
+        if (response.data.series_id) {
+          const seriesRes = await api.content.getPublished({
+            series_id: response.data.series_id
+          });
+          if (seriesRes.success) {
+            setChapters(seriesRes.data || []);
+          }
+        }
+      } else {
+        router.push('/404');
+      }
+    } catch (error) {
+      console.error('Error loading story:', error);
+      router.push('/404');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
+  if (!content) return null;
+
+  const authorName = content.author?.full_name || content.author?.username || 'Unknown Author';
+  const categoryName = content.category?.name || 'General';
+
+  const toggleBookmark = async () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const isBookmarked = await api.bookmarks.checkBookmark(content.id);
+      if (isBookmarked.isBookmarked) {
+        await api.bookmarks.removeBookmark(content.id);
+      } else {
+        await api.bookmarks.addBookmark(content.id);
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
   };
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-  };
-
-  const handleShare = () => {
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({
-        title: story.title,
-        text: story.description,
-        url: window.location.href,
-      });
+      try {
+        await navigator.share({
+          title: content.title,
+          text: content.excerpt,
+          url: window.location.href
+        });
+      } catch (error) {
+        console.log('Share cancelled');
+      }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('লিংক কপি করা হয়েছে!');
+      alert('লিংক কপি হয়েছে!');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-800 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Story Cover */}
-            <div className="lg:col-span-1">
-              <div className="relative">
-                <img
-                  src={story.coverImage}
-                  alt={story.title}
-                  className="w-full max-w-sm mx-auto rounded-2xl shadow-2xl"
-                />
-                <div className="absolute top-4 right-4">
-                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                    {story.status}
-                  </span>
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
+        <div className="max-w-5xl mx-auto px-4">
+          <Link 
+            href="/"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors"
+          >
+            <span className="bengali-text">← ফিরে যান</span>
+          </Link>
+
+          <div className="flex items-start gap-2 mb-4">
+            <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm bengali-text">
+              {categoryName}
+            </span>
+            {content.is_premium && (
+              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 px-3 py-1 rounded-full text-sm font-semibold">
+                Premium
+              </span>
+            )}
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bengali-text leading-tight">
+            {content.title}
+          </h1>
+
+          {content.excerpt && (
+            <p className="text-xl text-white/90 mb-6 bengali-text leading-relaxed">
+              {content.excerpt}
+            </p>
+          )}
+
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-lg font-semibold">
+              {authorName.charAt(0).toUpperCase()}
             </div>
-
-            {/* Story Details */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Title and Category */}
-              <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <Tag className="h-4 w-4 text-blue-200" />
-                  <span className="text-blue-100 text-sm">{story.category}</span>
-                </div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 bengali-text">
-                  {story.title}
-                </h1>
-                <p className="text-xl text-blue-100 bengali-text">{story.subtitle}</p>
-              </div>
-
-              {/* Author Info */}
-              <div className="flex items-center space-x-4">
-                <img
-                  src={story.author.avatar}
-                  alt={story.author.name}
-                  className="w-12 h-12 rounded-full border-2 border-white/20"
-                />
-                <div>
-                  <h3 className="font-semibold bengali-text">{story.author.name}</h3>
-                  <p className="text-blue-100 text-sm bengali-text">
-                    {story.author.followers} অনুসরণকারী
-                  </p>
-                </div>
-                <button className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-colors bengali-text">
-                  অনুসরণ
-                </button>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-1 mb-1">
-                    <Star className="h-5 w-5 text-yellow-400" fill="currentColor" />
-                    <span className="text-2xl font-bold">{story.rating}</span>
-                  </div>
-                  <p className="text-blue-100 text-sm bengali-text">
-                    ({story.totalRatings.toLocaleString()})
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-1 mb-1">
-                    <Clock className="h-5 w-5 text-blue-200" />
-                    <span className="text-lg font-semibold bengali-text">{story.readTime}</span>
-                  </div>
-                  <p className="text-blue-100 text-sm bengali-text">পঠন সময়</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-1 mb-1">
-                    <Eye className="h-5 w-5 text-blue-200" />
-                    <span className="text-lg font-semibold">{story.views}</span>
-                  </div>
-                  <p className="text-blue-100 text-sm bengali-text">পাঠকসংখ্যা</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center space-x-1 mb-1">
-                    <BookOpen className="h-5 w-5 text-blue-200" />
-                    <span className="text-lg font-semibold">{story.totalChapters}</span>
-                  </div>
-                  <p className="text-blue-100 text-sm bengali-text">অধ্যায়</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  href={`/story/${story.id}/chapter/1`}
-                  className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-medium transition-colors bengali-text"
-                >
-                  <Play className="h-5 w-5" />
-                  <span>এখন পড়ুন</span>
-                </Link>
-                
-                <button
-                  onClick={handleBookmark}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    isBookmarked 
-                      ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                      : 'bg-white/20 hover:bg-white/30'
-                  }`}
-                >
-                  <BookOpen className="h-5 w-5" />
-                </button>
-
-                <button
-                  onClick={handleLike}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    isLiked 
-                      ? 'bg-red-500 hover:bg-red-600 text-white' 
-                      : 'bg-white/20 hover:bg-white/30'
-                  }`}
-                >
-                  <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
-                </button>
-
-                <button
-                  onClick={handleShare}
-                  className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 px-4 py-3 rounded-lg font-medium transition-colors"
-                >
-                  <Share2 className="h-5 w-5" />
-                </button>
-
-                <button className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 px-4 py-3 rounded-lg font-medium transition-colors">
-                  <Download className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2">
-                {story.tags.map((tag: string, index: number) => (
-                  <span
-                    key={index}
-                    className="bg-white/20 px-3 py-1 rounded-full text-sm bengali-text"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
+            <div>
+              <p className="font-medium bengali-text">{authorName}</p>
+              <p className="text-white/70 text-sm">
+                {content.published_at && new Date(content.published_at).toLocaleDateString('bn-BD')}
+              </p>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6 text-white/90">
+            <div className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              <span>{content.view_count?.toLocaleString() || 0} বার পড়া হয়েছে</span>
+            </div>
+            {chapters.length > 0 && (
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                <span className="bengali-text">{chapters.length} টি পর্ব</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <Link
+              href={`/read/${slug}`}
+              className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 bengali-text"
+            >
+              <BookOpen className="w-5 h-5" />
+              পড়া শুরু করুন
+            </Link>
+            <button
+              onClick={toggleBookmark}
+              className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <BookOpen className="w-5 h-5" />
+              সেভ করুন
+            </button>
+            <button
+              onClick={handleShare}
+              className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Story Description */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 bengali-text">গল্পের বিবরণ</h2>
-          <p className="text-gray-700 leading-relaxed bengali-text text-lg">
-            {story.description}
-          </p>
-          <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
-            <div className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
-              <span className="bengali-text">প্রকাশিত: {story.publishDate}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Chapters List */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 bengali-text">Chapters</h2>
-          </div>
-          
-          <div className="divide-y divide-gray-200">
-            {story.chapters.map((chapter: any, index: number) => (
-              <div key={chapter.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4">
-                      <span className="text-2xl font-bold text-gray-400 w-8">
-                        {chapter.id}.
-                      </span>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 bengali-text mb-1">
-                          {chapter.title}
-                        </h3>
-                        {chapter.isLocked && (
-                          <p className="text-sm text-orange-600 bengali-text mb-2">
-                            {chapter.lockMessage}
-                          </p>
+      <div className="max-w-5xl mx-auto px-4 py-12">
+        {chapters.length > 0 ? (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 bengali-text">
+              সমস্ত পর্ব ({chapters.length})
+            </h2>
+            <div className="space-y-4">
+              {chapters.map((chapter, index) => (
+                <Link
+                  key={chapter.id}
+                  href={`/read/${chapter.slug}`}
+                  className="block bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-6 border border-gray-100 hover:border-blue-200 group"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                          পর্ব {chapter.chapter_number || index + 1}
+                        </span>
+                        {chapter.is_premium && (
+                          <span className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                            Premium
+                          </span>
                         )}
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center space-x-1">
-                            <Eye className="h-4 w-4" />
-                            <span>{chapter.views}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Star className="h-4 w-4 text-yellow-500" />
-                            <span>{chapter.rating}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Clock className="h-4 w-4" />
-                            <span className="bengali-text">{chapter.readTime}</span>
-                          </div>
-                          <span className="bengali-text">{chapter.publishDate}</span>
-                        </div>
                       </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 bengali-text group-hover:text-blue-600 transition-colors">
+                        {chapter.title}
+                      </h3>
+                      {chapter.excerpt && (
+                        <p className="text-gray-600 bengali-text line-clamp-2">
+                          {chapter.excerpt}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2 text-sm text-gray-500">
+                      {chapter.view_count > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-4 h-4" />
+                          <span>{chapter.view_count.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {chapter.published_at && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{new Date(chapter.published_at).toLocaleDateString('bn-BD')}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  <div className="ml-4">
-                    {chapter.isLocked ? (
-                      <div className="flex items-center space-x-2 text-orange-600">
-                        <Lock className="h-5 w-5" />
-                        <span className="text-sm font-medium bengali-text">প্রিমিয়াম</span>
-                      </div>
-                    ) : (
-                      <Link
-                        href={`/story/${story.id}/chapter/${chapter.id}`}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors bengali-text flex items-center space-x-2"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        <span>পড়ুন</span>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md p-8 border border-gray-100">
+            <div 
+              className="prose max-w-none bengali-text"
+              dangerouslySetInnerHTML={{ __html: content.content_body || content.excerpt || '' }}
+            />
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <Link
+                href={`/read/${slug}`}
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors bengali-text"
+              >
+                <BookOpen className="w-5 h-5" />
+                সম্পূর্ণ পড়ুন
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-12 bg-white rounded-xl shadow-md p-8 border border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 bengali-text">লেখক সম্পর্কে</h3>
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold flex-shrink-0">
+              {authorName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <h4 className="text-lg font-bold text-gray-900 bengali-text mb-1">{authorName}</h4>
+              {content.author?.bio && (
+                <p className="text-gray-600 bengali-text mb-3">{content.author.bio}</p>
+              )}
+              <Link
+                href={`/profile/${content.author?.username}`}
+                className="text-blue-600 hover:text-blue-700 font-medium bengali-text"
+              >
+                প্রোফাইল দেখুন →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+

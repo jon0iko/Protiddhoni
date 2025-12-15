@@ -1,0 +1,395 @@
+/* TipTap Editor Styles for Protiddhoni */
+
+/* Hide scrollbar for toolbar on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.ProseMirror {
+  outline: none;
+  padding: 1.5rem;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling for editor */
+.ProseMirror::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ProseMirror::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Firefox scrollbar */
+.ProseMirror {
+  scrollbar-color: #94a3b8 transparent;
+  scrollbar-width: thin;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+
+/* Paragraph text styling with Bengali support */
+.ProseMirror p {
+  font-size: 1.10rem;
+  line-height: 1.8;
+  font-family: var(--font-kalpurush), serif;
+}
+
+/* Bengali Text Styling */
+.ProseMirror span[data-bengali] {
+  font-family: var(--font-kalpurush), 'Kalpurush', sans-serif;
+  font-size: 1.25rem;
+}
+
+/* Default font family for editor */
+.ProseMirror {
+  font-family: var(--font-kalpurush), 'Kalpurush', 'Noto Sans Bengali', serif;
+}
+
+/* Better line-height for Bengali script readability */
+.ProseMirror p,
+.ProseMirror li,
+.ProseMirror blockquote {
+  line-height: 1.8;
+}
+
+/* Bengali script specific styling */
+.ProseMirror :lang(bn),
+.ProseMirror [lang="bn"],
+.ProseMirror [lang="bn-BD"] {
+  font-family: var(--font-kalpurush), 'Kalpurush', 'Noto Sans Bengali', sans-serif;
+  font-size: 1.25em;
+  line-height: 1.8;
+}
+
+/* Headings */
+.ProseMirror h1 {
+  font-size: 2.25em;
+  line-height: 1.2;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+}
+
+.ProseMirror h2 {
+  font-size: 1.875em;
+  line-height: 1.3;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+}
+
+.ProseMirror h3 {
+  font-size: 1.5em;
+  line-height: 1.4;
+  margin-bottom: 0.3em;
+  font-weight: 600;
+}
+
+.ProseMirror h4 {
+  font-size: 1.25em;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+/* Lists */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+/* Blockquote */
+.ProseMirror blockquote {
+  border-left: 4px solid #2563eb;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #64748b;
+}
+
+/* Code */
+.ProseMirror code {
+  background-color: #f1f5f9;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.3rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+.ProseMirror pre {
+  background-color: #f1f5f9;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875em;
+  color: inherit;
+}
+
+/* Links */
+.ProseMirror a {
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ProseMirror a:hover {
+  opacity: 0.8;
+}
+
+/* Images */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  display: block;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid #2563eb;
+}
+
+/* Horizontal Rule */
+.ProseMirror hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 2rem 0;
+}
+
+/* Tables */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: auto;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 2px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror th {
+  font-weight: 700;
+  text-align: left;
+  background-color: #f8fafc;
+}
+
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(37, 99, 235, 0.1);
+  pointer-events: none;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #2563eb;
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+/* Highlight */
+.ProseMirror mark {
+  background-color: #fef08a;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0;
+}
+
+/* Text Alignment */
+.ProseMirror .has-text-align-left,
+.ProseMirror [style*="text-align: left"] {
+  text-align: left;
+}
+
+.ProseMirror .has-text-align-center,
+.ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.ProseMirror .has-text-align-right,
+.ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+.ProseMirror .has-text-align-justify,
+.ProseMirror [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* Empty editor placeholder */
+.ProseMirror.is-editor-empty::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* Image with caption styles */
+.ProseMirror figure[data-image-caption] {
+  margin: 1.5rem auto;
+}
+
+.ProseMirror figure[data-image-caption] img {
+  border-radius: 0.5rem;
+  margin: 0;
+}
+
+.ProseMirror figure[data-image-caption] figcaption {
+  text-align: center;
+  font-style: italic;
+  color: #64748b;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Focus */
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Selection */
+.ProseMirror-selectednode {
+  outline: 3px solid #2563eb;
+  border-radius: 0.25rem;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .ProseMirror {
+    color: #f1f5f9;
+  }
+
+  .ProseMirror blockquote {
+    border-left-color: #3b82f6;
+    color: #94a3b8;
+  }
+
+  .ProseMirror code {
+    background-color: #1e293b;
+  }
+
+  .ProseMirror pre {
+    background-color: #1e293b;
+  }
+
+  .ProseMirror th {
+    background-color: #1e293b;
+  }
+
+  .ProseMirror td,
+  .ProseMirror th {
+    border-color: #334155;
+  }
+
+  .ProseMirror hr {
+    border-top-color: #334155;
+  }
+
+  .ProseMirror mark {
+    background-color: #854d0e;
+    color: #fef08a;
+  }
+
+  .ProseMirror::-webkit-scrollbar-thumb {
+    background: #64748b;
+  }
+
+  .ProseMirror::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .ProseMirror {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  .ProseMirror h1 {
+    font-size: 1.875em;
+  }
+  
+  .ProseMirror h2 {
+    font-size: 1.625em;
+  }
+  
+  .ProseMirror h3 {
+    font-size: 1.375em;
+  }
+}

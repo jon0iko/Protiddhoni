@@ -1,21 +1,27 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { api } from '@/lib/api';
 
 interface User {
   id: string;
-  name: string;
+  username: string;
+  full_name: string;
   email: string;
-  avatar?: string;
+  bio?: string;
+  profile_picture_url?: string;
+  is_admin?: boolean;
+  is_verified?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  register: (fullName: string, username: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   isLoggedIn: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing auth token on mount
     checkAuthStatus();
   }, []);
 
@@ -33,15 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('auth_token');
-        const userData = localStorage.getItem('user_data');
         
-        if (token && userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
+        if (token) {
+          // Fetch user profile from API
+          const response = await api.auth.getProfile(token);
+          setUser(response.data);
         }
       }
     } catch (error) {
       console.error('Auth check error:', error);
+      // Clear invalid token
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -49,60 +58,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.auth.login({ email, password });
       
-      // Mock user data
-      const userData = {
-        id: Date.now().toString(),
-        name: email.split('@')[0],
-        email,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split('@')[0])}&background=random`
-      };
-      
-      // Store auth data
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', 'dummy_token_' + Date.now());
-        localStorage.setItem('user_data', JSON.stringify(userData));
+      if (response.success && response.data) {
+        const { token, user: userData } = response.data;
+        
+        // Store auth data
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('auth_token', token);
+        }
+        
+        setUser(userData);
+      } else {
+        throw new Error(response.error || 'লগইন করতে সমস্যা হয়েছে');
       }
-      
-      setUser(userData);
-    } catch (error) {
-      throw new Error('লগইন করতে সমস্যা হয়েছে');
+    } catch (error: any) {
+      throw new Error(error.message || 'লগইন করতে সমস্যা হয়েছে');
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (fullName: string, username: string, email: string, password: string) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await api.auth.register({ 
+        full_name: fullName,
+        username,
+        email, 
+        password 
+      });
       
-      // Mock user data
-      const userData = {
-        id: Date.now().toString(),
-        name,
-        email,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
-      };
-      
-      // Store auth data
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', 'dummy_token_' + Date.now());
-        localStorage.setItem('user_data', JSON.stringify(userData));
+      if (response.success && response.data) {
+        const { token, user: userData } = response.data;
+        
+        // Store auth data
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('auth_token', token);
+        }
+        
+        setUser(userData);
+      } else {
+        throw new Error(response.error || 'নিবন্ধন করতে সমস্যা হয়েছে');
       }
-      
-      setUser(userData);
-    } catch (error) {
-      throw new Error('নিবন্ধন করতে সমস্যা হয়েছে');
+    } catch (error: any) {
+      throw new Error(error.message || 'নিবন্ধন করতে সমস্যা হয়েছে');
     }
   };
 
-  const logout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        await api.auth.logout(token);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+      }
+      setUser(null);
     }
-    setUser(null);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        const response = await api.auth.getProfile(token);
+        setUser(response.data);
+      }
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
   };
 
   const value: AuthContextType = {
@@ -112,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     isLoggedIn: !!user,
+    refreshUser,
   };
 
   return (

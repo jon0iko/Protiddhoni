@@ -1,103 +1,118 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft,
-  Filter,
-  SlidersHorizontal,
-  Search,
-  Grid,
-  List,
-  Star,
-  Eye,
-  Clock,
-  BookOpen,
-  TrendingUp,
-  Heart,
-  Users,
-  Calendar,
-  Tag,
-  ChevronDown,
-  X
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 import ContentCard from '@/components/content/ContentCard';
+import { api } from '@/lib/api';
 
-// Mock data for category and stories
-const getCategoryData = (slug: string) => {
-  const categories = {
-    'romance': {
-      id: 'romance',
-      name: 'রোমান্স',
-      description: 'প্রেম, ভালোবাসা এবং রোমান্টিক গল্পসমূহ',
-      color: 'from-pink-500 to-rose-500',
-      bgColor: 'bg-pink-50',
-      coverImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1200&h=400&fit=crop',
-      storyCount: 1247,
-      totalReads: '2.3M',
-      avgRating: 4.6,
-      tags: ['প্রেম', 'ভালোবাসা', 'রোমান্টিক', 'হৃদয়স্পর্শী', 'সম্পর্ক', 'বিয়ে']
-    },
-    'mystery': {
-      id: 'mystery',
-      name: 'রহস্য',
-      description: 'রহস্যময় এবং রোমাঞ্চকর গল্পের সংগ্রহ',
-      color: 'from-purple-500 to-indigo-500',
-      bgColor: 'bg-purple-50',
-      coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&h=400&fit=crop',
-      storyCount: 892,
-      totalReads: '1.8M',
-      avgRating: 4.7,
-      tags: ['রহস্য', 'রোমাঞ্চ', 'গোয়েন্দা', 'সাসপেন্স', 'থ্রিলার', 'ক্রাইম']
-    },
-    'inspiration': {
-      id: 'inspiration',
-      name: 'অনুপ্রেরণামূলক',
-      description: 'জীবন পরিবর্তনকারী অনুপ্রেরণামূলক কাহিনী',
-      color: 'from-yellow-500 to-orange-500',
-      bgColor: 'bg-yellow-50',
-      coverImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
-      storyCount: 634,
-      totalReads: '1.2M',
-      avgRating: 4.5,
-      tags: ['অনুপ্রেরণা', 'জীবনবোধ', 'আত্মউন্নয়ন', 'সফলতা', 'মোটিভেশন', 'জীবন']
+export default function CategoryPage() {
+  const params = useParams();
+  const router = useRouter();
+  const slug = params.slug as string;
+
+  const [category, setCategory] = useState<any>(null);
+  const [contents, setContents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCategoryData();
+  }, [slug]);
+
+  const loadCategoryData = async () => {
+    setLoading(true);
+    try {
+      const [categoryRes, contentsRes] = await Promise.all([
+        api.categories.getBySlug(slug),
+        api.content.getByCategory(slug)
+      ]);
+
+      if (categoryRes.success) {
+        setCategory(categoryRes.data);
+      } else {
+        router.push('/404');
+        return;
+      }
+
+      if (contentsRes.success) {
+        setContents(contentsRes.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading category:', error);
+      router.push('/404');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return categories[slug as keyof typeof categories] || categories.romance;
-};
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
-const getStoriesData = (categorySlug: string) => ([
-  {
-    id: '1',
-    title: 'শান্তরী',
-    slug: 'shantari',
-    author: 'মেঘবর্ণ',
-    authorSlug: 'meghoborno',
-    excerpt: 'দেশের নামকরা নিউজ চ্যানেলগুলোতে রেগুলার নিউজ হিসেবে একটা খবর বারবার দেখানো হচ্ছে...',
-    coverImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=400&fit=crop',
-    rating: 4.8,
-    totalRatings: 1250,
-    views: 15420,
-    readTime: '25 মিনিট',
-    publishedAt: '2024-01-15',
-    updatedAt: '2024-01-20',
-    status: 'completed',
-    chapters: 6,
-    tags: ['প্রেম', 'জীবনবোধ', 'সমাজ'],
-    isPremium: false,
-    isNew: false,
-    isTrending: true,
-    language: 'bengali'
-  },
-  {
-    id: '2',
-    title: 'অনন্ত প্রেমের গল্প',
-    slug: 'anonto-premer-golpo',
-    author: 'তানিয়া রহমান',
-    authorSlug: 'tania-rahman',
-    excerpt: 'একটি সাধারণ মেয়ের অসাধারণ প্রেমের কাহিনী যা আপনার হৃদয় ছুঁয়ে যাবে...',
+  if (!category) return null;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <Link 
+            href="/"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="bengali-text">ফিরে যান</span>
+          </Link>
+
+          <div className="flex items-start gap-2 mb-4">
+            <BookOpen className="w-8 h-8" />
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bengali-text leading-tight">
+            {category.name}
+          </h1>
+
+          {category.description && (
+            <p className="text-xl text-white/90 mb-6 bengali-text leading-relaxed max-w-3xl">
+              {category.description}
+            </p>
+          )}
+
+          <div className="flex items-center gap-4 text-white/80">
+            <span className="bengali-text">{contents.length} টি কন্টেন্ট</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {contents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {contents.map(content => (
+              <ContentCard key={content.id} content={content} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">📚</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 bengali-text">কোনো কন্টেন্ট নেই</h2>
+            <p className="text-gray-600 bengali-text">এই বিভাগে এখনো কোনো কন্টেন্ট যুক্ত করা হয়নি</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
     coverImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
     rating: 4.6,
     totalRatings: 890,

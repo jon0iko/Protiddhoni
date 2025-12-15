@@ -5,6 +5,7 @@
 
 const UserRepository = require('../repositories/UserRepository');
 const ContentRepository = require('../repositories/ContentRepository');
+const SeriesRepository = require('../repositories/SeriesRepository');
 
 exports.getProfile = async (req, res) => {
     try {
@@ -119,6 +120,16 @@ exports.getContent = async (req, res) => {
         res.json({ success: true, data: contents, count: contents.length });
     } catch (error) {
         console.error('Get user content error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.getSeries = async (req, res) => {
+    try {
+        const series = await SeriesRepository.findByAuthor(req.params.userId);
+        res.json({ success: true, data: series, count: series.length });
+    } catch (error) {
+        console.error('Get user series error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

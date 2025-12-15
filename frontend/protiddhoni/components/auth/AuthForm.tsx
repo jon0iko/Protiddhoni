@@ -13,6 +13,7 @@ interface AuthFormProps {
 export default function AuthForm({ type, onSubmit, isLoading = false }: AuthFormProps) {
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -28,6 +29,12 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
 
     if (!isLogin && !formData.name.trim()) {
       newErrors.name = 'নাম প্রয়োজন';
+    }
+
+    if (!isLogin && !formData.username.trim()) {
+      newErrors.username = 'ব্যবহারকারী নাম প্রয়োজন';
+    } else if (!isLogin && formData.username.length < 3) {
+      newErrors.username = 'ব্যবহারকারী নাম কমপক্ষে ৩ অক্ষরের হতে হবে';
     }
 
     if (!formData.email.trim()) {
@@ -104,12 +111,34 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
                     placeholder="আপনার নাম লিখুন"
                   />
                 </div>
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
+              </div>
+            )}
+
+            {/* Username Field (Register only) */}
+            {!isLogin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ব্যবহারকারী নাম
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
+                    placeholder="ইউনিক ব্যবহারকারী নাম"
+                  />
+                </div>
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-600">{errors.username}</p>
                 )}
               </div>
             )}
@@ -125,7 +154,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
                   placeholder="আপনার ইমেইল লিখুন"
                 />
               </div>
@@ -145,7 +174,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
                   placeholder="পাসওয়ার্ড লিখুন"
                 />
                 <button
@@ -173,7 +202,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
                     placeholder="পাসওয়ার্ড পুনরায় লিখুন"
                   />
                   <button

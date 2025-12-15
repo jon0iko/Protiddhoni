@@ -17,7 +17,7 @@ export default function RegisterPage() {
         setIsLoading(true);
         
         try {
-            await register(formData.name, formData.email, formData.password);
+            await register(formData.name, formData.username, formData.email, formData.password);
             alert('সফলভাবে নিবন্ধন সম্পন্ন হয়েছে! স্বাগতম প্রতিধ্বনিতে।');
             router.push('/');
         } catch (error: any) {

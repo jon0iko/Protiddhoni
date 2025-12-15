@@ -73,7 +73,7 @@ export default function WritingHubPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <button
-            onClick={() => router.push('/write/new')}
+            onClick={() => router.push('/write/editor')}
             className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <PlusCircle className="w-8 h-8 mb-3 mx-auto" />
@@ -82,7 +82,7 @@ export default function WritingHubPage() {
           </button>
 
           <button
-            onClick={() => router.push('/write/continue')}
+            onClick={() => router.push('/write/editor')}
             className="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <Edit className="w-8 h-8 mb-3 mx-auto" />
@@ -91,7 +91,7 @@ export default function WritingHubPage() {
           </button>
 
           <button
-            onClick={() => router.push('/drafts')}
+            onClick={() => router.push('/write/editor')}
             className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <FileText className="w-8 h-8 mb-3 mx-auto" />

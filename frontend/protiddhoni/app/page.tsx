@@ -5,12 +5,14 @@ import CategoryShowcase from '@/components/home/CategoryShowcase';
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen scroll-smooth">
       {/* Hero Section - Main Banner */}
       <HeroSection />
       
       {/* Featured Content - Curated Stories/Poems */}
-      <FeaturedContent />
+      <section id="featured-content">
+        <FeaturedContent />
+      </section>
       
       {/* Category Showcase - Explore by Genre */}
       <CategoryShowcase />
