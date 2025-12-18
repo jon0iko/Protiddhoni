@@ -12,7 +12,6 @@ import {
   Star, 
   User,
   Calendar,
-  Clock,
   MessageCircle,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +30,9 @@ export default function ReadContentPage() {
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [seriesChapters, setSeriesChapters] = useState<any[]>([]);
+  const [prevChapter, setPrevChapter] = useState<any>(null);
+  const [nextChapter, setNextChapter] = useState<any>(null);
 
   useEffect(() => {
     loadContent();
@@ -42,6 +44,28 @@ export default function ReadContentPage() {
       const response = await api.content.getBySlug(slug);
       if (response.success) {
         setContent(response.data);
+        
+        // If this is a chapter in a series, load all chapters for navigation
+        if (response.data.series_id) {
+          const chaptersResponse = await api.series.getChapters(response.data.series_id);
+          if (chaptersResponse.success) {
+            const chapters = chaptersResponse.data || [];
+            setSeriesChapters(chapters);
+            
+            // Find prev and next chapters
+            const currentIndex = chapters.findIndex((ch: any) => ch.id === response.data.id);
+            if (currentIndex > 0) {
+              setPrevChapter(chapters[currentIndex - 1]);
+            } else {
+              setPrevChapter(null);
+            }
+            if (currentIndex < chapters.length - 1) {
+              setNextChapter(chapters[currentIndex + 1]);
+            } else {
+              setNextChapter(null);
+            }
+          }
+        }
       } else {
         // Content not found
         router.push('/404');
@@ -215,24 +239,42 @@ export default function ReadContentPage() {
         {/* Series Navigation */}
         {content.series_id && (
           <div className="border-t border-gray-200 pt-8 mb-8">
-            <h3 className="text-xl font-bold mb-4">এই সিরিজের অন্যান্য পর্ব</h3>
+            <h3 className="text-xl font-bold mb-4 text-black bengali-text">এই সিরিজের অন্যান্য পর্ব</h3>
             <div className="flex gap-4">
-              {content.chapter_number > 1 && (
-                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+              {prevChapter ? (
+                <button 
+                  onClick={() => router.push(`/read/${prevChapter.slug}`)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-black"
+                >
                   <ChevronLeft className="w-5 h-5" />
-                  <span>আগের পর্ব</span>
+                  <span className="bengali-text">আগের পর্ব</span>
                 </button>
+              ) : (
+                <div className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 rounded-lg text-gray-400 cursor-not-allowed">
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="bengali-text">আগের পর্ব</span>
+                </div>
               )}
               <Link
                 href={`/series/${content.series?.slug}`}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
-                <span>সকল পর্ব দেখুন</span>
+                <span className="bengali-text">সকল পর্ব দেখুন</span>
               </Link>
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                <span>পরবর্তী পর্ব</span>
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              {nextChapter ? (
+                <button 
+                  onClick={() => router.push(`/read/${nextChapter.slug}`)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-black"
+                >
+                  <span className="bengali-text">পরবর্তী পর্ব</span>
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              ) : (
+                <div className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 rounded-lg text-gray-400 cursor-not-allowed">
+                  <span className="bengali-text">পরবর্তী পর্ব</span>
+                  <ChevronRight className="w-5 h-5" />
+                </div>
+              )}
             </div>
           </div>
         )}

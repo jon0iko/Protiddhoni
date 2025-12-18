@@ -163,6 +163,61 @@ export const api = {
         }
     },
     
+    // Series endpoints
+    series: {
+        getPublished: async (filters?: any) => {
+            const params = new URLSearchParams(filters);
+            const response = await fetch(`${API_URL}/api/series/published?${params}`);
+            return handleResponse(response);
+        },
+
+        getById: async (id: string) => {
+            const response = await fetch(`${API_URL}/api/series/${id}`);
+            return handleResponse(response);
+        },
+
+        getBySlug: async (slug: string) => {
+            const response = await fetch(`${API_URL}/api/series/slug/${slug}`);
+            return handleResponse(response);
+        },
+
+        getChapters: async (seriesId: string) => {
+            const response = await fetch(`${API_URL}/api/series/${seriesId}/chapters`);
+            return handleResponse(response);
+        },
+
+        getByAuthor: async (authorId: string) => {
+            const response = await fetch(`${API_URL}/api/series/author/${authorId}`);
+            return handleResponse(response);
+        },
+
+        create: async (data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/series`, {
+                method: 'POST',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+
+        update: async (id: string, data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/series/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+
+        delete: async (id: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/series/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        }
+    },
+    
     // Categories endpoints
     categories: {
         getAll: async (includeCount?: boolean) => {

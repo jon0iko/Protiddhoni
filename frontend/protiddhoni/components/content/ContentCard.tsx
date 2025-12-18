@@ -35,7 +35,9 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         published_at,
         publishedAt,
         category,
-        status
+        status,
+        isSeries,
+        chapters
     } = item;
 
     const displayCoverImage = cover_image_url || coverImage;
@@ -43,9 +45,13 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
     const displayAuthor = author?.full_name || author?.username || author || 'Unknown';
     const displayCategory = category?.name || category;
     const isPremiumContent = is_premium || isPremium || false;
+    const isSeriesContent = isSeries || false;
+    
+    // Determine the link based on content type
+    const linkHref = isSeriesContent ? `/series/${slug}` : `/read/${slug}`;
     
     return (
-        <Link href={`/read/${slug}`} className="group block">
+        <Link href={linkHref} className="group block">
             <article className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1 border border-gray-100">
                 {/* Image Section */}
                 <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
@@ -80,6 +86,15 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                         <div className="absolute top-3 right-3">
                             <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
                                 Premium
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Series Badge */}
+                    {isSeriesContent && (
+                        <div className="absolute bottom-3 left-3">
+                            <span className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm bengali-text">
+                                ধারাবাহিক • {chapters || 0} অধ্যায়
                             </span>
                         </div>
                     )}
