@@ -16,6 +16,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   login: (emailOrUsername: string, password: string) => Promise<void>;
   register: (fullName: string, username: string, email: string, password: string) => Promise<void>;
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -83,16 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Login response:', response);
       
       if (response.success && response.data) {
-        const { token, user: userData } = response.data;
+        const { token: authToken, user: userData } = response.data;
         
         console.log('User data from login:', userData);
         console.log('Username:', userData.username);
         
         // Store auth data
         if (typeof window !== 'undefined') {
-          localStorage.setItem('auth_token', token);
+          localStorage.setItem('auth_token', authToken);
         }
         
+        setToken(authToken);
         setUser(userData);
       } else {
         throw new Error(response.error || 'লগইন করতে সমস্যা হয়েছে');
@@ -114,13 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (response.success && response.data) {
-        const { token, user: userData } = response.data;
+        const { token: authToken, user: userData } = response.data;
         
         // Store auth data
         if (typeof window !== 'undefined') {
-          localStorage.setItem('auth_token', token);
+          localStorage.setItem('auth_token', authToken);
         }
         
+        setToken(authToken);
         setUser(userData);
       } else {
         throw new Error(response.error || 'নিবন্ধন করতে সমস্যা হয়েছে');
@@ -133,9 +137,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        await api.auth.logout(token);
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken) {
+        await api.auth.logout(storedToken);
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -143,16 +147,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
       }
+      setToken(null);
       setUser(null);
     }
   };
 
   const refreshUser = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        const response = await api.auth.getProfile(token);
+      const storedToken = localStorage.getItem('auth_token');
+      if (storedToken) {
+        const response = await api.auth.getProfile(storedToken);
         setUser(response.data);
+        setToken(storedToken);
       }
     } catch (error) {
       console.error('Refresh user error:', error);
@@ -161,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
+    token,
     isLoading,
     login,
     register,

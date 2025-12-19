@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import ReadingControls from '@/components/reader/ReadingControls';
+import RatingWidget from '@/components/reader/RatingWidget';
+import CommentList from '@/components/reader/CommentList';
 
 export default function ReadContentPage() {
   const params = useParams();
@@ -109,14 +112,17 @@ export default function ReadContentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--reader-bg)', color: 'var(--reader-text)' }}>
       {/* Header Navigation */}
-      <div className="bg-white border-b sticky top-0 z-40">
+      <div className="border-b sticky top-0 z-40" style={{ backgroundColor: 'var(--reader-bg)', borderColor: 'var(--reader-border)' }}>
         <div className="container mx-auto px-4 py-3 max-w-5xl">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 transition-colors"
+              style={{ color: 'var(--reader-secondary-text)' }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--reader-text)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--reader-secondary-text)'}
             >
               <ArrowLeft className="w-5 h-5" />
               <span>পিছনে</span>
@@ -125,19 +131,28 @@ export default function ReadContentPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleShare}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--reader-secondary-text)' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--reader-hover)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 title="শেয়ার করুন"
               >
                 <Share2 className="w-5 h-5" />
               </button>
               <button
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--reader-secondary-text)' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--reader-hover)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 title="বুকমার্ক"
               >
                 <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current text-blue-600' : ''}`} />
               </button>
               <button
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--reader-secondary-text)' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--reader-hover)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 title="পছন্দ"
               >
                 <Heart className={`w-5 h-5 ${isLiked ? 'fill-current text-red-600' : ''}`} />
@@ -149,18 +164,23 @@ export default function ReadContentPage() {
 
       {/* Content */}
       <article className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Reading Controls */}
+        <div className="mb-6 flex justify-center sticky top-16 z-30">
+          <ReadingControls />
+        </div>
+
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 bengali-text leading-tight">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bengali-text leading-tight" style={{ color: 'var(--reader-text)' }}>
             {content.title}
           </h1>
           
           {content.excerpt && (
-            <p className="text-xl text-gray-600 mb-6 bengali-text">{content.excerpt}</p>
+            <p className="text-xl mb-6 bengali-text" style={{ color: 'var(--reader-secondary-text)' }}>{content.excerpt}</p>
           )}
 
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
+          <div className="flex flex-wrap items-center gap-4 text-sm mb-6" style={{ color: 'var(--reader-secondary-text)' }}>
             <Link 
               href={`/profile/${content.author.username}`}
               className="flex items-center gap-2 hover:text-blue-600 transition-colors"
@@ -181,20 +201,10 @@ export default function ReadContentPage() {
               <span>{new Date(content.published_at || content.created_at).toLocaleDateString('bn-BD')}</span>
             </div>
             
-            {content.stats && (
-              <>
-                <div className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  <span>{content.view_count || 0} বার পড়া হয়েছে</span>
-                </div>
-                {content.stats.averageRating > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span>{content.stats.averageRating.toFixed(1)}</span>
-                  </div>
-                )}
-              </>
-            )}
+            <div className="flex items-center gap-1">
+              <Eye className="w-4 h-4" />
+              <span>{content.view_count || 0} বার পড়া হয়েছে</span>
+            </div>
           </div>
 
           {/* Categories/Tags */}
@@ -231,15 +241,17 @@ export default function ReadContentPage() {
           className="prose prose-lg max-w-none bengali-text mb-12"
           style={{
             fontFamily: 'var(--font-kalpurush), sans-serif',
-            lineHeight: '1.8'
+            lineHeight: '1.8',
+            fontSize: 'var(--current-reader-font-size, var(--reader-font-medium))',
+            color: 'var(--reader-text)'
           }}
           dangerouslySetInnerHTML={{ __html: content.body }}
         />
 
         {/* Series Navigation */}
         {content.series_id && (
-          <div className="border-t border-gray-200 pt-8 mb-8">
-            <h3 className="text-xl font-bold mb-4 text-black bengali-text">এই সিরিজের অন্যান্য পর্ব</h3>
+          <div className="border-t pt-8 mb-8" style={{ borderColor: 'var(--reader-border)' }}>
+            <h3 className="text-xl font-bold mb-4 bengali-text" style={{ color: 'var(--reader-text)' }}>এই সিরিজের অন্যান্য পর্ব</h3>
             <div className="flex gap-4">
               {prevChapter ? (
                 <button 
@@ -280,7 +292,7 @@ export default function ReadContentPage() {
         )}
 
         {/* Author Bio */}
-        <div className="bg-gray-50 rounded-lg p-6 mb-8">
+        <div className="rounded-lg p-6 mb-8" style={{ backgroundColor: 'var(--reader-card-bg)' }}>
           <div className="flex items-start gap-4">
             <img
               src={content.author.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(content.author.full_name || content.author.username)}&background=4F46E5&color=fff&size=80`}
@@ -310,13 +322,14 @@ export default function ReadContentPage() {
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <div className="border-t border-gray-200 pt-8">
-          <h3 className="text-2xl font-bold mb-6">পাঠকদের মতামত</h3>
-          <div className="text-center py-8 text-gray-500">
-            <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p>মতামত বিভাগ শীঘ্রই আসছে...</p>
-          </div>
+        {/* Rating Section */}
+        <div className="mb-8">
+          <RatingWidget contentId={content.id} />
+        </div>
+
+        {/* Comments Section */}
+        <div className="border-t pt-8" style={{ borderColor: 'var(--reader-border)' }}>
+          <CommentList contentId={content.id} />
         </div>
       </article>
     </div>

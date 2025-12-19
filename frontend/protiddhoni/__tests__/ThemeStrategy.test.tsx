@@ -7,27 +7,88 @@ import {
     ThemeContext, 
     LightTheme, 
     DarkTheme, 
-    SepiaTheme 
+    SepiaTheme,
+    createThemeStrategy
 } from '../components/reader/ThemeStrategy';
 
 describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
     
-    describe('LightTheme Strategy', () => {
-        test('should apply light theme styles', () => {
-            const lightTheme = new LightTheme();
-            const styles = lightTheme.applyTheme();
+    // Mock document for testing
+    beforeAll(() => {
+        if (typeof document === 'undefined') {
+            (global as any).document = {
+                documentElement: {
+                    setAttribute: jest.fn(),
+                    getAttribute: jest.fn(),
+                }
+            };
+        }
+    });
 
-            expect(styles).toBeDefined();
-            expect(styles.backgroundColor).toBe('#ffffff');
-            expect(styles.color).toBe('#000000');
+    describe('LightTheme Strategy', () => {
+        test('should apply light theme by setting data attribute', () => {
+            const lightTheme = new LightTheme();
+            const mockSetAttribute = jest.fn();
+            
+            // Mock document.documentElement.setAttribute
+            const originalSetAttribute = document.documentElement.setAttribute;
+            document.documentElement.setAttribute = mockSetAttribute;
+            
+            lightTheme.applyTheme();
+            
+            expect(mockSetAttribute).toHaveBeenCalledWith('data-reader-theme', 'light');
+            
+            // Restore
+            document.documentElement.setAttribute = originalSetAttribute;
         });
 
-        test('should provide readable light background', () => {
+        test('should return correct theme type', () => {
             const lightTheme = new LightTheme();
-            const styles = lightTheme.applyTheme();
+            expect(lightTheme.getThemeType()).toBe('light');
+        });
+    });
 
-            // Light theme should have white or light background
-            expect(styles.backgroundColor).toMatch(/#ffffff|#fff|white/i);
+    describe('DarkTheme Strategy', () => {
+        test('should apply dark theme by setting data attribute', () => {
+            const darkTheme = new DarkTheme();
+            const mockSetAttribute = jest.fn();
+            
+            const originalSetAttribute = document.documentElement.setAttribute;
+            document.documentElement.setAttribute = mockSetAttribute;
+            
+            darkTheme.applyTheme();
+            
+            expect(mockSetAttribute).toHaveBeenCalledWith('data-reader-theme', 'dark');
+            
+            document.documentElement.setAttribute = originalSetAttribute;
+        });
+
+        test('should return correct theme type', () => {
+            const darkTheme = new DarkTheme();
+            expect(darkTheme.getThemeType()).toBe('dark');
+        });
+    });
+
+    describe('SepiaTheme Strategy', () => {
+        test('should apply sepia theme by setting data attribute', () => {
+            const sepiaTheme = new SepiaTheme();
+            const mockSetAttribute = jest.fn();
+            
+            const originalSetAttribute = document.documentElement.setAttribute;
+            document.documentElement.setAttribute = mockSetAttribute;
+            
+            sepiaTheme.applyTheme();
+            
+            expect(mockSetAttribute).toHaveBeenCalledWith('data-reader-theme', 'sepia');
+            
+            document.documentElement.setAttribute = originalSetAttribute;
+        });
+
+        test('should return correct theme type', () => {
+            const sepiaTheme = new SepiaTheme();
+            expect(sepiaTheme.getThemeType()).toBe('sepia');
+        });
+    });
         });
     });
 
@@ -92,49 +153,76 @@ describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
             const context = new ThemeContext(lightTheme);
 
             expect(context).toBeDefined();
-            expect(typeof context.getTheme).toBe('function');
+            expect(typeof context.applyTheme).toBe('function');
+            expect(typeof context.getThemeType).toBe('function');
         });
 
-        test('should return current theme styles', () => {
+        test('should return current theme type', () => {
             const lightTheme = new LightTheme();
             const context = new ThemeContext(lightTheme);
-            const styles = context.getTheme();
-
-            expect(styles).toBeDefined();
-            expect(styles.backgroundColor).toBe('#ffffff');
+            
+            expect(context.getThemeType()).toBe('light');
         });
 
         test('should allow changing theme strategy at runtime', () => {
             const lightTheme = new LightTheme();
             const darkTheme = new DarkTheme();
             const context = new ThemeContext(lightTheme);
+            const mockSetAttribute = jest.fn();
+            
+            const originalSetAttribute = document.documentElement.setAttribute;
+            document.documentElement.setAttribute = mockSetAttribute;
 
             // Initially light
-            let styles = context.getTheme();
-            expect(styles.backgroundColor).toBe('#ffffff');
+            expect(context.getThemeType()).toBe('light');
 
             // Switch to dark
             context.setStrategy(darkTheme);
-            styles = context.getTheme();
-            expect(styles.backgroundColor).toBe('#1a1a1a');
+            expect(context.getThemeType()).toBe('dark');
+            expect(mockSetAttribute).toHaveBeenCalledWith('data-reader-theme', 'dark');
+            
+            document.documentElement.setAttribute = originalSetAttribute;
         });
 
         test('should switch between all theme types', () => {
             const context = new ThemeContext(new LightTheme());
 
             // Light
-            let styles = context.getTheme();
-            expect(styles.backgroundColor).toBe('#ffffff');
+            expect(context.getThemeType()).toBe('light');
 
             // Dark
             context.setStrategy(new DarkTheme());
-            styles = context.getTheme();
-            expect(styles.backgroundColor).toBe('#1a1a1a');
+            expect(context.getThemeType()).toBe('dark');
 
             // Sepia
             context.setStrategy(new SepiaTheme());
-            styles = context.getTheme();
-            expect(styles.backgroundColor).toBe('#f4ecd8');
+            expect(context.getThemeType()).toBe('sepia');
+        });
+    });
+
+    describe('createThemeStrategy Factory', () => {
+        test('should create LightTheme for "light" parameter', () => {
+            const theme = createThemeStrategy('light');
+            expect(theme).toBeInstanceOf(LightTheme);
+            expect(theme.getThemeType()).toBe('light');
+        });
+
+        test('should create DarkTheme for "dark" parameter', () => {
+            const theme = createThemeStrategy('dark');
+            expect(theme).toBeInstanceOf(DarkTheme);
+            expect(theme.getThemeType()).toBe('dark');
+        });
+
+        test('should create SepiaTheme for "sepia" parameter', () => {
+            const theme = createThemeStrategy('sepia');
+            expect(theme).toBeInstanceOf(SepiaTheme);
+            expect(theme.getThemeType()).toBe('sepia');
+        });
+
+        test('should default to LightTheme for invalid parameter', () => {
+            const theme = createThemeStrategy('invalid' as any);
+            expect(theme).toBeInstanceOf(LightTheme);
+            expect(theme.getThemeType()).toBe('light');
         });
     });
 
@@ -148,67 +236,55 @@ describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
             expect(typeof lightTheme.applyTheme).toBe('function');
             expect(typeof darkTheme.applyTheme).toBe('function');
             expect(typeof sepiaTheme.applyTheme).toBe('function');
-        });
 
-        test('all themes should return consistent structure', () => {
-            const themes = [
-                new LightTheme(),
-                new DarkTheme(),
-                new SepiaTheme()
-            ];
-
-            themes.forEach(theme => {
-                const styles = theme.applyTheme();
-                
-                expect(styles).toHaveProperty('backgroundColor');
-                expect(styles).toHaveProperty('color');
-            });
+            // All should have getThemeType method
+            expect(typeof lightTheme.getThemeType).toBe('function');
+            expect(typeof darkTheme.getThemeType).toBe('function');
+            expect(typeof sepiaTheme.getThemeType).toBe('function');
         });
 
         test('context should decouple client from concrete strategies', () => {
             const context = new ThemeContext(new LightTheme());
 
             // Client doesn't need to know which theme is active
-            const styles = context.getTheme();
-            expect(styles).toBeDefined();
-            expect(styles).toHaveProperty('backgroundColor');
+            const themeType = context.getThemeType();
+            expect(themeType).toBeDefined();
+            expect(['light', 'dark', 'sepia']).toContain(themeType);
         });
 
-        test('should allow adding new themes without modifying existing code', () => {
-            // Create a custom theme
+        test('should demonstrate Open/Closed Principle', () => {
+            // New themes can be added without modifying existing code
             class CustomTheme {
                 applyTheme() {
-                    return {
-                        backgroundColor: '#custom',
-                        color: '#text'
-                    };
+                    if (typeof document !== 'undefined') {
+                        document.documentElement.setAttribute('data-reader-theme', 'custom');
+                    }
+                }
+                getThemeType() {
+                    return 'custom' as any;
                 }
             }
 
             const customTheme = new CustomTheme();
-            const context = new ThemeContext(customTheme);
-            const styles = context.getTheme();
-
-            expect(styles.backgroundColor).toBe('#custom');
-            expect(styles.color).toBe('#text');
+            const context = new ThemeContext(customTheme as any);
+            
+            expect(context.getThemeType()).toBe('custom');
         });
     });
 
     describe('User Experience Scenarios', () => {
         test('should support day reading with light theme', () => {
             const context = new ThemeContext(new LightTheme());
-            const styles = context.getTheme();
-
-            expect(styles.backgroundColor).toBe('#ffffff');
-            expect(styles.color).toBe('#000000');
+            
+            expect(context.getThemeType()).toBe('light');
+            // Light theme is best for daytime reading
         });
 
         test('should support night reading with dark theme', () => {
             const context = new ThemeContext(new DarkTheme());
-            const styles = context.getTheme();
-
-            expect(styles.backgroundColor).toBe('#1a1a1a');
-            // Dark theme is easier on eyes at night
+            
+            expect(context.getThemeType()).toBe('dark');
+            // Dark theme reduces eye strain at night
         });
 
         test('should support comfortable reading with sepia theme', () => {
@@ -222,91 +298,88 @@ describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
         test('should maintain user preference across theme switches', () => {
             const context = new ThemeContext(new LightTheme());
             
-            // User tries different themes
+            // User can switch themes multiple times
             context.setStrategy(new DarkTheme());
+            expect(context.getThemeType()).toBe('dark');
+            
             context.setStrategy(new SepiaTheme());
+            expect(context.getThemeType()).toBe('sepia');
+            
             context.setStrategy(new LightTheme());
-
-            // Theme switches smoothly
-            const styles = context.getTheme();
-            expect(styles).toBeDefined();
+            expect(context.getThemeType()).toBe('light');
         });
     });
 
     describe('Theme Consistency', () => {
         test('each theme should provide distinct visual experience', () => {
-            const light = new LightTheme().applyTheme();
-            const dark = new DarkTheme().applyTheme();
-            const sepia = new SepiaTheme().applyTheme();
+            const light = new LightTheme();
+            const dark = new DarkTheme();
+            const sepia = new SepiaTheme();
 
-            // All backgrounds should be different
-            expect(light.backgroundColor).not.toBe(dark.backgroundColor);
-            expect(dark.backgroundColor).not.toBe(sepia.backgroundColor);
-            expect(sepia.backgroundColor).not.toBe(light.backgroundColor);
+            // All theme types should be different
+            expect(light.getThemeType()).not.toBe(dark.getThemeType());
+            expect(dark.getThemeType()).not.toBe(sepia.getThemeType());
+            expect(sepia.getThemeType()).not.toBe(light.getThemeType());
         });
 
-        test('themes should provide good contrast', () => {
+        test('themes should apply consistently', () => {
             const themes = [
                 new LightTheme(),
                 new DarkTheme(),
                 new SepiaTheme()
             ];
 
+            const mockSetAttribute = jest.fn();
+            const originalSetAttribute = document.documentElement.setAttribute;
+            document.documentElement.setAttribute = mockSetAttribute;
+
             themes.forEach(theme => {
-                const styles = theme.applyTheme();
+                mockSetAttribute.mockClear();
+                theme.applyTheme();
                 
-                // Both properties should be defined for readability
-                expect(styles.backgroundColor).toBeDefined();
-                expect(styles.color).toBeDefined();
-                
-                // Should be different (contrast)
-                expect(styles.backgroundColor).not.toBe(styles.color);
+                // Should call setAttribute once
+                expect(mockSetAttribute).toHaveBeenCalledTimes(1);
+                expect(mockSetAttribute).toHaveBeenCalledWith('data-reader-theme', theme.getThemeType());
             });
+
+            document.documentElement.setAttribute = originalSetAttribute;
         });
     });
 
     describe('React Integration', () => {
-        test('should return valid React CSS properties', () => {
+        test('should work seamlessly with React components', () => {
             const lightTheme = new LightTheme();
-            const styles = lightTheme.applyTheme();
-
-            // Should be usable in React style prop
-            expect(typeof styles).toBe('object');
-            expect(styles.backgroundColor).toBeTruthy();
-            expect(styles.color).toBeTruthy();
+            
+            // Should be usable in React
+            expect(typeof lightTheme.applyTheme).toBe('function');
+            expect(lightTheme.getThemeType()).toBe('light');
         });
 
         test('context should work with React state management', () => {
             let currentTheme = 'light';
-            const context = new ThemeContext(new LightTheme());
+            const context = new ThemeContext(createThemeStrategy(currentTheme as any));
 
-            // Simulating state change
-            if (currentTheme === 'dark') {
-                context.setStrategy(new DarkTheme());
-            } else if (currentTheme === 'sepia') {
-                context.setStrategy(new SepiaTheme());
-            }
+            expect(context.getThemeType()).toBe('light');
 
-            const styles = context.getTheme();
-            expect(styles).toBeDefined();
+            // Simulating state change to dark
+            currentTheme = 'dark';
+            context.setStrategy(createThemeStrategy(currentTheme as any));
+            
+            expect(context.getThemeType()).toBe('dark');
         });
     });
 
     describe('Pattern Benefits Demonstration', () => {
         test('should eliminate conditional logic for theme selection', () => {
-            // Without Strategy: if-else chains
-            // With Strategy: clean interface
+            // Without Strategy: messy if-else chains
+            // With Strategy: clean interface using factory
             
-            const themeMap = {
-                'light': new LightTheme(),
-                'dark': new DarkTheme(),
-                'sepia': new SepiaTheme()
-            };
+            const themes = ['light', 'dark', 'sepia'];
 
-            Object.keys(themeMap).forEach(key => {
-                const context = new ThemeContext(themeMap[key]);
-                const styles = context.getTheme();
-                expect(styles).toBeDefined();
+            themes.forEach(themeName => {
+                const theme = createThemeStrategy(themeName as any);
+                const context = new ThemeContext(theme);
+                expect(context.getThemeType()).toBe(themeName);
             });
         });
 
@@ -314,41 +387,28 @@ describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
             // New theme can be added without modifying existing code
             class HighContrastTheme {
                 applyTheme() {
-                    return {
-                        backgroundColor: '#000000',
-                        color: '#ffffff',
-                        fontSize: '1.5em'
-                    };
+                    if (typeof document !== 'undefined') {
+                        document.documentElement.setAttribute('data-reader-theme', 'high-contrast');
+                    }
+                }
+                getThemeType() {
+                    return 'high-contrast' as any;
                 }
             }
 
-            const context = new ThemeContext(new HighContrastTheme());
-            const styles = context.getTheme();
+            const context = new ThemeContext(new HighContrastTheme() as any);
             
-            expect(styles.backgroundColor).toBe('#000000');
-            expect(styles.color).toBe('#ffffff');
+            expect(context.getThemeType()).toBe('high-contrast');
         });
 
         test('should support user preferences persistence', () => {
-            // Could be stored in localStorage
+            // Could be stored in localStorage or database
             const userPreference = 'dark';
             
-            let selectedTheme;
-            switch(userPreference) {
-                case 'dark':
-                    selectedTheme = new DarkTheme();
-                    break;
-                case 'sepia':
-                    selectedTheme = new SepiaTheme();
-                    break;
-                default:
-                    selectedTheme = new LightTheme();
-            }
-
+            const selectedTheme = createThemeStrategy(userPreference as any);
             const context = new ThemeContext(selectedTheme);
-            const styles = context.getTheme();
             
-            expect(styles.backgroundColor).toBe('#1a1a1a');
+            expect(context.getThemeType()).toBe('dark');
         });
     });
 });
