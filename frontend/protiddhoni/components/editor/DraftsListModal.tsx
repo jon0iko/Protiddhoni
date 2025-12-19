@@ -34,10 +34,7 @@ export default function DraftsListModal({
     setError(null);
     
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) throw new Error('Not authenticated');
-      
-      const response = await api.content.getMyDrafts(token);
+      const response = await api.content.getMyDrafts();
       // Map the response to Draft type
       const draftsData = response.data.map((item: { 
         id: string; 
@@ -84,10 +81,7 @@ export default function DraftsListModal({
     setDeletingId(draft.id);
     
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) throw new Error('Not authenticated');
-      
-      await api.content.delete(draft.id, token);
+      await api.content.delete(draft.id);
       setDrafts(prev => prev.filter(d => d.id !== draft.id));
       onDeleteDraft?.(draft.id);
     } catch (err) {
@@ -124,23 +118,23 @@ export default function DraftsListModal({
       {/* Modal */}
       <div className={cn(
         "relative w-full max-w-lg mx-4 rounded-2xl",
-        "bg-white dark:bg-gray-900",
-        "border border-gray-200 dark:border-gray-700",
+        "bg-white",
+        "border border-gray-200",
         "shadow-2xl",
         "animate-in fade-in-0 zoom-in-95 duration-200",
         "max-h-[80vh] flex flex-col"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
-              <FolderOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 rounded-xl bg-purple-100">
+              <FolderOpen className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 bengali-text">
+              <h2 className="text-xl font-bold text-gray-900 bengali-text">
                 আপনার খসড়া
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 bengali-text">
+              <p className="text-sm text-gray-500 bengali-text">
                 {drafts.length > 0 ? `${drafts.length}টি সংরক্ষিত খসড়া` : 'আপনার খসড়া এখানে দেখুন'}
               </p>
             </div>
@@ -149,8 +143,8 @@ export default function DraftsListModal({
             onClick={onClose}
             className={cn(
               "p-2 rounded-full",
-              "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300",
-              "hover:bg-gray-100 dark:hover:bg-gray-800",
+              "text-gray-400 hover:text-gray-600:text-gray-300",
+              "hover:bg-gray-100:bg-gray-800",
               "transition-colors"
             )}
           >
@@ -163,27 +157,27 @@ export default function DraftsListModal({
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
-              <p className="text-gray-500 dark:text-gray-400 bengali-text">খসড়া লোড হচ্ছে...</p>
+              <p className="text-gray-500 bengali-text">খসড়া লোড হচ্ছে...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12">
               <p className="text-red-500 mb-4 bengali-text">{error}</p>
               <button 
                 onClick={fetchDrafts}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bengali-text"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50:bg-gray-800 transition-colors bengali-text"
               >
                 আবার চেষ্টা করুন
               </button>
             </div>
           ) : drafts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                 <FileText className="w-8 h-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2 bengali-text">
+              <h3 className="text-lg font-medium text-gray-900 mb-2 bengali-text">
                 কোন খসড়া নেই
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-xs bengali-text">
+              <p className="text-gray-500 max-w-xs bengali-text">
                 লেখা শুরু করুন এবং পরে চালিয়ে যেতে খসড়া হিসেবে সংরক্ষণ করুন।
               </p>
             </div>
@@ -195,9 +189,9 @@ export default function DraftsListModal({
                   onClick={() => handleLoadDraft(draft)}
                   className={cn(
                     "group p-4 rounded-xl cursor-pointer",
-                    "bg-gray-50 dark:bg-gray-800/50",
-                    "border border-gray-100 dark:border-gray-700/50",
-                    "hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20",
+                    "bg-gray-50",
+                    "border border-gray-100",
+                    "hover:border-blue-300 hover:bg-blue-50:bg-blue-900/20",
                     "transition-all duration-200"
                   )}
                 >
@@ -205,11 +199,11 @@ export default function DraftsListModal({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Edit3 className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate bengali-text">
+                        <h3 className="font-medium text-gray-900 truncate bengali-text">
                           {draft.title}
                         </h3>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-3 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
                           <span className="bengali-text">{formatRelativeTime(draft.updated_at)}</span>
@@ -223,7 +217,7 @@ export default function DraftsListModal({
                       className={cn(
                         "p-2 rounded-lg opacity-0 group-hover:opacity-100",
                         "text-gray-400 hover:text-red-500",
-                        "hover:bg-red-50 dark:hover:bg-red-900/20",
+                        "hover:bg-red-50:bg-red-900/20",
                         "transition-all",
                         "disabled:opacity-50"
                       )}
@@ -244,3 +238,4 @@ export default function DraftsListModal({
     </div>
   );
 }
+

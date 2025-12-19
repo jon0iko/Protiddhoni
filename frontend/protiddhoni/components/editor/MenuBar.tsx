@@ -25,7 +25,7 @@ import {
   Table,
   ChevronDown
 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface MenuBarProps {
@@ -42,23 +42,33 @@ interface DropdownMenuProps {
 // Simple Dropdown Menu Component
 function DropdownMenu({ trigger, children, align = 'left' }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: align === 'left' ? rect.left : rect.right - 140
+      });
+    }
+  }, [isOpen, align]);
 
   return (
     <div className="relative">
-      <div onClick={() => setIsOpen(!isOpen)}>
+      <div ref={triggerRef} onClick={() => setIsOpen(!isOpen)}>
         {trigger}
       </div>
       {isOpen && (
         <>
           <div 
-            className="fixed inset-0 z-40" 
+            className="fixed inset-0 z-30" 
             onClick={() => setIsOpen(false)} 
           />
           <div 
-            className={cn(
-              "absolute top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[140px]",
-              align === 'left' ? 'left-0' : 'right-0'
-            )}
+            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[140px]"
+            style={{ top: `${position.top}px`, left: `${position.left}px` }}
             onClick={() => setIsOpen(false)}
           >
             {children}
@@ -81,7 +91,7 @@ function DropdownMenuItem({ onClick, children, className }: DropdownMenuItemProp
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2",
+        "w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2",
         className
       )}
     >
@@ -104,7 +114,7 @@ function Button({ variant = 'ghost', size = 'icon', className, children, ...prop
       className={cn(
         "inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50",
         variant === 'default' && "bg-blue-600 text-white hover:bg-blue-700",
-        variant === 'ghost' && "hover:bg-gray-100 dark:hover:bg-gray-700",
+        variant === 'ghost' && "hover:bg-gray-100",
         size === 'icon' && "h-8 w-8",
         size === 'sm' && "h-8 px-2 text-sm",
         className
@@ -119,6 +129,8 @@ function Button({ variant = 'ghost', size = 'icon', className, children, ...prop
 export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  const [linkPosition, setLinkPosition] = useState({ top: 0, left: 0 });
+  const linkButtonRef = useRef<HTMLDivElement>(null);
 
   const addLink = useCallback(() => {
     if (linkUrl && editor) {
@@ -128,10 +140,24 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
         .extendMarkRange('link')
         .setLink({ href: linkUrl })
         .run();
-      setLinkUrl('');
       setShowLinkInput(false);
+      setLinkUrl('');
     }
-  }, [editor, linkUrl]);
+  }, [linkUrl, editor]);
+
+  const toggleLinkInput = useCallback(() => {
+    if (!showLinkInput && linkButtonRef.current) {
+      const rect = linkButtonRef.current.getBoundingClientRect();
+      setLinkPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      });
+    }
+    setShowLinkInput(!showLinkInput);
+    if (showLinkInput) {
+      setLinkUrl('');
+    }
+  }, [showLinkInput]);
 
   if (!editor) {
     return null;
@@ -142,9 +168,9 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
   };
 
   return (
-    <div className="sticky top-0 border-b bg-white dark:bg-gray-900 shadow-sm z-0 rounded-t-lg dark:border-gray-700">
+    <div className="sticky top-0 border-b bg-white shadow-sm z-20 rounded-t-lg border-gray-200">
       {/* Compact toolbar - responsive layout */}
-      <div className="flex flex-wrap lg:flex-nowrap lg:overflow-x-auto gap-0.5 p-1.5 items-center lg:min-w-max">
+      <div className="flex flex-wrap lg:flex-nowrap overflow-x-hidden gap-0.5 p-1.5 items-center">
         {/* Text Formatting */}
         <div className="flex gap-0.5 shrink-0 items-center">
           <Button
@@ -170,7 +196,7 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
           </Button>
         </div>
 
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden lg:block" />
+        <div className="w-px h-6 bg-gray-200 hidden lg:block" />
 
         {/* Headings Dropdown */}
         <div className="shrink-0">
@@ -190,32 +216,32 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
           >
             <DropdownMenuItem
               onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              className={editor.isActive('heading', { level: 1 }) ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive('heading', { level: 1 }) ? 'bg-gray-100' : ''}
             >
               <Heading1 className="h-4 w-4" /> শিরোনাম ১
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              className={editor.isActive('heading', { level: 2 }) ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive('heading', { level: 2 }) ? 'bg-gray-100' : ''}
             >
               <Heading2 className="h-4 w-4" /> শিরোনাম ২
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-              className={editor.isActive('heading', { level: 3 }) ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive('heading', { level: 3 }) ? 'bg-gray-100' : ''}
             >
               <Heading3 className="h-4 w-4" /> শিরোনাম ৩
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => editor.chain().focus().setParagraph().run()}
-              className={!editor.isActive('heading') ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={!editor.isActive('heading') ? 'bg-gray-100' : ''}
             >
               <Type className="h-4 w-4" /> অনুচ্ছেদ
             </DropdownMenuItem>
           </DropdownMenu>
         </div>
 
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden lg:block" />
+        <div className="w-px h-6 bg-gray-200 hidden lg:block" />
 
         {/* Lists Dropdown */}
         <div className="shrink-0">
@@ -235,20 +261,20 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
           >
             <DropdownMenuItem
               onClick={() => editor.chain().focus().toggleBulletList().run()}
-              className={editor.isActive('bulletList') ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive('bulletList') ? 'bg-gray-100' : ''}
             >
               <List className="h-4 w-4" /> বুলেট তালিকা
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              className={editor.isActive('orderedList') ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive('orderedList') ? 'bg-gray-100' : ''}
             >
               <ListOrdered className="h-4 w-4" /> নম্বর তালিকা
             </DropdownMenuItem>
           </DropdownMenu>
         </div>
 
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden lg:block" />
+        <div className="w-px h-6 bg-gray-200 hidden lg:block" />
 
         {/* Alignment Dropdown */}
         <div className="shrink-0">
@@ -268,26 +294,26 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
           >
             <DropdownMenuItem
               onClick={() => editor.chain().focus().setTextAlign('left').run()}
-              className={editor.isActive({ textAlign: 'left' }) ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive({ textAlign: 'left' }) ? 'bg-gray-100' : ''}
             >
               <AlignLeft className="h-4 w-4" /> বাম প্রান্তিক
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => editor.chain().focus().setTextAlign('center').run()}
-              className={editor.isActive({ textAlign: 'center' }) ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive({ textAlign: 'center' }) ? 'bg-gray-100' : ''}
             >
               <AlignCenter className="h-4 w-4" /> মাঝখানে
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => editor.chain().focus().setTextAlign('right').run()}
-              className={editor.isActive({ textAlign: 'right' }) ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={editor.isActive({ textAlign: 'right' }) ? 'bg-gray-100' : ''}
             >
               <AlignRight className="h-4 w-4" /> ডান প্রান্তিক
             </DropdownMenuItem>
           </DropdownMenu>
         </div>
 
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden lg:block" />
+        <div className="w-px h-6 bg-gray-200 hidden lg:block" />
 
         {/* Insert Elements */}
         <div className="flex gap-0.5 shrink-0 items-center">
@@ -321,15 +347,18 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
           </Button>
 
           {/* Link Controls */}
-          <div className="relative z-50">
+          <div className="relative" ref={linkButtonRef}>
             {showLinkInput ? (
-              <div className="absolute top-full left-0 mt-1 flex gap-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-2 shadow-lg z-50 whitespace-nowrap">
+              <div 
+                className="fixed flex gap-0.5 bg-white border border-gray-200 rounded-md p-2 shadow-lg z-50 whitespace-nowrap"
+                style={{ top: `${linkPosition.top}px`, left: `${linkPosition.left}px` }}
+              >
                 <input
                   type="url"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   placeholder="URL লিখুন"
-                  className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm w-40 sm:w-64 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-2 py-1 border border-gray-300 rounded text-sm w-40 sm:w-64 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -365,7 +394,7 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
                   if (editor.isActive('link')) {
                     editor.chain().focus().unsetLink().run();
                   } else {
-                    setShowLinkInput(true);
+                    toggleLinkInput();
                   }
                 }}
                 variant={editor.isActive('link') ? 'default' : 'ghost'}
@@ -381,7 +410,7 @@ export default function MenuBar({ editor, onImageUpload }: MenuBarProps) {
           </div>
         </div>
 
-        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden lg:block" />
+        <div className="w-px h-6 bg-gray-200 hidden lg:block" />
 
         {/* Undo/Redo */}
         <div className="flex gap-0.5 shrink-0 items-center">

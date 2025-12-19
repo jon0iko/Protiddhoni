@@ -73,8 +73,8 @@ export default function SaveDraftModal({
       {/* Modal */}
       <div className={cn(
         "relative w-full max-w-md mx-4 p-6 rounded-2xl",
-        "bg-white dark:bg-gray-900",
-        "border border-gray-200 dark:border-gray-700",
+        "bg-white",
+        "border border-gray-200",
         "shadow-2xl",
         "animate-in fade-in-0 zoom-in-95 duration-200"
       )}>
@@ -83,8 +83,8 @@ export default function SaveDraftModal({
           onClick={onClose}
           className={cn(
             "absolute top-4 right-4 p-2 rounded-full",
-            "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300",
-            "hover:bg-gray-100 dark:hover:bg-gray-800",
+            "text-gray-400 hover:text-gray-600:text-gray-300",
+            "hover:bg-gray-100:bg-gray-800",
             "transition-colors"
           )}
         >
@@ -93,14 +93,14 @@ export default function SaveDraftModal({
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
-            <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <div className="p-2 rounded-xl bg-blue-100">
+            <FileText className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 bengali-text">
+            <h2 className="text-xl font-bold text-gray-900 bengali-text">
               {isUpdate ? 'খসড়া আপডেট' : 'খসড়া সংরক্ষণ'}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 bengali-text">
+            <p className="text-sm text-gray-500 bengali-text">
               {isUpdate ? 'আপনার সংরক্ষিত খসড়া আপডেট করুন' : 'পরে লেখা চালিয়ে যেতে একটি নাম দিন'}
             </p>
           </div>
@@ -110,7 +110,7 @@ export default function SaveDraftModal({
         <div className="mb-6">
           <label 
             htmlFor="draft-name" 
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 bengali-text"
+            className="block text-sm font-medium text-gray-700 mb-2 bengali-text"
           >
             খসড়ার নাম
           </label>
@@ -124,9 +124,9 @@ export default function SaveDraftModal({
             autoFocus
             className={cn(
               "w-full px-4 py-3 rounded-xl",
-              "bg-gray-50 dark:bg-gray-800",
-              "border border-gray-200 dark:border-gray-700",
-              "text-gray-900 dark:text-gray-100 bengali-text",
+              "bg-gray-50",
+              "border border-gray-200",
+              "text-gray-900 bengali-text",
               "placeholder:text-gray-400",
               "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
               "transition-all"
@@ -144,9 +144,9 @@ export default function SaveDraftModal({
             disabled={isSaving}
             className={cn(
               "flex-1 px-4 py-2.5 rounded-xl font-medium bengali-text",
-              "border border-gray-300 dark:border-gray-600",
-              "text-gray-700 dark:text-gray-300",
-              "hover:bg-gray-50 dark:hover:bg-gray-800",
+              "border border-gray-300",
+              "text-gray-700",
+              "hover:bg-gray-50:bg-gray-800",
               "transition-colors",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
@@ -181,3 +181,4 @@ export default function SaveDraftModal({
     </div>
   );
 }
+

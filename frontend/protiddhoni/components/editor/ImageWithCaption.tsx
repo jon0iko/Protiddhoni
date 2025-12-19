@@ -72,13 +72,13 @@ const ImageComponent: React.FC<NodeViewProps> = (props) => {
               onBlur={handleCaptionBlur}
               onKeyDown={handleCaptionKeyDown}
               placeholder="ক্যাপশন যোগ করুন..."
-              className="w-full text-sm text-gray-600 dark:text-gray-400 text-center bg-transparent border-b border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500 px-2 py-1"
+              className="w-full text-sm text-gray-600 text-center bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 px-2 py-1"
               autoFocus
             />
           ) : (
             <span
               onClick={startEditing}
-              className="text-sm text-gray-600 dark:text-gray-400 italic cursor-pointer hover:text-gray-800 dark:hover:text-gray-300 transition-colors block"
+              className="text-sm text-gray-600 italic cursor-pointer hover:text-gray-800:text-gray-300 transition-colors block"
             >
               {caption || 'ক্যাপশন যোগ করতে ক্লিক করুন...'}
             </span>
@@ -189,3 +189,4 @@ export const ImageWithCaption = Node.create({
 });
 
 export default ImageWithCaption;
+

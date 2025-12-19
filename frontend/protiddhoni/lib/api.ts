@@ -1,67 +1,96 @@
 /**
  * API Client
- * Handles all API requests to backend
+ * Handles all API requests to backend with automatic token injection
  */
+
+import { getAuthToken } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-// Helper function to get headers with optional authentication
-const getHeaders = (token?: string) => {
+// Helper function to get headers with automatic token injection
+const getHeaders = (token?: string | null): HeadersInit => {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+    
+    // Use provided token, or auto-fetch from storage
+    const authToken = token !== undefined ? token : getAuthToken();
+    
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        console.log('API Request - Token included:', authToken.substring(0, 20) + '...');
+    } else {
+        console.log('API Request - No token available');
     }
+    
     return headers;
 };
 
-// Helper function to handle API responses
+// Helper function to handle API responses with better error handling
 const handleResponse = async (response: Response) => {
-    const data = await response.json();
-    if (!response.ok) {
-        throw new Error(data.error || 'An error occurred');
+    let data;
+    try {
+        data = await response.json();
+    } catch {
+        // Handle non-JSON responses
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        return { success: true };
     }
+    
+    if (!response.ok) {
+        // Enhanced error message with status code
+        const errorMessage = data.error || data.message || `Request failed with status ${response.status}`;
+        const error: Error & { status?: number; data?: unknown } = new Error(errorMessage);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+    }
+    
     return data;
+};
+
+// Helper function for making authenticated requests
+const makeAuthRequest = async (url: string, options: RequestInit = {}, explicitToken?: string | null) => {
+    const headers = getHeaders(explicitToken);
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...headers,
+            ...(options.headers || {})
+        }
+    });
+    return handleResponse(response);
 };
 
 export const api = {
     // Auth endpoints
     auth: {
         register: async (data: any) => {
-            const response = await fetch(`${API_URL}/api/auth/register`, {
+            return makeAuthRequest(`${API_URL}/api/auth/register`, {
                 method: 'POST',
-                headers: getHeaders(),
                 body: JSON.stringify(data)
-            });
-            return handleResponse(response);
+            }, null); // Explicitly no token for registration
         },
         
         login: async (data: any) => {
-            const response = await fetch(`${API_URL}/api/auth/login`, {
+            return makeAuthRequest(`${API_URL}/api/auth/login`, {
                 method: 'POST',
-                headers: getHeaders(),
                 body: JSON.stringify(data)
-            });
-            return handleResponse(response);
+            }, null); // Explicitly no token for login
         },
         
-        logout: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/auth/logout`, {
-                method: 'POST',
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        logout: async (token?: string) => {
+            return makeAuthRequest(`${API_URL}/api/auth/logout`, {
+                method: 'POST'
+            }, token);
         },
         
-        getProfile: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/auth/profile`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getProfile: async (token?: string) => {
+            return makeAuthRequest(`${API_URL}/api/auth/profile`, {}, token);
         }
     },
-        
     content: {
         getPublished: async (filters?: any) => {
             const params = new URLSearchParams(filters);
@@ -76,90 +105,78 @@ export const api = {
         },
         
         getById: async (id: string) => {
-            const response = await fetch(`${API_URL}/api/content/${id}`);
-            return handleResponse(response);
+            return makeAuthRequest(`${API_URL}/api/content/${id}`, {});
         },
         
         getBySlug: async (slug: string) => {
-            const response = await fetch(`${API_URL}/api/content/slug/${slug}`);
-            return handleResponse(response);
+            return makeAuthRequest(`${API_URL}/api/content/slug/${slug}`, {});
         },
         
         getByCategory: async (categorySlug: string, limit?: number) => {
             const params = limit ? `?limit=${limit}` : '';
-            const response = await fetch(`${API_URL}/api/content/category/${categorySlug}${params}`);
-            return handleResponse(response);
+            return makeAuthRequest(`${API_URL}/api/content/category/${categorySlug}${params}`, {});
         },
         
-        getByAuthor: async (authorId: string) => {
-            const response = await fetch(`${API_URL}/api/content/author/${authorId}`);
-            return handleResponse(response);
+        getByAuthor: async (authorId: string, filters?: any) => {
+            const params = filters ? `?${new URLSearchParams(filters).toString()}` : '';
+            return makeAuthRequest(`${API_URL}/api/content/author/${authorId}${params}`);
         },
         
-        getMyDrafts: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/content/my/drafts`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getAuthorStats: async (authorId: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/stats/author/${authorId}`);
         },
         
-        create: async (data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/content`, {
+        getRecentActivity: async (authorId: string, limit?: number) => {
+            const params = limit ? `?limit=${limit}` : '';
+            return makeAuthRequest(`${API_URL}/api/content/recent-activity/${authorId}${params}`);
+        },
+        
+        getMyDrafts: async () => {
+            return makeAuthRequest(`${API_URL}/api/content/my/drafts`);
+        },
+        
+        create: async (data: any) => {
+            return makeAuthRequest(`${API_URL}/api/content`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        update: async (id: string, data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/content/${id}`, {
+        update: async (id: string, data: any) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        delete: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/content/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        delete: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         },
         
-        submitForReview: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/content/${id}/submit`, {
-                method: 'POST',
-                headers: getHeaders(token)
+        submitForReview: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}/submit`, {
+                method: 'POST'
             });
-            return handleResponse(response);
         },
         
         // Admin endpoints
-        getPending: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/content/admin/pending`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getPending: async () => {
+            return makeAuthRequest(`${API_URL}/api/content/admin/pending`);
         },
         
-        approve: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/content/${id}/approve`, {
-                method: 'POST',
-                headers: getHeaders(token)
+        approve: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}/approve`, {
+                method: 'POST'
             });
-            return handleResponse(response);
         },
         
-        reject: async (id: string, reason: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/content/${id}/reject`, {
+        reject: async (id: string, reason: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}/reject`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify({ reason })
             });
-            return handleResponse(response);
         }
     },
     
@@ -191,30 +208,24 @@ export const api = {
             return handleResponse(response);
         },
 
-        create: async (data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/series`, {
+        create: async (data: any) => {
+            return makeAuthRequest(`${API_URL}/api/series`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
 
-        update: async (id: string, data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/series/${id}`, {
+        update: async (id: string, data: any) => {
+            return makeAuthRequest(`${API_URL}/api/series/${id}`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
 
-        delete: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/series/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        delete: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/series/${id}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         }
     },
     
@@ -241,42 +252,29 @@ export const api = {
     // Users endpoints
     users: {
         getProfile: async (username: string) => {
-            console.log('Fetching profile for username:', username);
-            const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
             const encodedUsername = encodeURIComponent(username);
-            console.log('Encoded username:', encodedUsername);
             const url = `${API_URL}/api/users/${encodedUsername}`;
-            console.log('Full URL:', url);
-            const response = await fetch(url, {
-                headers: getHeaders(token || undefined)
-            });
-            console.log('Response status:', response.status);
-            return handleResponse(response);
+            // Uses auto token injection if available
+            return makeAuthRequest(url);
         },
         
-        updateProfile: async (userId: string, data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/users/${userId}`, {
+        updateProfile: async (userId: string, data: any) => {
+            return makeAuthRequest(`${API_URL}/api/users/${userId}`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        follow: async (userId: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/users/${userId}/follow`, {
-                method: 'POST',
-                headers: getHeaders(token)
+        follow: async (userId: string) => {
+            return makeAuthRequest(`${API_URL}/api/users/${userId}/follow`, {
+                method: 'POST'
             });
-            return handleResponse(response);
         },
         
-        unfollow: async (userId: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/users/${userId}/unfollow`, {
-                method: 'POST',
-                headers: getHeaders(token)
+        unfollow: async (userId: string) => {
+            return makeAuthRequest(`${API_URL}/api/users/${userId}/unfollow`, {
+                method: 'POST'
             });
-            return handleResponse(response);
         },
         
         getFollowers: async (userId: string) => {
@@ -317,64 +315,59 @@ export const api = {
             return handleResponse(response);
         },
         
-        create: async (data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/comments`, {
+        create: async (data: any) => {
+            return makeAuthRequest(`${API_URL}/api/comments`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        update: async (id: string, data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/comments/${id}`, {
+        update: async (id: string, data: any) => {
+            return makeAuthRequest(`${API_URL}/api/comments/${id}`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        delete: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/comments/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        delete: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/comments/${id}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         }
     },
     
     // Ratings endpoints (separate from comments, anonymous allowed)
     ratings: {
-        getStats: async (contentId: string, token?: string) => {
+        getStats: async (contentId: string) => {
+            // Public endpoint, but auto-inject token if available for user-specific data
             const response = await fetch(`${API_URL}/api/ratings/stats/${contentId}`, {
-                headers: token ? getHeaders(token) : {}
+                headers: getHeaders() // Auto-injects token if available
             });
             return handleResponse(response);
         },
         
-        getUserRating: async (contentId: string, token?: string) => {
+        getUserRating: async (contentId: string) => {
+            // Auto-inject token if available
             const response = await fetch(`${API_URL}/api/ratings/user/${contentId}`, {
-                headers: token ? getHeaders(token) : {}
+                headers: getHeaders()
             });
             return handleResponse(response);
         },
         
-        submit: async (data: { content_id: string; rating: number }, token?: string) => {
+        submit: async (data: { content_id: string; rating: number }) => {
+            // Can be anonymous or authenticated - auto-inject token if available
             const response = await fetch(`${API_URL}/api/ratings`, {
                 method: 'POST',
-                headers: token ? getHeaders(token) : { 'Content-Type': 'application/json' },
+                headers: getHeaders(), // Auto-injects token if available
                 body: JSON.stringify(data)
             });
             return handleResponse(response);
         },
         
-        delete: async (ratingId: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/ratings/${ratingId}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        delete: async (ratingId: string) => {
+            return makeAuthRequest(`${API_URL}/api/ratings/${ratingId}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         }
     },
     
@@ -390,126 +383,117 @@ export const api = {
             return handleResponse(response);
         },
         
-        create: async (data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/reviews`, {
+        create: async (data: any) => {
+            return makeAuthRequest(`${API_URL}/api/reviews`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        update: async (id: string, data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/reviews/${id}`, {
+        update: async (id: string, data: any) => {
+            return makeAuthRequest(`${API_URL}/api/reviews/${id}`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
         
-        delete: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/reviews/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        delete: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/reviews/${id}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         }
     },
 
     // Bookmarks endpoints
     bookmarks: {
-        getMyBookmarks: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/bookmarks`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getMyBookmarks: async () => {
+            return makeAuthRequest(`${API_URL}/api/bookmarks`);
         },
 
-        addBookmark: async (contentId: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/bookmarks`, {
+        addBookmark: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/bookmarks`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify({ contentId })
             });
-            return handleResponse(response);
         },
 
-        removeBookmark: async (contentId: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/bookmarks/${contentId}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        removeBookmark: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/bookmarks/${contentId}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         },
 
-        checkBookmark: async (contentId: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/bookmarks/check/${contentId}`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        checkBookmark: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/bookmarks/check/${contentId}`);
         }
     },
 
     // Drafts endpoints
     drafts: {
-        getMyDrafts: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/drafts/my`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getMyDrafts: async () => {
+            return makeAuthRequest(`${API_URL}/api/drafts/my`);
         },
 
-        getDraftById: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/drafts/${id}`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getDraftById: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/drafts/${id}`);
         },
 
-        createDraft: async (data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/drafts`, {
+        createDraft: async (data: any) => {
+            return makeAuthRequest(`${API_URL}/api/drafts`, {
                 method: 'POST',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
 
-        updateDraft: async (id: string, data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/drafts/${id}`, {
+        updateDraft: async (id: string, data: any) => {
+            return makeAuthRequest(`${API_URL}/api/drafts/${id}`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
         },
 
-        deleteDraft: async (id: string, token: string) => {
-            const response = await fetch(`${API_URL}/api/drafts/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders(token)
+        deleteDraft: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/drafts/${id}`, {
+                method: 'DELETE'
             });
-            return handleResponse(response);
         }
     },
 
     // Reading Preferences endpoints
     readingPreferences: {
-        getPreferences: async (token: string) => {
-            const response = await fetch(`${API_URL}/api/reading-preferences`, {
-                headers: getHeaders(token)
-            });
-            return handleResponse(response);
+        getPreferences: async () => {
+            return makeAuthRequest(`${API_URL}/api/reading-preferences`);
         },
 
-        updatePreferences: async (data: any, token: string) => {
-            const response = await fetch(`${API_URL}/api/reading-preferences`, {
+        updatePreferences: async (data: any) => {
+            return makeAuthRequest(`${API_URL}/api/reading-preferences`, {
                 method: 'PUT',
-                headers: getHeaders(token),
                 body: JSON.stringify(data)
             });
-            return handleResponse(response);
+        }
+    },
+
+    // Notifications endpoints
+    notifications: {
+        getAll: async (limit?: number) => {
+            const params = limit ? `?limit=${limit}` : '';
+            return makeAuthRequest(`${API_URL}/api/notifications${params}`);
+        },
+
+        getUnreadCount: async () => {
+            return makeAuthRequest(`${API_URL}/api/notifications/unread-count`);
+        },
+
+        markAsRead: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/notifications/${id}/read`, {
+                method: 'PUT'
+            });
+        },
+
+        markAllAsRead: async () => {
+            return makeAuthRequest(`${API_URL}/api/notifications/read-all`, {
+                method: 'PUT'
+            });
         }
     }
 };

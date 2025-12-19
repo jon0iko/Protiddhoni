@@ -51,9 +51,6 @@ export default function EditorPage() {
   // Load a specific draft by ID
   const loadDraftById = useCallback(async (draftId: string) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
-      
       const response = await api.content.getById(draftId);
       const draft = response.data;
       
@@ -149,15 +146,12 @@ export default function EditorPage() {
     setIsSaving(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) throw new Error('লগইন করুন');
-
       if (currentDraftId) {
         // Update existing draft
         await api.content.update(currentDraftId, {
           title: name,
           body: content,
-        }, token);
+        });
       } else {
         // Create new draft
         const response = await api.content.create({
@@ -165,7 +159,7 @@ export default function EditorPage() {
           body: content,
           content_type: 'story',
           status: 'draft',
-        }, token);
+        });
         
         setCurrentDraftId(response.data.id);
         storage.set(user?.id, STORAGE_KEYS.DRAFT_ID, response.data.id);
@@ -258,7 +252,7 @@ export default function EditorPage() {
   // Show loading screen while checking auth
   if (authLoading || !isPageReady) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
           <p className="text-gray-500 bengali-text">লোড হচ্ছে...</p>
@@ -268,7 +262,7 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <EditorHeader
         wordCount={wordCount}
@@ -288,7 +282,7 @@ export default function EditorPage() {
             initialContent={initialContent}
             onContentChange={handleContentChange}
             onWordCountChange={handleWordCountChange}
-            placeholder="আপনার গল্প এখানে লিখুন..."
+            placeholder="আপনার লেখা এখানে লিখুন..."
           />
         </div>
       </div>

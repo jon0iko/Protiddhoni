@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { 
   ArrowLeft, 
   Save, 
@@ -11,7 +13,8 @@ import {
   Globe,
   Bell,
   Shield,
-  BookOpen
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 
 interface WritingSettings {
@@ -23,7 +26,6 @@ interface WritingSettings {
   spellCheck: boolean;
   wordCountTarget: number;
   defaultLanguage: string;
-  defaultCategory: string;
   notifications: {
     dailyReminder: boolean;
     weeklyGoal: boolean;
@@ -32,9 +34,9 @@ interface WritingSettings {
 }
 
 const fontOptions = [
-  { value: 'bengali', label: 'বাংলা ফন্ট (SolaimanLipi)' },
   { value: 'kalpurush', label: 'কালপুরুষ' },
   { value: 'nikosh', label: 'নিকোশ' },
+  { value: 'solaimanlipi', label: 'সোলাইমান লিপি' },
   { value: 'arial', label: 'Arial' },
   { value: 'georgia', label: 'Georgia' }
 ];
@@ -47,17 +49,17 @@ const themeOptions = [
 
 export default function WriteSettingsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   
   const [settings, setSettings] = useState<WritingSettings>({
     fontSize: '16',
-    fontFamily: 'bengali',
+    fontFamily: 'kalpurush',
     lineHeight: '1.6',
     theme: 'light',
     autoSave: true,
     spellCheck: true,
     wordCountTarget: 500,
     defaultLanguage: 'bn',
-    defaultCategory: '',
     notifications: {
       dailyReminder: true,
       weeklyGoal: false,
@@ -65,18 +67,71 @@ export default function WriteSettingsPage() {
     }
   });
 
-  
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    fetchSettings();
+  }, [user, router]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get(`/reading-preferences/${user?.id}`);
+      if (response.data) {
+        setSettings(prev => ({
+          ...prev,
+          theme: response.data.theme || 'light',
+          fontSize: response.data.font_size || '16',
+          fontFamily: response.data.font_family || 'kalpurush',
+          lineHeight: response.data.line_height || '1.6'
+        }));
+      }
+    } catch (error) {
+      // If no preferences exist, use defaults
+      console.log('No preferences found, using defaults');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Here you would typically save to your backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Saving settings:', settings);
+      const preferences = {
+        user_id: user?.id,
+        theme: settings.theme,
+        font_size: settings.fontSize,
+        font_family: settings.fontFamily,
+        line_height: settings.lineHeight
+      };
+
+      await api.post('/reading-preferences', preferences);
       alert('সেটিংস সংরক্ষিত হয়েছে!');
-    } catch (error) {
-      alert('সেটিংস সংরক্ষণে সমস্যা হয়েছে!');
+    } catch (error: any) {
+      console.error('Error saving settings:', error);
+      
+      // If already exists, try update
+      if (error.response?.status === 409 || error.response?.status === 400) {
+        try {
+          const preferences = {
+            theme: settings.theme,
+            font_size: settings.fontSize,
+            font_family: settings.fontFamily,
+            line_height: settings.lineHeight
+          };
+          await api.put(`/reading-preferences/${user?.id}`, preferences);
+          alert('সেটিংস সংরক্ষিত হয়েছে!');
+        } catch (updateError) {
+          alert('সেটিংস সংরক্ষণে সমস্যা হয়েছে!');
+        }
+      } else {
+        alert('সেটিংস সংরক্ষণে সমস্যা হয়েছে!');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -92,6 +147,18 @@ export default function WriteSettingsPage() {
       notifications: { ...prev.notifications, [key]: value }
     }));
   };
+
+  if (!user) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -297,7 +364,7 @@ export default function WriteSettingsPage() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {/* Default Language */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
@@ -310,24 +377,6 @@ export default function WriteSettingsPage() {
                 >
                   <option value="bn">বাংলা</option>
                   <option value="en">English</option>
-                </select>
-              </div>
-
-              {/* Default Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
-                  ডিফল্ট বিভাগ
-                </label>
-                <select
-                  value={settings.defaultCategory}
-                  onChange={(e) => updateSettings('defaultCategory', e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
-                >
-                  <option value="">বিভাগ নির্বাচন করুন</option>
-                  <option value="গল্প">গল্প</option>
-                  <option value="কবিতা">কবিতা</option>
-                  <option value="উপন্যাস">উপন্যাস</option>
-                  <option value="প্রবন্ধ">প্রবন্ধ</option>
                 </select>
               </div>
             </div>

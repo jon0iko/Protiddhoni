@@ -48,6 +48,8 @@ const optionalAuth = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         
+        console.log('OptionalAuth - authHeader:', authHeader ? authHeader.substring(0, 20) + '...' : 'none');
+        
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
             const decoded = jwt.verify(
@@ -55,11 +57,15 @@ const optionalAuth = (req, res, next) => {
                 process.env.JWT_SECRET || 'your-secret-key'
             );
             req.user = decoded;
+            console.log('OptionalAuth - user authenticated:', decoded.id);
+        } else {
+            console.log('OptionalAuth - no valid token, continuing without auth');
         }
         
         next();
     } catch (error) {
         // Continue without authentication if token is invalid
+        console.log('OptionalAuth - token verification failed:', error.message);
         next();
     }
 };

@@ -184,13 +184,12 @@ class ContentRepository {
             .from('content')
             .select(`
                 *,
+                author:author_id (id, username, full_name, profile_picture_url, bio),
                 category:category_id (id, name, slug, icon),
                 series:series_id (id, title, slug)
             `)
             .eq('author_id', authorId)
-            .eq('is_published', true)
-            .eq('status', 'approved')
-            .order('published_at', { ascending: false });
+            .order('updated_at', { ascending: false });
 
         if (error) throw error;
         return data;

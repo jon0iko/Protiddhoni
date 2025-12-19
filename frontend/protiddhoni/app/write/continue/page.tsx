@@ -1,106 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { 
   BookOpen, 
   Edit, 
   Plus, 
-  Calendar, 
   Eye, 
-  Star, 
-  ChevronRight,
-  Filter,
-  Search,
   MoreVertical,
-  Trash2
+  Trash2,
+  Loader2,
+  Search
 } from 'lucide-react';
 
 interface Story {
   id: string;
   title: string;
-  type: 'short-story' | 'novel' | 'poetry' | 'article';
-  status: 'draft' | 'published' | 'private';
-  lastModified: string;
-  wordCount: number;
-  chapters: number;
-  views: number;
-  likes: number;
-  coverImage?: string;
+  content_type: string;
+  status: string;
+  updated_at: string;
+  body: string;
+  view_count: number;
+  cover_image_url?: string;
   excerpt: string;
+  series_id?: string;
+  chapter_number?: number;
 }
 
-// Mock data - in real app, this would come from your backend
-const userStories: Story[] = [
-  {
-    id: '1',
-    title: 'সূর্যাস্তের গল্প',
-    type: 'short-story',
-    status: 'published',
-    lastModified: '2024-01-15',
-    wordCount: 1250,
-    chapters: 1,
-    views: 342,
-    likes: 28,
-    excerpt: 'একটি সুন্দর সন্ধ্যার গল্প যেখানে প্রকৃতির সাথে মানুষের আবেগের মিলন ঘটেছে...'
-  },
-  {
-    id: '2',
-    title: 'হারিয়ে যাওয়া দিনগুলি',
-    type: 'novel',
-    status: 'draft',
-    lastModified: '2024-01-12',
-    wordCount: 5420,
-    chapters: 3,
-    views: 0,
-    likes: 0,
-    excerpt: 'একটি অসমাপ্ত উপন্যাস যা শৈশবের স্মৃতি নিয়ে লেখা...'
-  },
-  {
-    id: '3',
-    title: 'বৃষ্টির কবিতা',
-    type: 'poetry',
-    status: 'published',
-    lastModified: '2024-01-10',
-    wordCount: 145,
-    chapters: 1,
-    views: 89,
-    likes: 12,
-    excerpt: 'মেঘের গর্জন আর বৃষ্টির ছন্দে লেখা একটি মধুর কবিতা...'
-  }
-];
-
-const storyTypeNames = {
-  'short-story': 'ছোটগল্প',
-  'novel': 'উপন্যাস',
-  'poetry': 'কবিতা',
-  'article': 'প্রবন্ধ'
+const contentTypeNames: Record<string, string> = {
+  'story': 'ছোটগল্প',
+  'poem': 'কবিতা',
+  'chapter': 'অধ্যায়'
 };
 
-const statusNames = {
+const statusNames: Record<string, string> = {
   'draft': 'খসড়া',
-  'published': 'প্রকাশিত',
-  'private': 'ব্যক্তিগত'
+  'pending': 'অপেক্ষমান',
+  'approved': 'অনুমোদিত',
+  'rejected': 'প্রত্যাখ্যাত',
+  'published': 'প্রকাশিত'
 };
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   'draft': 'bg-yellow-100 text-yellow-800',
-  'published': 'bg-green-100 text-green-800',
-  'private': 'bg-gray-100 text-gray-800'
+  'pending': 'bg-blue-100 text-blue-800',
+  'approved': 'bg-green-100 text-green-800',
+  'rejected': 'bg-red-100 text-red-800',
+  'published': 'bg-green-100 text-green-800'
 };
 
 export default function ContinueWritingPage() {
   const router = useRouter();
-  const [stories, setStories] = useState(userStories);
+  const { user } = useAuth();
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
 
+  const fetchUserContent = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await api.content.getByAuthor(user.id, {});
+      if (response) {
+        // Handle both direct array and wrapped response
+        const contentArray = Array.isArray(response) ? response : (response.data || []);
+        setStories(contentArray);
+      }
+    } catch (error) {
+      console.error('Error fetching content:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    fetchUserContent();
+  }, [user, router, fetchUserContent]);
+
+  const countWords = (text: string) => {
+    return text.trim().split(/\s+/).length;
+  };
+
   const filteredStories = stories.filter(story => {
     const matchesSearch = story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         story.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+                         (story.excerpt && story.excerpt.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || story.status === statusFilter;
-    const matchesType = typeFilter === 'all' || story.type === typeFilter;
+    const matchesType = typeFilter === 'all' || story.content_type === typeFilter;
     
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -109,14 +104,36 @@ export default function ContinueWritingPage() {
     router.push(`/write/editor?id=${storyId}`);
   };
 
-  const handleAddChapter = (storyId: string) => {
-    router.push(`/write/editor?id=${storyId}&new-chapter=true`);
+  const handleDeleteStory = async (storyId: string) => {
+    if (!confirm('আপনি কি নিশ্চিত যে এই গল্পটি মুছে ফেলতে চান?')) {
+      return;
+    }
+
+    try {
+      await api.content.delete(storyId);
+      setStories(stories.filter(s => s.id !== storyId));
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      alert('গল্প মুছতে সমস্যা হয়েছে!');
+    }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('bn-BD');
   };
+
+  if (!user) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,8 +173,10 @@ export default function ContinueWritingPage() {
             >
               <option value="all">সব অবস্থা</option>
               <option value="draft">খসড়া</option>
+              <option value="pending">অপেক্ষমান</option>
+              <option value="approved">অনুমোদিত</option>
               <option value="published">প্রকাশিত</option>
-              <option value="private">ব্যক্তিগত</option>
+              <option value="rejected">প্রত্যাখ্যাত</option>
             </select>
 
             {/* Type Filter */}
@@ -167,10 +186,9 @@ export default function ContinueWritingPage() {
               className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
             >
               <option value="all">সব ধরন</option>
-              <option value="short-story">ছোটগল্প</option>
-              <option value="novel">উপন্যাস</option>
-              <option value="poetry">কবিতা</option>
-              <option value="article">প্রবন্ধ</option>
+              <option value="story">গল্প</option>
+              <option value="poem">কবিতা</option>
+              <option value="chapter">অধ্যায়</option>
             </select>
           </div>
         </div>
@@ -189,7 +207,7 @@ export default function ContinueWritingPage() {
               }
             </p>
             <button
-              onClick={() => router.push('/write/new')}
+              onClick={() => router.push('/write/editor')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors bengali-text"
             >
               নতুন গল্প লিখুন
@@ -201,8 +219,13 @@ export default function ContinueWritingPage() {
               <div key={story.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                 {/* Cover Image or Placeholder */}
                 <div className="h-32 bg-gradient-to-br from-blue-100 to-purple-100 relative">
-                  {story.coverImage ? (
-                    <img src={story.coverImage} alt={story.title} className="w-full h-full object-cover" />
+                  {story.cover_image_url ? (
+                    <Image 
+                      src={story.cover_image_url} 
+                      alt={story.title} 
+                      fill
+                      className="object-cover" 
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <BookOpen className="w-8 h-8 text-gray-400" />
@@ -227,36 +250,30 @@ export default function ContinueWritingPage() {
                       {story.title}
                     </h3>
                     <span className="text-xs text-gray-500 bengali-text ml-2">
-                      {storyTypeNames[story.type]}
+                      {contentTypeNames[story.content_type] || story.content_type}
                     </span>
                   </div>
 
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2 bengali-text">
-                    {story.excerpt}
+                    {story.excerpt || 'বিবরণ নেই'}
                   </p>
 
                   {/* Stats */}
                   <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
-                    <span className="bengali-text">{story.wordCount} শব্দ</span>
-                    {story.chapters > 1 && (
-                      <span className="bengali-text">{story.chapters} অধ্যায়</span>
+                    <span className="bengali-text">{countWords(story.body)} শব্দ</span>
+                    {story.series_id && story.chapter_number && (
+                      <span className="bengali-text">অধ্যায় {story.chapter_number}</span>
                     )}
                     {story.status === 'published' && (
-                      <>
-                        <span className="flex items-center">
-                          <Eye className="w-3 h-3 mr-1" />
-                          {story.views}
-                        </span>
-                        <span className="flex items-center">
-                          <Star className="w-3 h-3 mr-1" />
-                          {story.likes}
-                        </span>
-                      </>
+                      <span className="flex items-center">
+                        <Eye className="w-3 h-3 mr-1" />
+                        {story.view_count}
+                      </span>
                     )}
                   </div>
 
                   <div className="text-xs text-gray-500 mb-4 bengali-text">
-                    শেষ সম্পাদনা: {formatDate(story.lastModified)}
+                    শেষ সম্পাদনা: {formatDate(story.updated_at)}
                   </div>
 
                   {/* Actions */}
@@ -268,15 +285,12 @@ export default function ContinueWritingPage() {
                       <Edit className="w-4 h-4" />
                       <span>সম্পাদনা</span>
                     </button>
-                    {story.type === 'novel' && (
-                      <button
-                        onClick={() => handleAddChapter(story.id)}
-                        className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors bengali-text"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>অধ্যায়</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleDeleteStory(story.id)}
+                      className="flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -291,7 +305,7 @@ export default function ContinueWritingPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
-              onClick={() => router.push('/write/new')}
+              onClick={() => router.push('/write/editor')}
               className="flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
             >
               <Plus className="w-5 h-5 text-blue-600" />

@@ -1,59 +1,135 @@
 'use client';
 
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import { 
   PlusCircle, 
   BookOpen, 
   Edit, 
   FileText, 
-  TrendingUp,
   Users,
   Star,
-  Calendar,
   Target,
   ChevronRight,
   Feather,
-  Pen
+  Pen,
+  Loader2
 } from 'lucide-react';
 
-// Mock data for user stats
-const userStats = {
-  totalStories: 12,
-  totalWords: 25400,
-  totalViews: 1250,
-  totalLikes: 89,
-  drafts: 3,
-  published: 9,
-  weeklyTarget: 2000,
-  weeklyProgress: 1350
-};
+interface UserStats {
+  totalStories: number;
+  totalWords: number;
+  totalViews: number;
+  totalLikes: number;
+  drafts: number;
+  published: number;
+  weeklyTarget: number;
+  weeklyProgress: number;
+}
 
-const recentActivity = [
-  {
-    id: '1',
-    action: 'published',
-    title: 'সূর্যাস্তের গল্প',
-    timestamp: '২ ঘন্টা আগে',
-    type: 'story'
-  },
-  {
-    id: '2',
-    action: 'edited',
-    title: 'হারিয়ে যাওয়া দিনগুলি',
-    timestamp: '১ দিন আগে',
-    type: 'draft'
-  },
-  {
-    id: '3',
-    action: 'created',
-    title: 'নতুন কবিতা',
-    timestamp: '৩ দিন আগে',
-    type: 'poetry'
-  }
-];
+interface RecentActivity {
+  id: string;
+  action: 'published' | 'edited' | 'created';
+  title: string;
+  timestamp: string;
+  type: string;
+}
 
 export default function WritingHubPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalStories: 0,
+    totalWords: 0,
+    totalViews: 0,
+    totalLikes: 0,
+    drafts: 0,
+    published: 0,
+    weeklyTarget: 2000,
+    weeklyProgress: 0
+  });
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUserStats = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await api.content.getAuthorStats(user.id);
+      if (response) {
+        setUserStats(prev => ({
+          ...prev,
+          totalStories: response.totalContent || 0,
+          totalWords: response.totalWords || 0,
+          totalViews: response.totalViews || 0,
+          totalLikes: response.totalRatings || 0,
+          drafts: response.drafts || 0,
+          published: response.published || 0,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  const fetchRecentActivity = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await api.content.getRecentActivity(user.id, 5);
+      if (response) {
+        const activities = response.slice(0, 3).map((content: { id: string; title: string; type: string; action: string; timestamp: string }) => ({
+          id: content.id,
+          action: (content.action === 'published' ? 'published' : 'edited') as 'published' | 'edited' | 'created',
+          title: content.title,
+          timestamp: formatRelativeTime(content.timestamp),
+          type: content.type
+        }));
+        setRecentActivity(activities);
+      }
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    fetchUserStats();
+    fetchRecentActivity();
+  }, [user, router, fetchUserStats, fetchRecentActivity]);
+
+  const formatRelativeTime = (date: string) => {
+    const now = new Date();
+    const then = new Date(date);
+    const diffInMs = now.getTime() - then.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInHours < 1) return 'এখনই';
+    if (diffInHours < 24) return `${diffInHours} ঘন্টা আগে`;
+    if (diffInDays === 1) return '১ দিন আগে';
+    return `${diffInDays} দিন আগে`;
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   const progressPercentage = (userStats.weeklyProgress / userStats.weeklyTarget) * 100;
 
@@ -188,7 +264,7 @@ export default function WritingHubPage() {
                 </h2>
               </div>
               <blockquote className="text-lg text-gray-700 italic bengali-text mb-4">
-                "লেখা হলো চিন্তার সবচেয়ে শক্তিশালী অস্ত্র।"
+                &ldquo;লেখা হলো চিন্তার সবচেয়ে শক্তিশালী অস্ত্র।&rdquo;
               </blockquote>
               <p className="text-sm text-gray-600 bengali-text">
                 আজ কী লিখবেন? আপনার মনের কথা, একটি স্মৃতি, নাকি কোনো কল্পনার গল্প?

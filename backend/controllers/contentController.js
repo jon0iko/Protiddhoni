@@ -82,18 +82,38 @@ exports.getById = async (req, res) => {
 
 exports.getBySlug = async (req, res) => {
     try {
-        const content = await ContentRepository.findBySlug(req.params.slug);
+        const slugOrId = req.params.slug;
+        let content = null;
+        
+        // First try to find by slug
+        content = await ContentRepository.findBySlug(slugOrId);
+        
+        // If not found by slug, try by ID (for cases where slug is empty or ID is passed)
+        if (!content) {
+            content = await ContentRepository.findById(slugOrId);
+        }
         
         if (!content) {
             return res.status(404).json({ success: false, error: 'Content not found' });
         }
 
-        // Only show published content to non-authors
-        if (!content.is_published && (!req.user || req.user.id !== content.author_id)) {
+        // Allow access if: 1) Content is published, OR 2) User is the author, OR 3) User is admin
+        const isAuthor = req.user && req.user.id === content.author_id;
+        const isAdmin = req.user && req.user.is_admin;
+        
+        if (!content.is_published && !isAuthor && !isAdmin) {
+            console.log('Access denied:', {
+                is_published: content.is_published,
+                has_user: !!req.user,
+                user_id: req.user?.id,
+                author_id: content.author_id,
+                is_author: isAuthor,
+                is_admin: isAdmin
+            });
             return res.status(403).json({ success: false, error: 'Content not accessible' });
         }
 
-        // Increment view count for published content
+        // Increment view count for published content only
         if (content.is_published) {
             await ContentRepository.incrementViewCount(content.id);
         }
@@ -209,8 +229,8 @@ exports.update = async (req, res) => {
 
         const updates = { ...req.body };
         
-        // Update slug if title changed
-        if (req.body.title && req.body.title !== existingContent.title) {
+        // Update slug if title changed or if slug is empty
+        if (req.body.title && (req.body.title !== existingContent.title || !existingContent.slug)) {
             updates.slug = slugify(req.body.title);
         }
 

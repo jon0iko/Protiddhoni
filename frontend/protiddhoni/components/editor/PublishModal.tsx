@@ -58,6 +58,11 @@ export default function PublishModal({
   const [userSeries, setUserSeries] = useState<Series[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isCreatingSeries, setIsCreatingSeries] = useState(false);
+  const [newSeriesTitle, setNewSeriesTitle] = useState('');
+  const [newSeriesDescription, setNewSeriesDescription] = useState('');
+  const [newSeriesCategoryId, setNewSeriesCategoryId] = useState('');
+  const [seriesCreationError, setSeriesCreationError] = useState('');
 
   // Load categories and user's series
   useEffect(() => {
@@ -72,9 +77,17 @@ export default function PublishModal({
       const categoriesResponse = await api.categories.getAll();
       setCategories(categoriesResponse.data || []);
       
-      // TODO: Load user's series when that API is available
-      // For now, we'll leave series empty
-      setUserSeries([]);
+      // Load user's series
+      try {
+        const user = JSON.parse(localStorage.getItem('auth_user') || '{}');
+        if (user.id) {
+          const seriesResponse = await api.series.getByAuthor(user.id);
+          setUserSeries(seriesResponse.data || []);
+        }
+      } catch (seriesError) {
+        console.warn('Failed to load user series:', seriesError);
+        setUserSeries([]);
+      }
     } catch (error) {
       console.error('Failed to load categories:', error);
       setErrors(prev => ({
@@ -180,10 +193,10 @@ export default function PublishModal({
       };
 
       // Create the content
-      const response = await api.content.create(contentData, token);
+      const response = await api.content.create(contentData);
       
       // Submit for review
-      await api.content.submitForReview(response.data.id, token);
+      await api.content.submitForReview(response.data.id);
 
       // Success!
       setShowSuccess(true);
@@ -234,13 +247,13 @@ export default function PublishModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[90vh] mx-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
           <h2 className="text-xl font-semibold bengali-text">লেখা প্রকাশ করুন</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-100:bg-gray-800 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -255,8 +268,8 @@ export default function PublishModal({
             </div>
           ) : showSuccess ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <Check className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold mb-2 bengali-text">লেখা জমা দেওয়া হয়েছে!</h3>
               <p className="text-gray-500 bengali-text">
@@ -267,9 +280,9 @@ export default function PublishModal({
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* General Error */}
               {errors.general && (
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
                   <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600 dark:text-red-400 bengali-text">{errors.general}</p>
+                  <p className="text-sm text-red-600 bengali-text">{errors.general}</p>
                 </div>
               )}
 
@@ -289,8 +302,8 @@ export default function PublishModal({
                         className={cn(
                           "flex flex-col items-center p-4 rounded-xl border-2 transition-all",
                           formData.contentType === type.id
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300:border-gray-600"
                         )}
                       >
                         <Icon className={cn(
@@ -299,7 +312,7 @@ export default function PublishModal({
                         )} />
                         <span className={cn(
                           "font-medium bengali-text",
-                          formData.contentType === type.id ? "text-blue-600" : "text-gray-600 dark:text-gray-300"
+                          formData.contentType === type.id ? "text-blue-600" : "text-gray-600"
                         )}>{type.name}</span>
                         <span className="text-xs text-gray-400 bengali-text">{type.description}</span>
                       </button>
@@ -319,9 +332,9 @@ export default function PublishModal({
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="আপনার লেখার শিরোনাম..."
                   className={cn(
-                    "w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800 bengali-text",
+                    "w-full px-4 py-3 rounded-xl border bg-gray-50 bengali-text",
                     "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                    errors.title ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                    errors.title ? "border-red-500" : "border-gray-200"
                   )}
                 />
                 {errors.title && (
@@ -340,9 +353,9 @@ export default function PublishModal({
                   placeholder="লেখার সংক্ষিপ্ত বিবরণ..."
                   rows={3}
                   className={cn(
-                    "w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800 bengali-text resize-none",
+                    "w-full px-4 py-3 rounded-xl border bg-gray-50 bengali-text resize-none",
                     "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                    errors.excerpt ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                    errors.excerpt ? "border-red-500" : "border-gray-200"
                   )}
                 />
                 <div className="flex justify-between text-xs text-gray-400">
@@ -361,9 +374,9 @@ export default function PublishModal({
                     value={formData.categoryId}
                     onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
                     className={cn(
-                      "w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800 bengali-text appearance-none",
+                      "w-full px-4 py-3 rounded-xl border bg-gray-50 bengali-text appearance-none",
                       "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                      errors.category ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                      errors.category ? "border-red-500" : "border-gray-200"
                     )}
                   >
                     <option value="">বিভাগ নির্বাচন করুন</option>
@@ -381,34 +394,163 @@ export default function PublishModal({
               {/* Series Selection (only for chapters) */}
               {formData.contentType === 'chapter' && (
                 <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium bengali-text">
-                      সিরিজ <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={formData.seriesId || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, seriesId: e.target.value || undefined }))}
-                        className={cn(
-                          "w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800 bengali-text appearance-none",
-                          "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                          errors.series ? "border-red-500" : "border-gray-200 dark:border-gray-700"
-                        )}
-                      >
-                        <option value="">সিরিজ নির্বাচন করুন</option>
-                        {userSeries.map((series) => (
-                          <option key={series.id} value={series.id}>{series.title}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  {!isCreatingSeries ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium bengali-text">
+                        সিরিজ <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={formData.seriesId || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '__create_new__') {
+                              setIsCreatingSeries(true);
+                              setNewSeriesCategoryId(formData.categoryId);
+                            } else {
+                              setFormData(prev => ({ ...prev, seriesId: value || undefined }));
+                            }
+                          }}
+                          className={cn(
+                            "w-full px-4 py-3 rounded-xl border bg-gray-50 bengali-text appearance-none",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                            errors.series ? "border-red-500" : "border-gray-200"
+                          )}
+                        >
+                          <option value="">সিরিজ নির্বাচন করুন</option>
+                          <option value="__create_new__" className="font-semibold text-blue-600">+ নতুন সিরিজ তৈরি করুন</option>
+                          {userSeries.map((series) => (
+                            <option key={series.id} value={series.id}>{series.title}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                      </div>
+                      {errors.series && (
+                        <p className="text-sm text-red-500 bengali-text">{errors.series}</p>
+                      )}
+                      {userSeries.length === 0 && (
+                        <p className="text-sm text-blue-600 bengali-text flex items-center gap-2">
+                          <BookOpen className="h-4 w-4" />
+                          প্রথমে একটি নতুন সিরিজ তৈরি করুন
+                        </p>
+                      )}
                     </div>
-                    {errors.series && (
-                      <p className="text-sm text-red-500 bengali-text">{errors.series}</p>
-                    )}
-                    {userSeries.length === 0 && (
-                      <p className="text-sm text-amber-600 bengali-text">আপনার কোন সিরিজ নেই। প্রথমে একটি সিরিজ তৈরি করুন।</p>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-gray-900 bengali-text flex items-center gap-2">
+                          <BookOpen className="h-5 w-5 text-blue-600" />
+                          নতুন সিরিজ তৈরি করুন
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCreatingSeries(false);
+                            setNewSeriesTitle('');
+                            setNewSeriesDescription('');
+                            setNewSeriesCategoryId('');
+                            setSeriesCreationError('');
+                          }}
+                          className="text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {seriesCreationError && (
+                        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded-lg bengali-text">
+                          <AlertCircle className="h-4 w-4" />
+                          {seriesCreationError}
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium bengali-text">
+                          সিরিজের শিরোনাম <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newSeriesTitle}
+                          onChange={(e) => setNewSeriesTitle(e.target.value)}
+                          placeholder="সিরিজের নাম লিখুন"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bengali-text"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium bengali-text">
+                          সিরিজের বিবরণ
+                        </label>
+                        <textarea
+                          value={newSeriesDescription}
+                          onChange={(e) => setNewSeriesDescription(e.target.value)}
+                          placeholder="এই সিরিজ সম্পর্কে কিছু লিখুন"
+                          rows={3}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bengali-text resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium bengali-text">
+                          সিরিজের বিভাগ <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={newSeriesCategoryId}
+                            onChange={(e) => setNewSeriesCategoryId(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bengali-text appearance-none"
+                          >
+                            <option value="">বিভাগ নির্বাচন করুন</option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!newSeriesTitle.trim()) {
+                            setSeriesCreationError('সিরিজের শিরোনাম দিন');
+                            return;
+                          }
+                          if (!newSeriesCategoryId) {
+                            setSeriesCreationError('বিভাগ নির্বাচন করুন');
+                            return;
+                          }
+
+                          try {
+                            setSeriesCreationError('');
+                            const response = await api.series.create({
+                              title: newSeriesTitle,
+                              description: newSeriesDescription,
+                              category_id: newSeriesCategoryId,
+                            });
+
+                            if (response.success && response.data) {
+                              // Add to series list
+                              setUserSeries(prev => [...prev, response.data]);
+                              // Select the new series
+                              setFormData(prev => ({ ...prev, seriesId: response.data.id }));
+                              // Close creation form
+                              setIsCreatingSeries(false);
+                              setNewSeriesTitle('');
+                              setNewSeriesDescription('');
+                              setNewSeriesCategoryId('');
+                            }
+                          } catch (error: any) {
+                            setSeriesCreationError(error.message || 'সিরিজ তৈরিতে সমস্যা হয়েছে');
+                          }
+                        }}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium bengali-text text-sm"
+                      >
+                        সিরিজ তৈরি করুন
+                      </button>
+                    </div>
+                  )}
+
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium bengali-text">
@@ -421,9 +563,9 @@ export default function PublishModal({
                       onChange={(e) => setFormData(prev => ({ ...prev, chapterNumber: parseInt(e.target.value) || undefined }))}
                       placeholder="১, ২, ৩..."
                       className={cn(
-                        "w-full px-4 py-3 rounded-xl border bg-gray-50 dark:bg-gray-800",
+                        "w-full px-4 py-3 rounded-xl border bg-gray-50",
                         "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                        errors.chapterNumber ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                        errors.chapterNumber ? "border-red-500" : "border-gray-200"
                       )}
                     />
                     {errors.chapterNumber && (
@@ -444,8 +586,8 @@ export default function PublishModal({
                   className={cn(
                     "relative cursor-pointer border-2 border-dashed rounded-xl transition-all duration-200 overflow-hidden",
                     formData.coverImagePreview
-                      ? "border-blue-500/50 bg-blue-50 dark:bg-blue-900/10"
-                      : "border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800",
+                      ? "border-blue-500/50 bg-blue-50"
+                      : "border-gray-300 hover:border-blue-400 hover:bg-gray-50:bg-gray-800",
                     errors.coverImage && "border-red-500"
                   )}
                 >
@@ -466,7 +608,7 @@ export default function PublishModal({
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8 px-6">
                       <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600 dark:text-gray-300 font-medium bengali-text">
+                      <span className="text-sm text-gray-600 font-medium bengali-text">
                         ছবি আপলোড করুন
                       </span>
                       <span className="text-xs text-gray-400 mt-1 bengali-text">
@@ -488,7 +630,7 @@ export default function PublishModal({
               </div>
 
               {/* Premium Toggle */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
                   <h4 className="font-medium bengali-text">প্রিমিয়াম কন্টেন্ট</h4>
                   <p className="text-sm text-gray-500 bengali-text">শুধুমাত্র সাবস্ক্রাইবারদের জন্য</p>
@@ -498,7 +640,7 @@ export default function PublishModal({
                   onClick={() => setFormData(prev => ({ ...prev, isPremium: !prev.isPremium }))}
                   className={cn(
                     "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    formData.isPremium ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                    formData.isPremium ? "bg-blue-600" : "bg-gray-300"
                   )}
                 >
                   <span
@@ -516,7 +658,7 @@ export default function PublishModal({
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors bengali-text disabled:opacity-50"
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50:bg-gray-800 transition-colors bengali-text disabled:opacity-50"
                 >
                   বাতিল
                 </button>
@@ -542,3 +684,5 @@ export default function PublishModal({
     </div>
   );
 }
+
+

@@ -4,7 +4,7 @@
  */
 
 import Link from 'next/link';
-import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle } from 'lucide-react';
 
 interface ContentCardProps {
     content?: any;
@@ -37,7 +37,8 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         category,
         status,
         isSeries,
-        chapters
+        chapters,
+        rejection_reason
     } = item;
 
     const displayCoverImage = cover_image_url || coverImage;
@@ -126,6 +127,19 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
 
                 {/* Content Section */}
                 <div className="p-6">
+                    {/* Rejection Reason Alert */}
+                    {showStatus && status === 'rejected' && rejection_reason && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex items-start space-x-2">
+                                <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <p className="text-xs font-semibold text-red-800 mb-1 bengali-text">প্রত্যাখ্যানের কারণ:</p>
+                                    <p className="text-sm text-red-700 bengali-text leading-relaxed">{rejection_reason}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
                     {/* Title */}
                     <h3 className="text-xl font-bold text-gray-900 mb-3 bengali-text group-hover:text-blue-600 transition-colors line-clamp-2">
                         {title}

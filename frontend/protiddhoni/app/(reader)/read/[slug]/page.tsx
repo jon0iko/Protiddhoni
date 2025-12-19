@@ -44,6 +44,10 @@ export default function ReadContentPage() {
   const loadContent = async () => {
     setLoading(true);
     try {
+      console.log('Loading content for slug:', slug);
+      console.log('User logged in:', isLoggedIn);
+      console.log('User data:', user);
+      
       const response = await api.content.getBySlug(slug);
       if (response.success) {
         setContent(response.data);

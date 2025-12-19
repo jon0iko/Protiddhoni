@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Book, Edit3, User, Search, Bell, LogOut, ChevronDown, PlusCircle, BookOpen, FileText } from 'lucide-react';
+import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -47,7 +48,7 @@ export default function Navbar() {
             <Link href="/categories" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
               বিভাগ
             </Link>
-            <Link href="/write/new" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
+            <Link href="/write" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
               লেখালেখি
             </Link>
             <Link href="/authors" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
@@ -71,10 +72,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
-                <button className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                <NotificationDropdown />
                 
                 {/* Write Menu */}
                 <div className="relative">
@@ -144,6 +142,19 @@ export default function Navbar() {
                   
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                      {user?.is_admin && (
+                        <>
+                          <Link 
+                            href="/admin/review" 
+                            className="flex items-center space-x-2 px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 bengali-text font-medium"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <Shield className="w-4 h-4" />
+                            <span>পর্যালোচনা</span>
+                          </Link>
+                          <hr className="border-gray-200 my-1" />
+                        </>
+                      )}
                       <Link 
                         href="/my-stories" 
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
