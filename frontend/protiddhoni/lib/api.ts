@@ -241,7 +241,16 @@ export const api = {
     // Users endpoints
     users: {
         getProfile: async (username: string) => {
-            const response = await fetch(`${API_URL}/api/users/${username}`);
+            console.log('Fetching profile for username:', username);
+            const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+            const encodedUsername = encodeURIComponent(username);
+            console.log('Encoded username:', encodedUsername);
+            const url = `${API_URL}/api/users/${encodedUsername}`;
+            console.log('Full URL:', url);
+            const response = await fetch(url, {
+                headers: getHeaders(token || undefined)
+            });
+            console.log('Response status:', response.status);
             return handleResponse(response);
         },
         
@@ -358,6 +367,49 @@ export const api = {
 
         checkBookmark: async (contentId: string, token: string) => {
             const response = await fetch(`${API_URL}/api/bookmarks/check/${contentId}`, {
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        }
+    },
+
+    // Drafts endpoints
+    drafts: {
+        getMyDrafts: async (token: string) => {
+            const response = await fetch(`${API_URL}/api/drafts/my`, {
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        },
+
+        getDraftById: async (id: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/drafts/${id}`, {
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        },
+
+        createDraft: async (data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/drafts`, {
+                method: 'POST',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+
+        updateDraft: async (id: string, data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/drafts/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+
+        deleteDraft: async (id: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/drafts/${id}`, {
+                method: 'DELETE',
                 headers: getHeaders(token)
             });
             return handleResponse(response);

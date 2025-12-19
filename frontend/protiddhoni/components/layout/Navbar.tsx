@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Menu, X, Book, Edit3, User, Search, Bell, LogOut, ChevronDown, PlusCircle, BookOpen, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -10,10 +11,17 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showWriteMenu, setShowWriteMenu] = useState(false);
   const { user, isLoggedIn, logout } = useAuth();
+  const router = useRouter();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleUserMenu = () => setShowUserMenu(!showUserMenu);
   const toggleWriteMenu = () => setShowWriteMenu(!showWriteMenu);
+
+  const handleLogout = async () => {
+    await logout();
+    setShowUserMenu(false);
+    router.push('/');
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -137,13 +145,6 @@ export default function Navbar() {
                   {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
                       <Link 
-                        href="/profile" 
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        প্রোফাইল দেখুন
-                      </Link>
-                      <Link 
                         href="/my-stories" 
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
                         onClick={() => setShowUserMenu(false)}
@@ -164,12 +165,16 @@ export default function Navbar() {
                       >
                         খসড়া
                       </Link>
+                      <Link 
+                        href="/settings" 
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        সেটিংস
+                      </Link>
                       <hr className="border-gray-200 my-1" />
                       <button 
-                        onClick={() => {
-                          logout();
-                          setShowUserMenu(false);
-                        }}
+                        onClick={handleLogout}
                         className="flex items-center space-x-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <LogOut className="w-4 h-4" />

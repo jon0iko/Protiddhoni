@@ -43,8 +43,7 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/reading-preferences', require('./routes/readingPreferences'));
-app.use('/api/bookmarks', require('./routes/bookmarks'));
-app.use('/api/reading-preferences', require('./routes/readingPreferences'));
+app.use('/api/drafts', require('./routes/drafts'));
 
 // 404 handler
 app.use((req, res) => {

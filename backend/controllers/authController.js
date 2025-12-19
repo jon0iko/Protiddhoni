@@ -85,8 +85,12 @@ exports.login = async (req, res) => {
         }
 
         // Find user by email or username
-        let user = await UserRepository.findByEmail(identifier);
-        if (!user) {
+        let user;
+        
+        // Check if identifier is email (contains @)
+        if (identifier.includes('@')) {
+            user = await UserRepository.findByEmailWithPassword(identifier);
+        } else {
             user = await UserRepository.findByUsernameWithPassword(identifier);
         }
 

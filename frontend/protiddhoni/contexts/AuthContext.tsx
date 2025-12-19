@@ -17,7 +17,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (emailOrUsername: string, password: string) => Promise<void>;
   register: (fullName: string, username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isLoggedIn: boolean;
@@ -38,30 +38,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('auth_token');
+        console.log('Checking auth status, token exists:', !!token);
         
         if (token) {
-          // Fetch user profile from API
-          const response = await api.auth.getProfile(token);
-          setUser(response.data);
+          try {
+            // Fetch user profile from API
+            const response = await api.auth.getProfile(token);
+            console.log('Auth profile response:', response);
+            
+            if (response.success && response.data) {
+              console.log('User authenticated:', response.data.username);
+              setUser(response.data);
+            } else {
+              // Only clear on explicit auth failure
+              console.warn('Auth check failed, clearing token');
+              localStorage.removeItem('auth_token');
+              setUser(null);
+            }
+          } catch (apiError: any) {
+            console.error('Auth API error:', apiError);
+            // Only clear token on 401 Unauthorized
+            if (apiError.message?.includes('401') || apiError.message?.includes('Unauthorized')) {
+              localStorage.removeItem('auth_token');
+              setUser(null);
+            }
+            // For other errors, keep the token and user state
+          }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth check error:', error);
-      // Clear invalid token
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-      }
+      // Don't clear token on general errors
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (emailOrUsername: string, password: string) => {
     try {
-      const response = await api.auth.login({ email, password });
+      // identifier can be either email or username
+      const identifier = emailOrUsername; 
+      const response = await api.auth.login({ identifier, password });
+      
+      console.log('Login response:', response);
       
       if (response.success && response.data) {
         const { token, user: userData } = response.data;
+        
+        console.log('User data from login:', userData);
+        console.log('Username:', userData.username);
         
         // Store auth data
         if (typeof window !== 'undefined') {
@@ -72,8 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         throw new Error(response.error || 'লগইন করতে সমস্যা হয়েছে');
       }
-    } catch (error: any) {
-      throw new Error(error.message || 'লগইন করতে সমস্যা হয়েছে');
+    } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'লগইন করতে সমস্যা হয়েছে';
+      throw new Error(errorMessage);
     }
   };
 
@@ -98,8 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         throw new Error(response.error || 'নিবন্ধন করতে সমস্যা হয়েছে');
       }
-    } catch (error: any) {
-      throw new Error(error.message || 'নিবন্ধন করতে সমস্যা হয়েছে');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'নিবন্ধন করতে সমস্যা হয়েছে';
+      throw new Error(errorMessage);
     }
   };
 

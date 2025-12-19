@@ -29,7 +29,7 @@ export default function DraftsPage() {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      const response = await api.content.getMyDrafts(token);
+      const response = await api.drafts.getMyDrafts(token);
       if (response.success) {
         setDrafts(response.data || []);
       }
@@ -48,7 +48,7 @@ export default function DraftsPage() {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      await api.content.delete(draftId, token);
+      await api.drafts.deleteDraft(draftId, token);
       setDrafts(drafts.filter(d => d.id !== draftId));
     } catch (error) {
       console.error('Error deleting draft:', error);

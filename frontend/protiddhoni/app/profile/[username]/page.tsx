@@ -32,27 +32,40 @@ export default function ProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
-    loadProfile();
+    if (username) {
+      console.log('Loading profile for username:', username);
+      loadProfile();
+    }
   }, [username]);
 
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const [profileRes, contentsRes] = await Promise.all([
-        api.users.getProfile(username),
-        api.users.getContent(username)
-      ]);
+      console.log('Fetching profile for:', username);
+      const profileRes = await api.users.getProfile(username);
+      console.log('Profile response:', profileRes);
 
-      if (profileRes.success) {
+      if (profileRes.success && profileRes.data) {
         setProfile(profileRes.data);
         setIsFollowing(profileRes.data.isFollowing || false);
-      }
-
-      if (contentsRes.success) {
-        setContents(contentsRes.data || []);
+        
+        // Fetch contents separately to avoid blocking profile display
+        try {
+          const contentsRes = await api.users.getContent(username);
+          if (contentsRes.success && contentsRes.data) {
+            setContents(contentsRes.data || []);
+          }
+        } catch (contentError) {
+          console.error('Error loading contents:', contentError);
+          // Continue even if contents fail
+        }
+      } else {
+        console.error('Profile not found or error:', profileRes);
+        setProfile(null);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -97,7 +110,14 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">ব্যবহারকারী পাওয়া যায়নি</h1>
-          <p className="text-gray-600">এই ব্যবহারকারী নাম বিদ্যমান নেই।</p>
+          <p className="text-gray-600 mb-4">এই ব্যবহারকারী নাম বিদ্যমান নেই।</p>
+          <p className="text-sm text-gray-500">Username: {username}</p>
+          <button 
+            onClick={() => router.back()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            ফিরে যান
+          </button>
         </div>
       </div>
     );
@@ -140,7 +160,7 @@ export default function ProfilePage() {
                   {isOwnProfile ? (
                     <>
                       <Link
-                        href="/profile/edit"
+                        href="/settings"
                         className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
                       >
                         <Edit className="w-4 h-4" />
@@ -187,7 +207,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Users className="w-4 h-4" />
-                  <span><strong className="text-gray-900">{profile.stats?.followersCount || 0}</strong> অনুসারী</span>
+                  <span><strong className="text-gray-900">{profile.stats?.followerCount || 0}</strong> অনুসারী</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Users className="w-4 h-4" />

@@ -5,10 +5,10 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, optionalAuth } = require('../middleware/auth');
 
-// Public routes
-router.get('/:username', userController.getProfile);
+// Public routes (with optional auth for isFollowing check)
+router.get('/:username', optionalAuth, userController.getProfile);
 router.get('/:userId/followers', userController.getFollowers);
 router.get('/:userId/following', userController.getFollowing);
 router.get('/:userId/content', userController.getContent);
