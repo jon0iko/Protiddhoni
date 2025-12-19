@@ -111,17 +111,43 @@ exports.getBySlug = async (req, res) => {
 
 exports.getPublished = async (req, res) => {
     try {
-        const filters = {
-            category_id: req.query.category_id,
-            content_type: req.query.content_type,
-            author_id: req.query.author_id,
-            series_id: req.query.series_id,
-            is_premium: req.query.is_premium !== undefined ? req.query.is_premium === 'true' : undefined,
-            limit: req.query.limit ? parseInt(req.query.limit) : undefined
-        };
+        // Check if pagination parameters are present
+        const usePagination = req.query.page || req.query.paginated === 'true';
 
-        const contents = await ContentRepository.findPublished(filters);
-        res.json({ success: true, data: contents, count: contents.length });
+        if (usePagination) {
+            // Use new paginated endpoint
+            const filters = {
+                category_id: req.query.category_id,
+                content_type: req.query.content_type,
+                author_id: req.query.author_id,
+                series_id: req.query.series_id,
+                is_premium: req.query.is_premium !== undefined ? req.query.is_premium === 'true' : undefined,
+                sort_by: req.query.sort_by,
+                order: req.query.order,
+                page: req.query.page,
+                limit: req.query.limit
+            };
+
+            const result = await ContentRepository.findPublishedPaginated(filters);
+            res.json({ 
+                success: true, 
+                data: result.data, 
+                pagination: result.pagination
+            });
+        } else {
+            // Use legacy endpoint for backward compatibility
+            const filters = {
+                category_id: req.query.category_id,
+                content_type: req.query.content_type,
+                author_id: req.query.author_id,
+                series_id: req.query.series_id,
+                is_premium: req.query.is_premium !== undefined ? req.query.is_premium === 'true' : undefined,
+                limit: req.query.limit ? parseInt(req.query.limit) : undefined
+            };
+
+            const contents = await ContentRepository.findPublished(filters);
+            res.json({ success: true, data: contents, count: contents.length });
+        }
     } catch (error) {
         console.error('Get published content error:', error);
         res.status(500).json({ success: false, error: error.message });

@@ -87,6 +87,80 @@ class ContentRepository {
         return data;
     }
 
+    async findPublishedPaginated(filters = {}) {
+        const { 
+            category_id, 
+            content_type, 
+            author_id, 
+            series_id, 
+            is_premium,
+            sort_by = 'published_at',
+            order = 'desc',
+            page = 1,
+            limit = 9,
+            include_chapters = false
+        } = filters;
+
+        let query = db.getClient()
+            .from('content')
+            .select(`
+                *,
+                author:author_id (id, username, full_name, profile_picture_url),
+                category:category_id (id, name, slug, icon),
+                series:series_id (id, title, slug)
+            `, { count: 'exact' })
+            .eq('is_published', true)
+            .eq('status', 'approved');
+
+        // Exclude chapters from main listing unless specifically requested
+        if (!include_chapters && !series_id) {
+            query = query.is('series_id', null);
+        }
+
+        // Apply filters
+        if (category_id) {
+            query = query.eq('category_id', category_id);
+        }
+        if (content_type) {
+            query = query.eq('content_type', content_type);
+        }
+        if (author_id) {
+            query = query.eq('author_id', author_id);
+        }
+        if (series_id) {
+            query = query.eq('series_id', series_id);
+        }
+        if (is_premium !== undefined) {
+            query = query.eq('is_premium', is_premium);
+        }
+
+        // Apply sorting
+        const validSortColumns = ['published_at', 'view_count', 'created_at', 'title'];
+        const sortColumn = validSortColumns.includes(sort_by) ? sort_by : 'published_at';
+        const sortOrder = order === 'asc' ? true : false;
+        query = query.order(sortColumn, { ascending: sortOrder });
+
+        // Apply pagination
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const pageLimit = Math.max(1, Math.min(50, parseInt(limit) || 9));
+        const from = (pageNum - 1) * pageLimit;
+        const to = from + pageLimit - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+
+        return {
+            data,
+            pagination: {
+                page: pageNum,
+                limit: pageLimit,
+                total: count || 0,
+                totalPages: Math.ceil((count || 0) / pageLimit)
+            }
+        };
+    }
+
     async findByCategory(categorySlug, limit = 10) {
         const { data, error } = await db.getClient()
             .from('content')
