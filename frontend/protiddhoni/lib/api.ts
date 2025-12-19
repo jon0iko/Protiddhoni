@@ -291,7 +291,85 @@ export const api = {
         }
     },
     
-    // Reviews endpoints
+    // Comments endpoints (new comment system with replies)
+    comments: {
+        getByContentId: async (contentId: string) => {
+            const response = await fetch(`${API_URL}/api/comments/content/${contentId}`);
+            return handleResponse(response);
+        },
+        
+        getByUserId: async (userId: string) => {
+            const response = await fetch(`${API_URL}/api/comments/user/${userId}`);
+            return handleResponse(response);
+        },
+        
+        getReplies: async (commentId: string) => {
+            const response = await fetch(`${API_URL}/api/comments/replies/${commentId}`);
+            return handleResponse(response);
+        },
+        
+        create: async (data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/comments`, {
+                method: 'POST',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+        
+        update: async (id: string, data: any, token: string) => {
+            const response = await fetch(`${API_URL}/api/comments/${id}`, {
+                method: 'PUT',
+                headers: getHeaders(token),
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+        
+        delete: async (id: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/comments/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        }
+    },
+    
+    // Ratings endpoints (separate from comments, anonymous allowed)
+    ratings: {
+        getStats: async (contentId: string, token?: string) => {
+            const response = await fetch(`${API_URL}/api/ratings/stats/${contentId}`, {
+                headers: token ? getHeaders(token) : {}
+            });
+            return handleResponse(response);
+        },
+        
+        getUserRating: async (contentId: string, token?: string) => {
+            const response = await fetch(`${API_URL}/api/ratings/user/${contentId}`, {
+                headers: token ? getHeaders(token) : {}
+            });
+            return handleResponse(response);
+        },
+        
+        submit: async (data: { content_id: string; rating: number }, token?: string) => {
+            const response = await fetch(`${API_URL}/api/ratings`, {
+                method: 'POST',
+                headers: token ? getHeaders(token) : { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return handleResponse(response);
+        },
+        
+        delete: async (ratingId: string, token: string) => {
+            const response = await fetch(`${API_URL}/api/ratings/${ratingId}`, {
+                method: 'DELETE',
+                headers: getHeaders(token)
+            });
+            return handleResponse(response);
+        }
+    },
+    
+    // Reviews endpoints (legacy - kept for backward compatibility)
     reviews: {
         getByContentId: async (contentId: string) => {
             const response = await fetch(`${API_URL}/api/reviews/content/${contentId}`);

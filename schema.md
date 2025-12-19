@@ -115,21 +115,51 @@ CREATE INDEX idx_follows_follower ON follows(follower_id);
 CREATE INDEX idx_follows_following ON follows(following_id);
 ```
 
-### **Reviews Table**
+### **Comments Table**
 ```sql
-CREATE TABLE reviews (
+CREATE TABLE comments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content_id UUID REFERENCES content(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
-    review_text TEXT,
+    comment_text TEXT NOT NULL,
+    parent_comment_id UUID REFERENCES comments(id) ON DELETE CASCADE NULL, -- For replies
+    is_edited BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(content_id, user_id)
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_reviews_content ON reviews(content_id);
-CREATE INDEX idx_reviews_user ON reviews(user_id);
+CREATE INDEX idx_comments_content ON comments(content_id);
+CREATE INDEX idx_comments_user ON comments(user_id);
+CREATE INDEX idx_comments_parent ON comments(parent_comment_id);
+CREATE INDEX idx_comments_created ON comments(created_at DESC);
+
+-- Note: Users can post multiple comments on same content
+-- Comments require login
+-- Ratings are now separate (see ratings table below)
+```
+
+### **Ratings Table**
+```sql
+CREATE TABLE ratings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    content_id UUID REFERENCES content(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NULL, -- NULL for anonymous
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    user_identifier VARCHAR(255) NULL, -- For anonymous users (IP hash/session)
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(content_id, user_id),
+    UNIQUE(content_id, user_identifier)
+);
+
+CREATE INDEX idx_ratings_content ON ratings(content_id);
+CREATE INDEX idx_ratings_user ON ratings(user_id);
+CREATE INDEX idx_ratings_identifier ON ratings(user_identifier);
+
+-- Note: Ratings are separate from comments
+-- One rating per user/identifier per content
+-- Anonymous ratings allowed (no login required)
+-- Logged-in users tracked by user_id, anonymous by user_identifier
 ```
 
 ### **Reading_Progress Table**

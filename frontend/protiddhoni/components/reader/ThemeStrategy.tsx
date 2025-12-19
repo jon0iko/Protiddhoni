@@ -1,37 +1,48 @@
 /**
  * Design Pattern: Strategy
+ * Theme Strategy for Reading Interface
  */
 
-import { CSSProperties } from 'react';
+export type ThemeType = 'light' | 'dark' | 'sepia';
 
 export interface ThemeStrategy {
-    applyTheme(): CSSProperties;
+    applyTheme(): void;
+    getThemeType(): ThemeType;
 }
 
 export class LightTheme implements ThemeStrategy {
-    applyTheme(): CSSProperties {
-        return {
-            backgroundColor: '#ffffff',
-            color: '#000000',
-        };
+    applyTheme(): void {
+        if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-reader-theme', 'light');
+        }
+    }
+
+    getThemeType(): ThemeType {
+        return 'light';
     }
 }
 
 export class DarkTheme implements ThemeStrategy {
-    applyTheme(): CSSProperties {
-        return {
-            backgroundColor: '#1a1a1a',
-            color: '#e0e0e0',
-        };
+    applyTheme(): void {
+        if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-reader-theme', 'dark');
+        }
+    }
+
+    getThemeType(): ThemeType {
+        return 'dark';
     }
 }
 
 export class SepiaTheme implements ThemeStrategy {
-    applyTheme(): CSSProperties {
-        return {
-            backgroundColor: '#f4ecd8',
-            color: '#5c4a2c',
-        };
+    applyTheme(): void {
+        if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-reader-theme', 'sepia');
+        }
+    }
+
+    getThemeType(): ThemeType {
+        return 'sepia';
     }
 }
 
@@ -42,11 +53,29 @@ export class ThemeContext {
         this.strategy = strategy;
     }
 
-    setStrategy(strategy: ThemeStrategy) {
+    setStrategy(strategy: ThemeStrategy): void {
         this.strategy = strategy;
+        this.applyTheme();
     }
 
-    getTheme(): CSSProperties {
-        return this.strategy.applyTheme();
+    applyTheme(): void {
+        this.strategy.applyTheme();
+    }
+
+    getThemeType(): ThemeType {
+        return this.strategy.getThemeType();
+    }
+}
+
+// Factory function to create theme strategy
+export function createThemeStrategy(theme: ThemeType): ThemeStrategy {
+    switch (theme) {
+        case 'dark':
+            return new DarkTheme();
+        case 'sepia':
+            return new SepiaTheme();
+        case 'light':
+        default:
+            return new LightTheme();
     }
 }
