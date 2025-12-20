@@ -31,11 +31,11 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              {/* <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <Book className="w-5 h-5 text-white" />
-              </div>
+              </div> */}
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-gray-900 bengali-text">প্রতিধ্বনি</span>
+                <span className="text-3xl font-bold text-gray-900 bengali-text">প্রতিধ্বনি</span>
               </div>
             </Link>
           </div>
