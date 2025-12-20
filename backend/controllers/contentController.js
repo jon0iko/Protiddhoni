@@ -82,18 +82,38 @@ exports.getById = async (req, res) => {
 
 exports.getBySlug = async (req, res) => {
     try {
-        const content = await ContentRepository.findBySlug(req.params.slug);
+        const slugOrId = req.params.slug;
+        let content = null;
+        
+        // First try to find by slug
+        content = await ContentRepository.findBySlug(slugOrId);
+        
+        // If not found by slug, try by ID (for cases where slug is empty or ID is passed)
+        if (!content) {
+            content = await ContentRepository.findById(slugOrId);
+        }
         
         if (!content) {
             return res.status(404).json({ success: false, error: 'Content not found' });
         }
 
-        // Only show published content to non-authors
-        if (!content.is_published && (!req.user || req.user.id !== content.author_id)) {
+        // Allow access if: 1) Content is published, OR 2) User is the author, OR 3) User is admin
+        const isAuthor = req.user && req.user.id === content.author_id;
+        const isAdmin = req.user && req.user.is_admin;
+        
+        if (!content.is_published && !isAuthor && !isAdmin) {
+            console.log('Access denied:', {
+                is_published: content.is_published,
+                has_user: !!req.user,
+                user_id: req.user?.id,
+                author_id: content.author_id,
+                is_author: isAuthor,
+                is_admin: isAdmin
+            });
             return res.status(403).json({ success: false, error: 'Content not accessible' });
         }
 
-        // Increment view count for published content
+        // Increment view count for published content only
         if (content.is_published) {
             await ContentRepository.incrementViewCount(content.id);
         }
@@ -111,17 +131,43 @@ exports.getBySlug = async (req, res) => {
 
 exports.getPublished = async (req, res) => {
     try {
-        const filters = {
-            category_id: req.query.category_id,
-            content_type: req.query.content_type,
-            author_id: req.query.author_id,
-            series_id: req.query.series_id,
-            is_premium: req.query.is_premium !== undefined ? req.query.is_premium === 'true' : undefined,
-            limit: req.query.limit ? parseInt(req.query.limit) : undefined
-        };
+        // Check if pagination parameters are present
+        const usePagination = req.query.page || req.query.paginated === 'true';
 
-        const contents = await ContentRepository.findPublished(filters);
-        res.json({ success: true, data: contents, count: contents.length });
+        if (usePagination) {
+            // Use new paginated endpoint
+            const filters = {
+                category_id: req.query.category_id,
+                content_type: req.query.content_type,
+                author_id: req.query.author_id,
+                series_id: req.query.series_id,
+                is_premium: req.query.is_premium !== undefined ? req.query.is_premium === 'true' : undefined,
+                sort_by: req.query.sort_by,
+                order: req.query.order,
+                page: req.query.page,
+                limit: req.query.limit
+            };
+
+            const result = await ContentRepository.findPublishedPaginated(filters);
+            res.json({ 
+                success: true, 
+                data: result.data, 
+                pagination: result.pagination
+            });
+        } else {
+            // Use legacy endpoint for backward compatibility
+            const filters = {
+                category_id: req.query.category_id,
+                content_type: req.query.content_type,
+                author_id: req.query.author_id,
+                series_id: req.query.series_id,
+                is_premium: req.query.is_premium !== undefined ? req.query.is_premium === 'true' : undefined,
+                limit: req.query.limit ? parseInt(req.query.limit) : undefined
+            };
+
+            const contents = await ContentRepository.findPublished(filters);
+            res.json({ success: true, data: contents, count: contents.length });
+        }
     } catch (error) {
         console.error('Get published content error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -183,8 +229,8 @@ exports.update = async (req, res) => {
 
         const updates = { ...req.body };
         
-        // Update slug if title changed
-        if (req.body.title && req.body.title !== existingContent.title) {
+        // Update slug if title changed or if slug is empty
+        if (req.body.title && (req.body.title !== existingContent.title || !existingContent.slug)) {
             updates.slug = slugify(req.body.title);
         }
 

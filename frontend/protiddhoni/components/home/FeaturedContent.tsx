@@ -6,68 +6,174 @@ import ContentCard from '@/components/content/ContentCard';
 import { api } from '@/lib/api';
 
 const categories = [
-    { name: 'সবগুলো', slug: 'all', active: true },
-    { name: 'জনপ্রিয়', slug: 'popular', active: false },
-    { name: 'নতুন', slug: 'latest', active: false },
-    { name: 'প্রিমিয়াম', slug: 'premium', active: false }
+    { name: 'সবগুলো', slug: 'all' },
+    { name: 'জনপ্রিয়', slug: 'popular' },
+    { name: 'নতুন', slug: 'latest' },
+    { name: 'প্রিমিয়াম', slug: 'premium' }
 ];
+
+const ITEMS_PER_PAGE = 9; // 3 rows of 3 items each
 
 export default function FeaturedContent() {
     const [activeCategory, setActiveCategory] = useState('all');
-    const [, setCurrentSlide] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
     const [contents, setContents] = useState<any[]>([]);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalContents, setTotalContents] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchContent = async () => {
             try {
                 setLoading(true);
-                const filters: any = { limit: 6 };
+                const filters: any = {
+                    paginated: 'true',
+                    page: currentPage.toString(),
+                    limit: ITEMS_PER_PAGE.toString()
+                };
                 
+                // Apply category-specific filters and sorting
                 if (activeCategory === 'premium') {
                     filters.is_premium = 'true';
+                    filters.sort_by = 'published_at';
+                    filters.order = 'desc';
+                } else if (activeCategory === 'popular') {
+                    filters.sort_by = 'view_count';
+                    filters.order = 'desc';
+                } else if (activeCategory === 'latest') {
+                    filters.sort_by = 'created_at';
+                    filters.order = 'desc';
+                } else {
+                    // Default for 'all'
+                    filters.sort_by = 'published_at';
+                    filters.order = 'desc';
                 }
                 
-                const response = await api.content.getPublished(filters);
-                setContents(response.data || []);
+                // Fetch both standalone content and series
+                const [contentResponse, seriesResponse] = await Promise.all([
+                    api.content.getPublished(filters),
+                    api.series.getPublished(filters)
+                ]);
+                
+                // Combine and mark series items
+                const contentItems = (contentResponse.data || []).map((item: any) => ({
+                    ...item,
+                    itemType: 'content'
+                }));
+                
+                const seriesItems = (seriesResponse.data || []).map((item: any) => ({
+                    ...item,
+                    itemType: 'series'
+                }));
+                
+                // Merge and re-sort based on the selected sorting criteria
+                let allItems = [...contentItems, ...seriesItems];
+                
+                if (activeCategory === 'popular') {
+                    allItems.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+                } else if (activeCategory === 'latest') {
+                    allItems.sort((a, b) => {
+                        const dateA = new Date(a.created_at).getTime();
+                        const dateB = new Date(b.created_at).getTime();
+                        return dateB - dateA;
+                    });
+                } else {
+                    allItems.sort((a, b) => {
+                        const dateA = new Date(a.published_at || a.created_at).getTime();
+                        const dateB = new Date(b.published_at || b.created_at).getTime();
+                        return dateB - dateA;
+                    });
+                }
+                
+                // Calculate pagination for combined results
+                const totalItems = allItems.length;
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                const endIndex = startIndex + ITEMS_PER_PAGE;
+                const paginatedItems = allItems.slice(startIndex, endIndex);
+                
+                setContents(paginatedItems);
+                setTotalContents(totalItems);
+                setTotalPages(Math.ceil(totalItems / ITEMS_PER_PAGE));
             } catch (error) {
                 console.error('Error fetching content:', error);
+                setContents([]);
+                setTotalContents(0);
+                setTotalPages(0);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchContent();
+    }, [activeCategory, currentPage]);
+
+    // Reset to page 1 when category changes
+    useEffect(() => {
+        setCurrentPage(1);
     }, [activeCategory]);
 
     const nextSlide = () => {
-        setCurrentSlide((prev) => (prev + 1) % Math.ceil(contents.length / 3));
+        if (currentPage < totalPages) {
+            setCurrentPage(prev => prev + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
 
     const prevSlide = () => {
-        setCurrentSlide((prev) => (prev - 1 + Math.ceil(contents.length / 3)) % Math.ceil(contents.length / 3));
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
 
     // Transform backend data to frontend format
-    const transformContent = (content: any) => ({
-        id: content.id,
-        title: content.title,
-        excerpt: content.excerpt || '',
-        author: content.author?.full_name || 'Unknown',
-        slug: content.slug,
-        category: content.category?.name || '',
-        coverImage: content.cover_image_url || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-        isPremium: content.is_premium || false,
-        rating: content.stats?.averageRating || 0,
-        views: content.view_count || 0,
-        publishedAt: content.published_at ? new Date(content.published_at).toLocaleDateString('bn-BD') : '',
-        readTime: '15 মিনিট',
-        status: 'completed',
-        chapters: 1,
-        tags: [],
-        totalRatings: content.stats?.totalReviews || 0,
-        likes: 0
-    });
+    const transformContent = (item: any) => {
+        const isSeries = item.itemType === 'series';
+        
+        if (isSeries) {
+            return {
+                id: item.id,
+                title: item.title,
+                excerpt: item.description || '',
+                author: item.author?.full_name || 'Unknown',
+                slug: item.slug,
+                category: item.category?.name || '',
+                coverImage: item.cover_image_url || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
+                isPremium: false,
+                rating: 0,
+                views: 0,
+                publishedAt: item.created_at ? new Date(item.created_at).toLocaleDateString('bn-BD') : '',
+                readTime: `${item.total_chapters || 0} টি অধ্যায়`,
+                status: item.is_completed ? 'completed' : 'ongoing',
+                chapters: item.total_chapters || 0,
+                tags: [],
+                totalRatings: 0,
+                likes: 0,
+                isSeries: true
+            };
+        } else {
+            return {
+                id: item.id,
+                title: item.title,
+                excerpt: item.excerpt || '',
+                author: item.author?.full_name || 'Unknown',
+                slug: item.slug,
+                category: item.category?.name || '',
+                coverImage: item.cover_image_url || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
+                isPremium: item.is_premium || false,
+                rating: item.stats?.averageRating || 0,
+                views: item.view_count || 0,
+                publishedAt: item.published_at ? new Date(item.published_at).toLocaleDateString('bn-BD') : '',
+                readTime: '15 মিনিট',
+                status: 'completed',
+                chapters: 1,
+                tags: [],
+                totalRatings: item.stats?.totalReviews || 0,
+                likes: 0,
+                isSeries: false
+            };
+        }
+    };
 
     return (
         <section className="py-16 bg-white">
@@ -75,10 +181,10 @@ export default function FeaturedContent() {
                 {/* Section Header */}
                 <div className="text-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 bengali-text">
-                        বিশেষ নির্বাচিত রচনা
+                        সকল রচনা
                     </h2>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto bengali-text">
-                        নির্বাচিত সেরা গল্প, কবিতা এবং ধারাবাহিক
+                        আমাদের প্ল্যাটফর্মের সকল গল্প, কবিতা এবং ধারাবাহিক রচনা
                     </p>
                 </div>
 
@@ -102,51 +208,99 @@ export default function FeaturedContent() {
                 {/* Content Grid */}
                 {loading ? (
                     <div className="text-center py-12">
-                        <p className="text-gray-600 bengali-text">লোড হচ্ছে...</p>
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p className="text-gray-600 bengali-text mt-4">লোড হচ্ছে...</p>
                     </div>
-                ) : contents.length === 0 ? (
+                ) : totalContents === 0 ? (
                     <div className="text-center py-12">
-                        <p className="text-gray-600 bengali-text">কোন রচনা পাওয়া যায়নি</p>
+                        <p className="text-gray-600 bengali-text text-lg">কোন রচনা পাওয়া যায়নি</p>
                     </div>
                 ) : (
-                    <div className="relative">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                            {contents.map((content) => (
-                                <ContentCard
-                                    key={content.id}
-                                    story={transformContent(content)}
-                                />
-                            ))}
+                    <>
+                        <div className="relative min-h-[600px]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                                {contents.map((content) => (
+                                    <ContentCard
+                                        key={content.id}
+                                        story={transformContent(content)}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Navigation Arrows */}
+                            {totalPages > 1 && (
+                                <>
+                                    <button
+                                        onClick={prevSlide}
+                                        disabled={currentPage === 1}
+                                        className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-2 transition-all ${
+                                            currentPage === 1
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : 'hover:bg-gray-50 hover:shadow-xl'
+                                        }`}
+                                        aria-label="Previous page"
+                                    >
+                                        <ChevronLeft className="w-6 h-6 text-gray-600" />
+                                    </button>
+                                    <button
+                                        onClick={nextSlide}
+                                        disabled={currentPage === totalPages}
+                                        className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-2 transition-all ${
+                                            currentPage === totalPages
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : 'hover:bg-gray-50 hover:shadow-xl'
+                                        }`}
+                                        aria-label="Next page"
+                                    >
+                                        <ChevronRight className="w-6 h-6 text-gray-600" />
+                                    </button>
+                                </>
+                            )}
                         </div>
 
-                        {/* Navigation Arrows */}
-                        {contents.length > 3 && (
-                            <>
-                                <button
-                                    onClick={prevSlide}
-                                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-                                    aria-label="Previous"
-                                >
-                                    <ChevronLeft className="w-6 h-6 text-gray-600" />
-                                </button>
-                                <button
-                                    onClick={nextSlide}
-                                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full p-2 hover:bg-gray-50 transition-colors"
-                                    aria-label="Next"
-                                >
-                                    <ChevronRight className="w-6 h-6 text-gray-600" />
-                                </button>
-                            </>
-                        )}
-                    </div>
+                        {/* Pagination Info */}
+                        <div className="text-center mt-8">
+                            <p className="text-gray-600 bengali-text mb-4">
+                                পৃষ্ঠা {currentPage} এর {totalPages} • মোট {totalContents}টি রচনা
+                            </p>
+                            
+                            {/* Page Numbers */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-2">
+                                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                                        let pageNum;
+                                        if (totalPages <= 7) {
+                                            pageNum = i + 1;
+                                        } else if (currentPage <= 4) {
+                                            pageNum = i + 1;
+                                        } else if (currentPage >= totalPages - 3) {
+                                            pageNum = totalPages - 6 + i;
+                                        } else {
+                                            pageNum = currentPage - 3 + i;
+                                        }
+                                        
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => {
+                                                    setCurrentPage(pageNum);
+                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                }}
+                                                className={`w-10 h-10 rounded-full font-medium transition-colors ${
+                                                    currentPage === pageNum
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </>
                 )}
-
-                {/* View All Button */}
-                <div className="text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold bengali-text transition-colors">
-                        আরও দেখুন
-                    </button>
-                </div>
             </div>
         </section>
     );

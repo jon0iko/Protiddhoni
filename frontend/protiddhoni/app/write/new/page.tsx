@@ -71,34 +71,6 @@ export default function NewStoryPage() {
           </p>
         </div>
 
-        {/* Story Type Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {storyTypes.map((type) => (
-            <button
-              key={type.id}
-              onClick={() => handleTypeSelection(type.id)}
-              className={`${type.bgColor} border border-gray-200 rounded-xl p-6 text-left transition-all duration-200 hover:shadow-lg hover:scale-105 group`}
-            >
-              <div className="flex items-start space-x-4">
-                <div className={`${type.color} p-3 rounded-lg bg-white shadow-sm group-hover:shadow-md transition-shadow`}>
-                  {type.icon}
-                </div>
-                <div className="flex-1">
-                  <h3 className={`text-xl font-bold ${type.color} mb-2 bengali-text`}>
-                    {type.name}
-                  </h3>
-                  <p className="text-gray-600 mb-4 bengali-text">
-                    {type.description}
-                  </p>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <span className="bengali-text">শুরু করুন</span>
-                    <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
 
         {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

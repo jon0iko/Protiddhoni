@@ -6,11 +6,11 @@ import { BookOpen, Edit3 } from 'lucide-react';
 export default function HeroSection() {
     return (
         <section className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 flex items-center">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20">
                 <div className="text-center">
                     {/* Main Heading */}
                     <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 bengali-text">
-                        <span className="text-gradient">বাংলা সাহিত্যের</span>
+                        <span className="text-gradient px-2">বাংলা সাহিত্যের</span>
                         <br />
                         ডিজিটাল আবাসস্থল
                     </h1>
@@ -24,7 +24,7 @@ export default function HeroSection() {
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                         <Link 
-                            href="/explore" 
+                            href="#featured-content" 
                             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg hover:shadow-xl"
                         >
                             <BookOpen className="w-5 h-5" />
@@ -41,8 +41,8 @@ export default function HeroSection() {
                 </div>
             </div>
 
-            {/* Background Pattern */}
-            <div className="absolute inset-0 z-10 opacity-30 overflow-hidden">
+            {/* Background Pattern - Desktop */}
+            <div className="absolute inset-0 z-10 opacity-30 overflow-hidden hidden md:block">
                 {/* Top row */}
                 <div className="absolute top-10 left-5 text-7xl text-gray-300 bengali-text font-light">প্র</div>
                 <div className="absolute top-20 left-32 text-6xl text-gray-300 bengali-text font-light">তি</div>
@@ -66,6 +66,20 @@ export default function HeroSection() {
                 {/* Additional scattered elements */}
                 <div className="absolute top-2/3 left-1/2 text-5xl text-gray-300 bengali-text font-light">হি</div>
                 <div className="absolute top-3/4 right-1/3 text-7xl text-gray-300 bengali-text font-light">তে</div>
+            </div>
+
+            {/* Background Pattern - Mobile */}
+            <div className="absolute inset-0 z-10 opacity-30 overflow-hidden md:hidden">
+                <div className="absolute top-20 left-8 text-4xl text-gray-300 bengali-text font-light">প্র</div>
+                <div className="absolute top-1/3 right-10 text-4xl text-gray-300 bengali-text font-light">লা</div>
+                <div className="absolute bottom-32 left-6 text-4xl text-gray-300 bengali-text font-light">সা</div>
+                <div className="absolute bottom-20 right-8 text-4xl text-gray-300 bengali-text font-light">তি</div>
+                <div className="absolute top-1/3 left-10 text-5xl text-gray-300 bengali-text font-light">তে</div>
+                <div className="absolute top-1/2 right-20 text-4xl text-gray-300 bengali-text font-light">র</div>
+                <div className="absolute top-2/5 left-1/4 text-4xl text-gray-300 bengali-text font-light">বাং</div>
+                <div className="absolute top-1/3 right-1/3 text-4xl text-gray-300 bengali-text font-light">ধ্ব</div>
+                <div className="absolute top-2/3 left-1/2 text-5xl text-gray-300 bengali-text font-light">হি</div>
+                <div className="absolute top-3/4 right-1/3 text-4xl text-gray-300 bengali-text font-light">তে</div>
             </div>
         </section>
     );

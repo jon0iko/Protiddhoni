@@ -31,6 +31,17 @@ class UserRepository {
     async findByEmail(email) {
         const { data, error } = await db.getClient()
             .from('users')
+            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, is_verified, created_at, updated_at')
+            .eq('email', email)
+            .single();
+        
+        if (error) return null;
+        return data;
+    }
+
+    async findByEmailWithPassword(email) {
+        const { data, error } = await db.getClient()
+            .from('users')
             .select('*')
             .eq('email', email)
             .single();
@@ -40,13 +51,18 @@ class UserRepository {
     }
 
     async findByUsername(username) {
+        console.log('UserRepository.findByUsername called with:', username);
         const { data, error } = await db.getClient()
             .from('users')
             .select('id, email, username, full_name, bio, profile_picture_url, is_admin, is_verified, created_at, updated_at')
             .eq('username', username)
             .single();
         
-        if (error) return null;
+        if (error) {
+            console.log('Error finding user by username:', error);
+            return null;
+        }
+        console.log('User found:', data);
         return data;
     }
 

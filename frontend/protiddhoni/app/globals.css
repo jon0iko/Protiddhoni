@@ -15,23 +15,50 @@
   --accent-foreground: #ffffff;
   --border: #e2e8f0;
   --ring: #2563eb;
+
+  /* Reading Theme Variables - Light (Default) */
+  --reader-bg: #ffffff;
+  --reader-text: #1f2937;
+  --reader-secondary-text: #6b7280;
+  --reader-border: #e5e7eb;
+  --reader-card-bg: #f9fafb;
+  --reader-hover: #f3f4f6;
+
+  /* Font Size Variables */
+  --reader-font-small: 14px;
+  --reader-font-medium: 16px;
+  --reader-font-large: 18px;
+  --reader-font-xlarge: 20px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --primary: #3b82f6;
-    --primary-foreground: #ffffff;
-    --secondary: #1e293b;
-    --secondary-foreground: #cbd5e1;
-    --muted: #334155;
-    --muted-foreground: #94a3b8;
-    --accent: #f59e0b;
-    --accent-foreground: #ffffff;
-    --border: #334155;
-    --ring: #3b82f6;
-  }
+/* Light Theme (manual override) */
+[data-reader-theme="light"] {
+  --reader-bg: #ffffff;
+  --reader-text: #1f2937;
+  --reader-secondary-text: #6b7280;
+  --reader-border: #e5e7eb;
+  --reader-card-bg: #f9fafb;
+  --reader-hover: #f3f4f6;
+}
+
+/* Dark Theme */
+[data-reader-theme="dark"] {
+  --reader-bg: #1a1a1a;
+  --reader-text: #e5e5e5;
+  --reader-secondary-text: #a3a3a3;
+  --reader-border: #404040;
+  --reader-card-bg: #262626;
+  --reader-hover: #333333;
+}
+
+/* Sepia Theme */
+[data-reader-theme="sepia"] {
+  --reader-bg: #f4ecd8;
+  --reader-text: #5c4a2c;
+  --reader-secondary-text: #8b7355;
+  --reader-border: #d4c4a8;
+  --reader-card-bg: #f0e6d2;
+  --reader-hover: #ebe0cc;
 }
 
 body {
@@ -46,6 +73,10 @@ body {
   font-family: var(--font-kalpurush), serif;
   line-height: 1.8;
   letter-spacing: 0.02em;
+}
+
+.prose {
+  color: var(--background);
 }
 
 /* Custom scrollbar */
@@ -91,6 +122,33 @@ body {
   
   .text-gradient {
     @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  }
+
+  /* Reader Content Styling */
+  .prose {
+    color: var(--reader-text);
+  }
+
+  .prose p {
+    color: var(--reader-text);
+    margin-bottom: 1.25em;
+  }
+
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    color: var(--reader-text);
+  }
+
+  .prose strong {
+    color: var(--reader-text);
+  }
+
+  .prose a {
+    color: var(--primary);
+  }
+
+  .prose blockquote {
+    border-left-color: var(--reader-border);
+    color: var(--reader-secondary-text);
   }
 }
 

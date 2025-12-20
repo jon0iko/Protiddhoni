@@ -36,10 +36,18 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', require('./routes/auth'));
+console.log('✅ Auth routes registered at /api/auth');
 app.use('/api/content', require('./routes/content'));
+app.use('/api/series', require('./routes/series'));
 app.use('/api/users', require('./routes/users'));
-app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/reviews', require('./routes/reviews')); // Legacy - kept for backward compatibility
+app.use('/api/comments', require('./routes/comments')); // New comments system
+app.use('/api/ratings', require('./routes/ratings')); // Separate rating system
 app.use('/api/categories', require('./routes/categories'));
+app.use('/api/bookmarks', require('./routes/bookmarks'));
+app.use('/api/reading-preferences', require('./routes/readingPreferences'));
+app.use('/api/drafts', require('./routes/drafts'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // 404 handler
 app.use((req, res) => {

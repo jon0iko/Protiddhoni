@@ -5,14 +5,21 @@
 
 const UserRepository = require('../repositories/UserRepository');
 const ContentRepository = require('../repositories/ContentRepository');
+const SeriesRepository = require('../repositories/SeriesRepository');
 
 exports.getProfile = async (req, res) => {
     try {
-        const user = await UserRepository.findByUsername(req.params.username);
+        const username = req.params.username;
+        console.log('Getting profile for username:', username);
+        
+        const user = await UserRepository.findByUsername(username);
         
         if (!user) {
+            console.log('User not found:', username);
             return res.status(404).json({ success: false, error: 'User not found' });
         }
+
+        console.log('User found:', user.username);
 
         // Get user stats
         const stats = await UserRepository.getUserStats(user.id);
@@ -21,6 +28,8 @@ exports.getProfile = async (req, res) => {
         // Check if current user is following this user
         if (req.user) {
             user.isFollowing = await UserRepository.isFollowing(req.user.id, user.id);
+        } else {
+            user.isFollowing = false;
         }
 
         res.json({ success: true, data: user });
@@ -115,7 +124,23 @@ exports.getFollowing = async (req, res) => {
 
 exports.getContent = async (req, res) => {
     try {
-        const contents = await ContentRepository.findByAuthor(req.params.userId);
+        const { userId } = req.params;
+        
+        // Check if it's a username or UUID
+        let user;
+        if (userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            // It's a UUID
+            user = await UserRepository.findById(userId);
+        } else {
+            // It's a username
+            user = await UserRepository.findByUsername(userId);
+        }
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        const contents = await ContentRepository.findByAuthor(user.id);
         res.json({ success: true, data: contents, count: contents.length });
     } catch (error) {
         console.error('Get user content error:', error);
@@ -123,11 +148,28 @@ exports.getContent = async (req, res) => {
     }
 };
 
-exports.getFollowing = async (req, res) => {
+exports.getSeries = async (req, res) => {
     try {
-        // TODO: Get users this user is following
-        res.json({ following: [] });
+        const { userId } = req.params;
+        
+        // Check if it's a username or UUID
+        let user;
+        if (userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            // It's a UUID
+            user = await UserRepository.findById(userId);
+        } else {
+            // It's a username
+            user = await UserRepository.findByUsername(userId);
+        }
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        const series = await SeriesRepository.findByAuthor(user.id);
+        res.json({ success: true, data: series, count: series.length });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Get user series error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 };

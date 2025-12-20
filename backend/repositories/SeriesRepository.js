@@ -94,6 +94,85 @@ class SeriesRepository {
         if (error) throw error;
         return true;
     }
+
+    async findPublishedPaginated(filters = {}) {
+        const { 
+            category_id, 
+            author_id,
+            sort_by = 'created_at',
+            order = 'desc',
+            page = 1,
+            limit = 9
+        } = filters;
+
+        let query = db.getClient()
+            .from('series')
+            .select(`
+                *,
+                author:author_id (id, username, full_name, profile_picture_url),
+                category:category_id (id, name, slug, icon)
+            `, { count: 'exact' });
+
+        // Apply filters
+        if (category_id) {
+            query = query.eq('category_id', category_id);
+        }
+        if (author_id) {
+            query = query.eq('author_id', author_id);
+        }
+
+        // Apply sorting
+        const validSortColumns = ['created_at', 'updated_at', 'title', 'total_chapters'];
+        const sortColumn = validSortColumns.includes(sort_by) ? sort_by : 'created_at';
+        const sortOrder = order === 'asc' ? true : false;
+        query = query.order(sortColumn, { ascending: sortOrder });
+
+        // Apply pagination
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const pageLimit = Math.max(1, Math.min(50, parseInt(limit) || 9));
+        const from = (pageNum - 1) * pageLimit;
+        const to = from + pageLimit - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+
+        return {
+            data,
+            pagination: {
+                page: pageNum,
+                limit: pageLimit,
+                total: count || 0,
+                totalPages: Math.ceil((count || 0) / pageLimit)
+            }
+        };
+    }
+
+    async findPublished(filters = {}) {
+        let query = db.getClient()
+            .from('series')
+            .select(`
+                *,
+                author:author_id (id, username, full_name, profile_picture_url),
+                category:category_id (id, name, slug, icon)
+            `)
+            .order('created_at', { ascending: false });
+
+        // Apply filters
+        if (filters.category_id) {
+            query = query.eq('category_id', filters.category_id);
+        }
+        if (filters.author_id) {
+            query = query.eq('author_id', filters.author_id);
+        }
+        if (filters.limit) {
+            query = query.limit(filters.limit);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    }
 }
 
 module.exports = new SeriesRepository();
