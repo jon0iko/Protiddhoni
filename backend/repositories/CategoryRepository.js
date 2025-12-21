@@ -49,6 +49,27 @@ class CategoryRepository {
         if (error) return 0;
         return count || 0;
     }
+
+    async create(categoryData) {
+        const { data, error } = await db.getClient()
+            .from('categories')
+            .insert(categoryData)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    async delete(id) {
+        const { error } = await db.getClient()
+            .from('categories')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
+        return true;
+    }
 }
 
 module.exports = new CategoryRepository();

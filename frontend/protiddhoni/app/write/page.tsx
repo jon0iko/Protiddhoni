@@ -98,7 +98,7 @@ export default function WritingHubPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/auth/login');
+      router.push('/login');
       return;
     }
 
@@ -147,7 +147,7 @@ export default function WritingHubPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
           <button
             onClick={() => router.push('/write/editor')}
             className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
@@ -157,17 +157,17 @@ export default function WritingHubPage() {
             <p className="text-sm opacity-90 bengali-text">একটি নতুন গল্প শুরু করুন</p>
           </button>
 
-          <button
-            onClick={() => router.push('/write/editor')}
+          {/* <button
+            onClick={() => router.push('/write/continue')}
             className="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <Edit className="w-8 h-8 mb-3 mx-auto" />
             <h3 className="text-lg font-bold mb-2 bengali-text">চালিয়ে যান</h3>
             <p className="text-sm opacity-90 bengali-text">পূর্বের লেখা সম্পাদনা করুন</p>
-          </button>
+          </button> */}
 
           <button
-            onClick={() => router.push('/write/editor')}
+            onClick={() => router.push('/drafts')}
             className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <FileText className="w-8 h-8 mb-3 mx-auto" />
@@ -175,14 +175,14 @@ export default function WritingHubPage() {
             <p className="text-sm opacity-90 bengali-text">অসম্পূর্ণ লেখাগুলি দেখুন</p>
           </button>
 
-          <button
+          {/* <button
             onClick={() => router.push('/write/settings')}
             className="bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <Target className="w-8 h-8 mb-3 mx-auto" />
             <h3 className="text-lg font-bold mb-2 bengali-text">সেটিংস</h3>
             <p className="text-sm opacity-90 bengali-text">লেখার পছন্দ কাস্টমাইজ করুন</p>
-          </button>
+          </button> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -229,7 +229,7 @@ export default function WritingHubPage() {
               </div>
             </div>
 
-            {/* Weekly Progress */}
+            {/* Weekly Progress
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 bengali-text">
@@ -253,7 +253,7 @@ export default function WritingHubPage() {
                   : `আরও ${userStats.weeklyTarget - userStats.weeklyProgress} শব্দ লিখুন লক্ষ্য অর্জনের জন্য`
                 }
               </p>
-            </div>
+            </div> */}
 
             {/* Writing Inspiration */}
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">

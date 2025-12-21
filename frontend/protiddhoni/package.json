@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "@tiptap/core": "^3.13.0",
     "@tiptap/extension-color": "^3.13.0",
     "@tiptap/extension-link": "^3.13.0",

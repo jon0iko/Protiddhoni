@@ -34,7 +34,7 @@ export default function DraftsListModal({
     setError(null);
     
     try {
-      const response = await api.content.getMyDrafts();
+      const response = await api.drafts.getMyDrafts();
       // Map the response to Draft type
       const draftsData = response.data.map((item: { 
         id: string; 
@@ -81,7 +81,7 @@ export default function DraftsListModal({
     setDeletingId(draft.id);
     
     try {
-      await api.content.delete(draft.id);
+      await api.drafts.deleteDraft(draft.id);
       setDrafts(prev => prev.filter(d => d.id !== draft.id));
       onDeleteDraft?.(draft.id);
     } catch (err) {
