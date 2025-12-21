@@ -14,6 +14,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { cn, validateImageFile, fileToBase64, getExcerptFromHtml } from '@/lib/utils';
+import { uploadCoverImage } from '@/lib/imageUpload';
 import { api } from '@/lib/api';
 import type { PublishFormData, PublishFormErrors, Category, Series } from './types';
 
@@ -25,8 +26,8 @@ interface PublishModalProps {
 }
 
 const CONTENT_TYPES = [
-  { id: 'story', name: 'গল্প', icon: BookOpen, description: 'ছোটগল্প বা উপন্যাস' },
-  { id: 'poem', name: 'কবিতা', icon: Feather, description: 'ছন্দ ও কবিতা' },
+  { id: 'story', name: 'গদ্য', icon: BookOpen, description: 'ছোটগল্প, উপন্যাস বা প্রবন্ধ' },
+  { id: 'poem', name: 'পদ্য', icon: Feather, description: 'ছড়া বা কবিতা' },
   { id: 'chapter', name: 'পর্ব', icon: FileText, description: 'ধারাবাহিক সিরিজের অংশ' },
 ] as const;
 
@@ -63,6 +64,11 @@ export default function PublishModal({
   const [newSeriesDescription, setNewSeriesDescription] = useState('');
   const [newSeriesCategoryId, setNewSeriesCategoryId] = useState('');
   const [seriesCreationError, setSeriesCreationError] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
+  const [categoryCreationError, setCategoryCreationError] = useState('');
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   // Load categories and user's series
   useEffect(() => {
@@ -179,6 +185,23 @@ export default function PublishModal({
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('লগইন করুন');
 
+      // Upload cover image first if provided
+      let coverImageUrl: string | undefined = undefined;
+      
+      if (formData.coverImage) {
+        const uploadResult = await uploadCoverImage(formData.coverImage);
+        
+        if (uploadResult.success && uploadResult.url) {
+          coverImageUrl = uploadResult.url;
+        } else {
+          setErrors({
+            general: uploadResult.error || 'কভার ছবি আপলোড করতে সমস্যা হয়েছে',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // Create content data
       const contentData = {
         title: formData.title.trim(),
@@ -189,7 +212,7 @@ export default function PublishModal({
         series_id: formData.contentType === 'chapter' ? formData.seriesId : undefined,
         chapter_number: formData.contentType === 'chapter' ? formData.chapterNumber : undefined,
         is_premium: formData.isPremium,
-        cover_image_url: formData.coverImagePreview || undefined, // In production, upload to storage first
+        cover_image_url: coverImageUrl,
       };
 
       // Create the content
@@ -365,31 +388,193 @@ export default function PublishModal({
               </div>
 
               {/* Category */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium bengali-text">
-                  বিভাগ <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    value={formData.categoryId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-                    className={cn(
-                      "w-full px-4 py-3 rounded-xl border bg-gray-50 bengali-text appearance-none",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                      errors.category ? "border-red-500" : "border-gray-200"
-                    )}
-                  >
-                    <option value="">বিভাগ নির্বাচন করুন</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+              {!isCreatingCategory ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium bengali-text">
+                    বিভাগ <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formData.categoryId}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '__create_new__') {
+                          setIsCreatingCategory(true);
+                        } else {
+                          setFormData(prev => ({ ...prev, categoryId: value }));
+                        }
+                      }}
+                      className={cn(
+                        "w-full px-4 py-3 rounded-xl border bg-gray-50 bengali-text appearance-none",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                        errors.category ? "border-red-500" : "border-gray-200"
+                      )}
+                    >
+                      <option value="">বিভাগ নির্বাচন করুন</option>
+                      <option value="__create_new__" className="font-semibold text-blue-600">+ নতুন বিভাগ তৈরি করুন</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
+                  {errors.category && (
+                    <p className="text-sm text-red-500 bengali-text">{errors.category}</p>
+                  )}
+                  {/* Show delete option for selected category */}
+                  {formData.categoryId && formData.categoryId !== '__create_new__' && (
+                    <button
+                      type="button"
+                      onClick={() => setCategoryToDelete(formData.categoryId)}
+                      className="text-sm text-red-600 hover:text-red-700 font-medium bengali-text flex items-center gap-1"
+                    >
+                      <X className="h-4 w-4" />
+                      এই বিভাগটি মুছে ফেলুন
+                    </button>
+                  )}
                 </div>
-                {errors.category && (
-                  <p className="text-sm text-red-500 bengali-text">{errors.category}</p>
-                )}
-              </div>
+              ) : (
+                <div className="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-gray-900 bengali-text flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      নতুন বিভাগ তৈরি করুন
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingCategory(false);
+                        setNewCategoryName('');
+                        setNewCategoryDescription('');
+                        setCategoryCreationError('');
+                      }}
+                      className="text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {categoryCreationError && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded-lg bengali-text">
+                      <AlertCircle className="h-4 w-4" />
+                      {categoryCreationError}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium bengali-text">
+                      বিভাগের নাম <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="বিভাগের নাম লিখুন"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bengali-text"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium bengali-text">
+                      বিভাগের বিবরণ
+                    </label>
+                    <textarea
+                      value={newCategoryDescription}
+                      onChange={(e) => setNewCategoryDescription(e.target.value)}
+                      placeholder="এই বিভাগ সম্পর্কে কিছু লিখুন"
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bengali-text resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!newCategoryName.trim()) {
+                        setCategoryCreationError('বিভাগের নাম দিন');
+                        return;
+                      }
+
+                      try {
+                        setCategoryCreationError('');
+                        const response = await api.categories.create({
+                          name: newCategoryName,
+                          description: newCategoryDescription,
+                        });
+
+                        if (response.success && response.data) {
+                          // Add to categories list
+                          setCategories(prev => [...prev, response.data]);
+                          // Select the new category
+                          setFormData(prev => ({ ...prev, categoryId: response.data.id }));
+                          // Close creation form
+                          setIsCreatingCategory(false);
+                          setNewCategoryName('');
+                          setNewCategoryDescription('');
+                        }
+                      } catch (error: any) {
+                        setCategoryCreationError(error.message || 'বিভাগ তৈরিতে সমস্যা হয়েছে');
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium bengali-text text-sm"
+                  >
+                    বিভাগ তৈরি করুন
+                  </button>
+                </div>
+              )}
+
+              {/* Delete Category Confirmation */}
+              {categoryToDelete && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                  <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setCategoryToDelete(null)}
+                  />
+                  <div className="relative bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold mb-2 bengali-text">বিভাগ মুছে ফেলবেন?</h3>
+                        <p className="text-gray-600 text-sm bengali-text mb-4">
+                          আপনি কি নিশ্চিত যে এই বিভাগটি মুছে ফেলতে চান? এই বিভাগের সাথে কোনো লেখা থাকলে মুছে ফেলা যাবে না।
+                        </p>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setCategoryToDelete(null)}
+                            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors bengali-text"
+                          >
+                            বাতিল
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await api.categories.delete(categoryToDelete);
+                                // Remove from categories list
+                                setCategories(prev => prev.filter(c => c.id !== categoryToDelete));
+                                // Clear selection if this was selected
+                                if (formData.categoryId === categoryToDelete) {
+                                  setFormData(prev => ({ ...prev, categoryId: '' }));
+                                }
+                                setCategoryToDelete(null);
+                              } catch (error: any) {
+                                setCategoryCreationError(error.message || 'বিভাগ মুছতে সমস্যা হয়েছে');
+                                setCategoryToDelete(null);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors bengali-text"
+                          >
+                            মুছে ফেলুন
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Series Selection (only for chapters) */}
               {formData.contentType === 'chapter' && (

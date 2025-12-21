@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { FileText, Clock, Trash2, Edit, Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { formatRelativeTime } from '@/lib/utils';
+import { formatRelativeTime, getExcerptFromHtml } from '@/lib/utils';
 
 export default function DraftsPage() {
   const { user, isLoggedIn, isLoading } = useAuth();
@@ -26,10 +26,7 @@ export default function DraftsPage() {
   const loadDrafts = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
-
-      const response = await api.drafts.getMyDrafts(token);
+      const response = await api.drafts.getMyDrafts();
       if (response.success) {
         setDrafts(response.data || []);
       }
@@ -45,10 +42,7 @@ export default function DraftsPage() {
 
     setDeleting(draftId);
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
-
-      await api.drafts.deleteDraft(draftId, token);
+      await api.drafts.deleteDraft(draftId);
       setDrafts(drafts.filter(d => d.id !== draftId));
     } catch (error) {
       console.error('Error deleting draft:', error);
@@ -109,8 +103,10 @@ export default function DraftsPage() {
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
                       {draft.title || 'শিরোনামহীন'}
                     </h3>
-                    {draft.excerpt && (
-                      <p className="text-gray-600 mb-3 line-clamp-2">{draft.excerpt}</p>
+                    {draft.body && (
+                      <p className="text-gray-600 mb-3 line-clamp-2">
+                        {getExcerptFromHtml(draft.body, 150)}
+                      </p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <div className="flex items-center gap-1">

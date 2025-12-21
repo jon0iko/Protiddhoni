@@ -51,9 +51,6 @@ export default function Navbar() {
             <Link href="/write" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
               লেখালেখি
             </Link>
-            <Link href="/authors" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
-              লেখক
-            </Link>
           </div>
 
           {/* Search Bar */}
@@ -76,14 +73,14 @@ export default function Navbar() {
                 
                 {/* Write Menu */}
                 <div className="relative">
-                  <button 
+                  {/* <button 
                     onClick={toggleWriteMenu}
                     className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors bengali-text"
                   >
                     <Edit3 className="w-4 h-4" />
                     <span>লিখুন</span>
                     <ChevronDown className="w-4 h-4" />
-                  </button>
+                  </button> */}
                   
                   {showWriteMenu && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border">

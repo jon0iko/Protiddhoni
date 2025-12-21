@@ -246,7 +246,22 @@ export const api = {
             const params = limit ? `?limit=${limit}` : '';
             const response = await fetch(`${API_URL}/api/categories/${slug}/content${params}`);
             return handleResponse(response);
-        }
+        },
+
+        create: async (categoryData: { name: string; description?: string; icon?: string }) => {
+            const url = `${API_URL}/api/categories`;
+            return makeAuthRequest(url, {
+                method: 'POST',
+                body: JSON.stringify(categoryData),
+            });
+        },
+
+        delete: async (categoryId: string) => {
+            const url = `${API_URL}/api/categories/${categoryId}`;
+            return makeAuthRequest(url, {
+                method: 'DELETE',
+            });
+        },
     },
     
     // Users endpoints

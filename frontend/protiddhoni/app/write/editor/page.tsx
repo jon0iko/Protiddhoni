@@ -51,7 +51,7 @@ export default function EditorPage() {
   // Load a specific draft by ID
   const loadDraftById = useCallback(async (draftId: string) => {
     try {
-      const response = await api.content.getById(draftId);
+      const response = await api.drafts.getDraftById(draftId);
       const draft = response.data;
       
       if (draft) {
@@ -73,27 +73,30 @@ export default function EditorPage() {
       }
     } catch (error) {
       console.error('Error loading draft:', error);
+      alert('খসড়া লোড করতে সমস্যা হয়েছে।');
     }
   }, [user?.id]);
   
   // Load content from local storage on mount (user-specific)
   useEffect(() => {
     if (typeof window !== 'undefined' && !authLoading) {
-      const savedContent = storage.get(user?.id, STORAGE_KEYS.CONTENT) || '';
-      const savedWordCount = parseInt(storage.get(user?.id, STORAGE_KEYS.WORD_COUNT) || '0', 10);
-      const savedDraftId = storage.get(user?.id, STORAGE_KEYS.DRAFT_ID) || null;
-      const savedDraftName = storage.get(user?.id, STORAGE_KEYS.DRAFT_NAME) || '';
-      
       // Check if we should load a specific draft from URL
       const draftId = searchParams.get('draft');
       if (draftId) {
+        // Loading an existing draft from URL
         loadDraftById(draftId);
       } else {
+        // Starting fresh - only restore content, not draft ID
+        // This allows user to save as a NEW draft
+        const savedContent = storage.get(user?.id, STORAGE_KEYS.CONTENT) || '';
+        const savedWordCount = parseInt(storage.get(user?.id, STORAGE_KEYS.WORD_COUNT) || '0', 10);
+        
         setInitialContent(savedContent);
         setContent(savedContent);
         setWordCount(savedWordCount);
-        setCurrentDraftId(savedDraftId);
-        setCurrentDraftName(savedDraftName);
+        // Don't load draft ID - start fresh
+        setCurrentDraftId(null);
+        setCurrentDraftName('');
       }
       
       setIsPageReady(true);
@@ -148,19 +151,21 @@ export default function EditorPage() {
     try {
       if (currentDraftId) {
         // Update existing draft
-        await api.content.update(currentDraftId, {
+        const response = await api.drafts.updateDraft(currentDraftId, {
           title: name,
           body: content,
         });
+        console.log('Draft updated:', response);
       } else {
         // Create new draft
-        const response = await api.content.create({
+        const response = await api.drafts.createDraft({
           title: name,
           body: content,
           content_type: 'story',
-          status: 'draft',
         });
+        console.log('Draft created:', response);
         
+        // Set the new draft ID after creation
         setCurrentDraftId(response.data.id);
         storage.set(user?.id, STORAGE_KEYS.DRAFT_ID, response.data.id);
       }
@@ -168,6 +173,13 @@ export default function EditorPage() {
       setCurrentDraftName(name);
       storage.set(user?.id, STORAGE_KEYS.DRAFT_NAME, name);
       setHasUnsavedChanges(false);
+      
+      // Show success message
+      alert('খসড়া সংরক্ষণ হয়েছে!');
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      alert('খসড়া সংরক্ষণ করতে সমস্যা হয়েছে।');
+      throw error;
     } finally {
       setIsSaving(false);
     }

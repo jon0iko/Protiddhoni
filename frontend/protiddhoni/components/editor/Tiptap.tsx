@@ -18,6 +18,7 @@ import { useCallback, useRef, useEffect, useState, forwardRef, useImperativeHand
 import MenuBar from './MenuBar';
 import './tiptap.css';
 import { validateImageFile, fileToBase64 } from '@/lib/utils';
+import { uploadEditorImage } from '@/lib/imageUpload';
 import ImageWithCaption from './ImageWithCaption';
 import type { TiptapRef, TiptapProps } from './types';
 
@@ -153,7 +154,7 @@ const Tiptap = forwardRef<TiptapRef, TiptapProps>(({
       // Show preview immediately using base64
       const base64Preview = await fileToBase64(file);
       
-      // Insert image with our custom extension
+      // Insert temporary image with base64 preview
       editor.chain().focus().insertContent({
         type: 'imageWithCaption',
         attrs: {
@@ -163,11 +164,31 @@ const Tiptap = forwardRef<TiptapRef, TiptapProps>(({
         },
       }).run();
 
-      // TODO: In production, upload to your backend/storage service
-      // For now, we're using base64 which works but isn't ideal for large images
-      // You can implement backend upload here and replace the base64 with the uploaded URL
+      // Upload to Supabase Storage
+      const uploadResult = await uploadEditorImage(file);
       
-      console.log('Image inserted successfully');
+      if (uploadResult.success && uploadResult.url) {
+        // Replace the base64 image with the uploaded URL
+        const currentHtml = editor.getHTML();
+        const updatedHtml = currentHtml.replace(
+          base64Preview,
+          uploadResult.url
+        );
+        editor.commands.setContent(updatedHtml, { emitUpdate: true });
+        
+        console.log('Image uploaded successfully:', uploadResult.url);
+      } else {
+        console.error('Upload failed:', uploadResult.error);
+        alert(uploadResult.error || 'ছবি আপলোড করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+        
+        // Remove the temporary image on failure
+        const currentHtml = editor.getHTML();
+        const updatedHtml = currentHtml.replace(
+          new RegExp(`<figure[^>]*>\\s*<img[^>]*src="${base64Preview.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>\\s*<figcaption[^>]*>.*?</figcaption>\\s*</figure>`, 'g'),
+          ''
+        );
+        editor.commands.setContent(updatedHtml, { emitUpdate: true });
+      }
     } catch (error) {
       console.error('Image insert failed:', error);
       alert('ছবি যোগ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');

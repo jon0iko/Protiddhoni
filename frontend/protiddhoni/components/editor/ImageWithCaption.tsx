@@ -50,20 +50,20 @@ const ImageComponent: React.FC<NodeViewProps> = (props) => {
     <NodeViewWrapper className="my-6 flex justify-center">
       <figure 
         className={`relative ${selected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-lg' : ''}`}
-        style={{ maxWidth: '500px' }}
+        style={{ width: '500px' }}
       >
         {/* Image */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* eslint-disable-next-line @next/next/next/no-img-element */}
         <img
           src={src}
           alt={alt || caption || 'Image'}
           className="rounded-lg shadow-lg"
-          style={{ maxWidth: '500px', width: '100%', height: 'auto' }}
+          style={{ width: '500px', height: '500px', objectFit: 'cover' }}
           draggable={false}
         />
 
         {/* Caption */}
-        <figcaption className="mt-2 text-center">
+        <figcaption className="mt-2 text-center" style={{ fontSize: '11px' }}>
           {isEditingCaption ? (
             <input
               type="text"
@@ -72,13 +72,15 @@ const ImageComponent: React.FC<NodeViewProps> = (props) => {
               onBlur={handleCaptionBlur}
               onKeyDown={handleCaptionKeyDown}
               placeholder="ক্যাপশন যোগ করুন..."
-              className="w-full text-sm text-gray-600 text-center bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 px-2 py-1"
+              className="w-full text-gray-500 text-center bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500 px-2 py-1"
+              style={{ fontSize: '11px' }}
               autoFocus
             />
           ) : (
             <span
               onClick={startEditing}
-              className="text-sm text-gray-600 italic cursor-pointer hover:text-gray-800:text-gray-300 transition-colors block"
+              className="text-gray-500 italic cursor-pointer hover:text-gray-700:text-gray-400 transition-colors block"
+              style={{ fontSize: '16px' }}
             >
               {caption || 'ক্যাপশন যোগ করতে ক্লিক করুন...'}
             </span>
@@ -157,13 +159,13 @@ export const ImageWithCaption = Node.create({
           src,
           alt: alt || caption || 'Image',
           class: 'rounded-lg shadow-lg',
-          style: 'max-width: 500px; width: 100%; height: auto;',
+          style: 'width: 500px; height: 500px; object-fit: cover;',
         },
       ],
       [
         'figcaption',
         {
-          style: 'text-align: center; font-style: italic; color: #6b7280; margin-top: 0.5rem; font-size: 0.875rem;',
+          style: 'text-align: center; font-style: italic; color: #9ca3af; margin-top: 0.5rem; font-size: 11px;',
         },
         caption || '',
       ],
