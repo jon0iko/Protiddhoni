@@ -191,7 +191,7 @@ export default function FeaturedContent() {
                             onClick={() => setActiveCategory(category.slug)}
                             className={`px-6 py-2 rounded-full font-medium bengali-text transition-colors ${
                                 activeCategory === category.slug
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-primary-500 text-white'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                         >
