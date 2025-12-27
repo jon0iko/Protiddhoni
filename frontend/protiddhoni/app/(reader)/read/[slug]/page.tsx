@@ -22,6 +22,7 @@ import { api } from '@/lib/api';
 import ReadingControls from '@/components/reader/ReadingControls';
 import RatingWidget from '@/components/reader/RatingWidget';
 import CommentList from '@/components/reader/CommentList';
+import PaywallBlock from '@/components/reader/PaywallBlock';
 
 export default function ReadContentPage() {
   const params = useParams();
@@ -36,6 +37,8 @@ export default function ReadContentPage() {
   const [seriesChapters, setSeriesChapters] = useState<any[]>([]);
   const [prevChapter, setPrevChapter] = useState<any>(null);
   const [nextChapter, setNextChapter] = useState<any>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [paywallInfo, setPaywallInfo] = useState<any>(null);
 
   useEffect(() => {
     loadContent();
@@ -43,12 +46,29 @@ export default function ReadContentPage() {
 
   const loadContent = async () => {
     setLoading(true);
+    setIsBlocked(false);
+    setPaywallInfo(null);
+    
     try {
       console.log('Loading content for slug:', slug);
       console.log('User logged in:', isLoggedIn);
       console.log('User data:', user);
       
       const response = await api.content.getBySlug(slug);
+      
+      // Check if content is blocked by paywall
+      if (!response.success && response.isPremiumBlocked) {
+        setIsBlocked(true);
+        setPaywallInfo({
+          title: response.contentDetails?.title || 'Premium Content',
+          price: response.contentDetails?.price || 0,
+          reason: response.reason,
+          message: response.error
+        });
+        setLoading(false);
+        return;
+      }
+      
       if (response.success) {
         setContent(response.data);
         
@@ -77,12 +97,28 @@ export default function ReadContentPage() {
         // Content not found
         router.push('/404');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading content:', error);
-      router.push('/404');
+      
+      // Check if error response indicates paywall
+      if (error?.response?.data?.isPremiumBlocked) {
+        setIsBlocked(true);
+        setPaywallInfo({
+          title: error.response.data.contentDetails?.title || 'Premium Content',
+          price: error.response.data.contentDetails?.price || 0,
+          reason: error.response.data.reason,
+          message: error.response.data.error
+        });
+      } else {
+        router.push('/404');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = () => {
+    router.push(`/login?redirect=/read/${slug}`);
   };
 
   const handleShare = async () => {
@@ -108,6 +144,18 @@ export default function ReadContentPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
+    );
+  }
+
+  // Show paywall if content is blocked
+  if (isBlocked && paywallInfo) {
+    return (
+      <PaywallBlock
+        contentTitle={paywallInfo.title}
+        price={paywallInfo.price}
+        onLogin={handleLogin}
+        isLoggedIn={isLoggedIn}
+      />
     );
   }
 

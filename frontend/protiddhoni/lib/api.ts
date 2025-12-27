@@ -40,11 +40,16 @@ const handleResponse = async (response: Response) => {
     }
     
     if (!response.ok) {
+        // For premium content blocking, return the data instead of throwing
+        if (data.isPremiumBlocked) {
+            return data;
+        }
+        
         // Enhanced error message with status code
         const errorMessage = data.error || data.message || `Request failed with status ${response.status}`;
-        const error: Error & { status?: number; data?: unknown } = new Error(errorMessage);
+        const error: Error & { status?: number; response?: { data: any } } = new Error(errorMessage);
         error.status = response.status;
-        error.data = data;
+        error.response = { data };
         throw error;
     }
     

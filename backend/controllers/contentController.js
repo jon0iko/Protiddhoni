@@ -7,6 +7,8 @@ const ContentRepository = require('../repositories/ContentRepository');
 const NotificationService = require('../services/notificationService');
 const slugify = require('../utils/slugify');
 const ContentQueryBuilder = require('../utils/ContentQueryBuilder');
+const { ContentAccess, PaywallDecorator } = require('../middleware/contentAccessDecorator');
+const db = require('../config/database');
 
 exports.advancedSearch = async (req, res) => {
     try {
@@ -111,6 +113,24 @@ exports.getBySlug = async (req, res) => {
                 is_admin: isAdmin
             });
             return res.status(403).json({ success: false, error: 'Content not accessible' });
+        }
+
+        // Check paywall access using Decorator Pattern
+        const baseAccess = new ContentAccess();
+        const paywallAccess = new PaywallDecorator(baseAccess, db);
+        
+        const accessCheck = await paywallAccess.checkAccess(req.user?.id, content.id);
+        
+        if (!accessCheck.granted) {
+            // Premium content blocked by paywall
+            return res.status(403).json({ 
+                success: false, 
+                error: accessCheck.message,
+                reason: accessCheck.reason,
+                requiresPayment: accessCheck.requiresPayment,
+                contentDetails: accessCheck.contentDetails,
+                isPremiumBlocked: true
+            });
         }
 
         // Increment view count for published content only
