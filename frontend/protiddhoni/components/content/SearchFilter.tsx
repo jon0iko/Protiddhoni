@@ -77,7 +77,7 @@ export default function SearchFilter() {
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900 bengali-text">ফিল্টার</h2>
                 {activeFilterCount > 0 && (
-                    <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-semibold">
+                    <span className="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs font-semibold">
                         {activeFilterCount}
                     </span>
                 )}
@@ -133,7 +133,7 @@ export default function SearchFilter() {
                     </label>
                     <input 
                         type="range"
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
                         min="0"
                         max="5"
                         step="1"
@@ -157,7 +157,7 @@ export default function SearchFilter() {
                         id="premium-mode" 
                         checked={filters.is_premium}
                         onChange={(e) => setFilters({...filters, is_premium: e.target.checked})}
-                        className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="h-5 w-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                     />
                 </div>
 
@@ -178,7 +178,7 @@ export default function SearchFilter() {
                 {/* Action Buttons */}
                 <div className="space-y-2 pt-4 border-t border-gray-200">
                     <button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-md bengali-text"
+                        className="w-full bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-md bengali-text"
                         onClick={handleApplyFilters}
                     >
                         ফিল্টার প্রয়োগ করুন

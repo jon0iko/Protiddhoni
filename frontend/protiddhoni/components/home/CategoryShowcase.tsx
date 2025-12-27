@@ -104,7 +104,7 @@ export default function CategoryShowcase() {
                                         <p className="text-gray-600 bengali-text text-sm mb-4">
                                             {category.description}
                                         </p>
-                                        <div className="flex items-center text-blue-600 font-medium text-sm group-hover:text-blue-700 transition-colors">
+                                        <div className="flex items-center text-primary-600 font-medium text-sm group-hover:text-primary-700 transition-colors">
                                             <span className="bengali-text">আরও পড়ুন</span>
                                             <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -130,7 +130,7 @@ export default function CategoryShowcase() {
                             <Link
                                 key={index}
                                 href={`/tag/${tag}`}
-                                className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 px-4 py-2 rounded-full border border-gray-200 hover:border-blue-200 transition-colors text-sm bengali-text"
+                                className="bg-white hover:bg-primary-50 text-gray-700 hover:text-primary-600 px-4 py-2 rounded-full border border-gray-200 hover:border-primary-200 transition-colors text-sm bengali-text"
                             >
                                 #{tag}
                             </Link>

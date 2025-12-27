@@ -5,14 +5,14 @@ import { BookOpen, Edit3 } from 'lucide-react';
 
 export default function HeroSection() {
     return (
-        <section className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 flex items-center">
+        <section className="relative min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 py-20 flex items-center">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20">
                 <div className="text-center">
                     {/* Main Heading */}
                     <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 bengali-text">
                         <span className="text-gradient px-2">বাংলা সাহিত্যের</span>
                         <br />
-                        ডিজিটাল আবাসস্থল
+                        <span className='text-[#B92F1F]'>ডিজিটাল আবাসস্থল</span>
                     </h1>
                     
                     {/* Subtitle */}
@@ -25,14 +25,14 @@ export default function HeroSection() {
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
                         <Link 
                             href="#featured-content" 
-                            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg hover:shadow-xl"
+                            className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-lg hover:shadow-xl"
                         >
                             <BookOpen className="w-5 h-5" />
                             <span className="bengali-text">পড়া শুরু করুন</span>
                         </Link>
                         <Link 
                             href="/write" 
-                            className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-blue-600 transition-colors shadow-lg hover:shadow-xl"
+                            className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-primary-600 px-8 py-4 rounded-lg font-semibold text-lg border-2 border-primary-600 transition-colors shadow-lg hover:shadow-xl"
                         >
                             <Edit3 className="w-5 h-5" />
                             <span className="bengali-text">লেখা শুরু করুন</span>

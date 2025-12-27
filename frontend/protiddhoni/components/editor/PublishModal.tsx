@@ -48,6 +48,7 @@ export default function PublishModal({
     seriesId: undefined,
     chapterNumber: undefined,
     isPremium: false,
+    price: undefined,
     coverImage: null,
     coverImagePreview: null,
   });
@@ -168,6 +169,14 @@ export default function PublishModal({
       }
     }
 
+    if (formData.isPremium) {
+      if (!formData.price || formData.price <= 0) {
+        newErrors.price = 'মূল্য দিতে হবে (০ এর চেয়ে বেশি)';
+      } else if (formData.price > 10000) {
+        newErrors.price = 'মূল্য ১০,০০০ টাকার বেশি হতে পারবে না';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -212,6 +221,7 @@ export default function PublishModal({
         series_id: formData.contentType === 'chapter' ? formData.seriesId : undefined,
         chapter_number: formData.contentType === 'chapter' ? formData.chapterNumber : undefined,
         is_premium: formData.isPremium,
+        price: formData.isPremium && formData.price ? formData.price : undefined,
         cover_image_url: coverImageUrl,
       };
 
@@ -248,6 +258,7 @@ export default function PublishModal({
         excerpt: '',
         contentType: 'story',
         categoryId: '',
+        price: undefined,
         seriesId: undefined,
         chapterNumber: undefined,
         isPremium: false,
@@ -331,11 +342,11 @@ export default function PublishModal({
                       >
                         <Icon className={cn(
                           "h-6 w-6 mb-2",
-                          formData.contentType === type.id ? "text-blue-600" : "text-gray-400"
+                          formData.contentType === type.id ? "text-primary-600" : "text-gray-400"
                         )} />
                         <span className={cn(
                           "font-medium bengali-text",
-                          formData.contentType === type.id ? "text-blue-600" : "text-gray-600"
+                          formData.contentType === type.id ? "text-primary-600" : "text-gray-600"
                         )}>{type.name}</span>
                         <span className="text-xs text-gray-400 bengali-text">{type.description}</span>
                       </button>
@@ -411,7 +422,7 @@ export default function PublishModal({
                       )}
                     >
                       <option value="">বিভাগ নির্বাচন করুন</option>
-                      <option value="__create_new__" className="font-semibold text-blue-600">+ নতুন বিভাগ তৈরি করুন</option>
+                      <option value="__create_new__" className="font-semibold text-primary-600">+ নতুন বিভাগ তৈরি করুন</option>
                       {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
@@ -437,7 +448,7 @@ export default function PublishModal({
                 <div className="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-gray-900 bengali-text flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-blue-600" />
+                      <FileText className="h-5 w-5 text-primary-600" />
                       নতুন বিভাগ তৈরি করুন
                     </h3>
                     <button
@@ -603,7 +614,7 @@ export default function PublishModal({
                           )}
                         >
                           <option value="">সিরিজ নির্বাচন করুন</option>
-                          <option value="__create_new__" className="font-semibold text-blue-600">+ নতুন সিরিজ তৈরি করুন</option>
+                          <option value="__create_new__" className="font-semibold text-primary-600">+ নতুন সিরিজ তৈরি করুন</option>
                           {userSeries.map((series) => (
                             <option key={series.id} value={series.id}>{series.title}</option>
                           ))}
@@ -614,7 +625,7 @@ export default function PublishModal({
                         <p className="text-sm text-red-500 bengali-text">{errors.series}</p>
                       )}
                       {userSeries.length === 0 && (
-                        <p className="text-sm text-blue-600 bengali-text flex items-center gap-2">
+                        <p className="text-sm text-primary-600 bengali-text flex items-center gap-2">
                           <BookOpen className="h-4 w-4" />
                           প্রথমে একটি নতুন সিরিজ তৈরি করুন
                         </p>
@@ -624,7 +635,7 @@ export default function PublishModal({
                     <div className="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
                       <div className="flex items-center justify-between">
                         <h3 className="font-medium text-gray-900 bengali-text flex items-center gap-2">
-                          <BookOpen className="h-5 w-5 text-blue-600" />
+                          <BookOpen className="h-5 w-5 text-primary-600" />
                           নতুন সিরিজ তৈরি করুন
                         </h3>
                         <button
@@ -729,7 +740,7 @@ export default function PublishModal({
                             setSeriesCreationError(error.message || 'সিরিজ তৈরিতে সমস্যা হয়েছে');
                           }
                         }}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium bengali-text text-sm"
+                        className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium bengali-text text-sm"
                       >
                         সিরিজ তৈরি করুন
                       </button>
@@ -815,26 +826,55 @@ export default function PublishModal({
               </div>
 
               {/* Premium Toggle */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div>
-                  <h4 className="font-medium bengali-text">প্রিমিয়াম কন্টেন্ট</h4>
-                  <p className="text-sm text-gray-500 bengali-text">শুধুমাত্র সাবস্ক্রাইবারদের জন্য</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, isPremium: !prev.isPremium }))}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    formData.isPremium ? "bg-blue-600" : "bg-gray-300"
-                  )}
-                >
-                  <span
+              <div className="p-4 bg-gray-50 rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium bengali-text">প্রিমিয়াম কন্টেন্ট</h4>
+                    <p className="text-sm text-gray-500 bengali-text">শুধুমাত্র সাবস্ক্রাইবারদের জন্য</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, isPremium: !prev.isPremium, price: !prev.isPremium ? prev.price : undefined }))}
                     className={cn(
-                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                      formData.isPremium ? "translate-x-6" : "translate-x-1"
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                      formData.isPremium ? "bg-primary-600" : "bg-gray-300"
                     )}
-                  />
-                </button>
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                        formData.isPremium ? "translate-x-6" : "translate-x-1"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Price Input (shown when isPremium is true) */}
+                {formData.isPremium && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 bengali-text">
+                      মূল্য (টাকা) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={formData.price || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : undefined }))}
+                      placeholder="যেমন: ৫০"
+                      className={cn(
+                        "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors",
+                        errors.price ? "border-red-500" : "border-gray-300"
+                      )}
+                    />
+                    {errors.price && (
+                      <p className="text-sm text-red-500 mt-1 bengali-text">{errors.price}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1 bengali-text">
+                      পাঠকদের এই কন্টেন্ট পড়তে দিতে হলে তাদের এই মূল্য পরিশোধ করতে হবে
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Submit Button */}
@@ -850,7 +890,7 @@ export default function PublishModal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 bengali-text disabled:opacity-50"
+                  className="flex-1 px-4 py-3 rounded-xl bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 bengali-text disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>

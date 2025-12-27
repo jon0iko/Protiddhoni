@@ -76,7 +76,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                     {/* Category Badge */}
                     {displayCategory && (
                         <div className="absolute top-3 left-3">
-                            <span className="bg-white/90 backdrop-blur-sm text-blue-600 px-3 py-1 rounded-full text-sm font-medium bengali-text shadow-sm">
+                            <span className="bg-white/90 backdrop-blur-sm text-primary-600 px-3 py-1 rounded-full text-sm font-medium bengali-text shadow-sm">
                                 {displayCategory}
                             </span>
                         </div>
@@ -141,7 +141,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                     )}
                     
                     {/* Title */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 bengali-text group-hover:text-blue-600 transition-colors line-clamp-2">
+                    <h3 className="text-xl font-bold text-gray-900 mb-3 bengali-text group-hover:text-primary-600 transition-colors line-clamp-2">
                         {title}
                     </h3>
                     
@@ -154,7 +154,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                     
                     {/* Author */}
                     <div className="flex items-center mb-4">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
                             {displayAuthor.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -175,7 +175,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                     </div>
 
                     {/* Read More Indicator */}
-                    <div className="mt-4 flex items-center text-blue-600 font-medium text-sm group-hover:text-blue-700 transition-colors">
+                    <div className="mt-4 flex items-center text-primary-600 font-medium text-sm group-hover:text-primary-700 transition-colors">
                         <span className="bengali-text">পড়ুন</span>
                         <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

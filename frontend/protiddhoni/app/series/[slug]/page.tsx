@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { BookOpen, Clock, User, Calendar, Eye } from 'lucide-react';
+import { BookOpen, Clock, User, Calendar, Eye, Crown } from 'lucide-react';
 import { api } from '@/lib/api';
 
 export default function SeriesPage() {
@@ -51,7 +51,7 @@ export default function SeriesPage() {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
                     <p className="text-gray-600 bengali-text">লোড হচ্ছে...</p>
                 </div>
             </div>
@@ -77,7 +77,7 @@ export default function SeriesPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Series Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+            <div className="bg-gradient-to-r from-primary-600 to-accent-600 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {/* Cover Image */}
@@ -185,7 +185,7 @@ export default function SeriesPage() {
                                 <div className="flex items-start gap-6">
                                     {/* Chapter Number */}
                                     <div className="flex-shrink-0">
-                                        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                                        <div className={`w-16 h-16 ${chapter.is_premium ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 'bg-gradient-to-br from-purple-500 to-pink-500'} rounded-lg flex items-center justify-center`}>
                                             <span className="text-2xl font-bold text-white">
                                                 {chapter.chapter_number || index + 1}
                                             </span>
@@ -194,9 +194,24 @@ export default function SeriesPage() {
 
                                     {/* Chapter Info */}
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl font-bold text-gray-900 mb-2 bengali-text group-hover:text-purple-600 transition-colors">
-                                            {chapter.title}
-                                        </h3>
+                                        <div className="flex items-start gap-2 mb-2">
+                                            <h3 className="text-xl font-bold text-gray-900 bengali-text group-hover:text-accent-600 transition-colors flex-1">
+                                                {chapter.title}
+                                            </h3>
+                                            {chapter.is_premium && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold shadow-sm">
+                                                        <Crown className="w-3 h-3" />
+                                                        প্রিমিয়াম
+                                                    </span>
+                                                    {chapter.price && (
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-bold">
+                                                            ৳{chapter.price}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                         {chapter.excerpt && (
                                             <p className="text-gray-600 text-sm mb-3 line-clamp-2 bengali-text">
                                                 {chapter.excerpt}
@@ -222,9 +237,9 @@ export default function SeriesPage() {
 
                                     {/* Read Arrow */}
                                     <div className="flex-shrink-0 self-center">
-                                        <div className="w-10 h-10 rounded-full bg-purple-100 group-hover:bg-purple-600 flex items-center justify-center transition-colors">
+                                        <div className={`w-10 h-10 rounded-full ${chapter.is_premium ? 'bg-orange-100 group-hover:bg-orange-600' : 'bg-purple-100 group-hover:bg-purple-600'} flex items-center justify-center transition-colors`}>
                                             <svg
-                                                className="w-5 h-5 text-purple-600 group-hover:text-white group-hover:translate-x-1 transition-all"
+                                                className={`w-5 h-5 ${chapter.is_premium ? 'text-orange-600 group-hover:text-white' : 'text-purple-600 group-hover:text-white'} group-hover:translate-x-1 transition-all`}
                                                 fill="none"
                                                 stroke="currentColor"
                                                 viewBox="0 0 24 24"

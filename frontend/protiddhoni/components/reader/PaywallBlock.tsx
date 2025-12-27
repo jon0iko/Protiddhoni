@@ -16,7 +16,7 @@ export default function PaywallBlock({
   isLoggedIn = false 
 }: PaywallBlockProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-accent-50 via-white to-primary-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* Premium Badge */}
         <div className="text-center mb-6">
@@ -29,7 +29,7 @@ export default function PaywallBlock({
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
           {/* Header with Lock Icon */}
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-8 text-center">
+          <div className="bg-gradient-to-r from-accent-600 to-primary-600 text-white p-8 text-center">
             <div className="w-20 h-20 mx-auto mb-4 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
               <Lock className="w-10 h-10" />
             </div>
@@ -49,9 +49,9 @@ export default function PaywallBlock({
                 একবার কিনলে আপনি যেকোনো সময় এটি পড়তে পারবেন।
               </p>
               
-              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-100 to-blue-100 px-8 py-4 rounded-xl mb-6">
+              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-accent-100 to-primary-100 px-8 py-4 rounded-xl mb-6">
                 <span className="text-gray-600 bengali-text">মূল্য:</span>
-                <span className="text-4xl font-bold text-purple-600">
+                <span className="text-4xl font-bold text-accent-600">
                   ৳{price || 0}
                 </span>
               </div>
@@ -71,14 +71,14 @@ export default function PaywallBlock({
                 <>
                   <button
                     onClick={onLogin}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 bengali-text"
+                    className="w-full bg-gradient-to-r from-accent-600 to-primary-600 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 bengali-text"
                   >
                     লগইন করুন
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   <Link
                     href="/register"
-                    className="w-full block text-center border-2 border-purple-600 text-purple-600 py-4 rounded-xl font-bold text-lg hover:bg-purple-50 transition-all duration-200 bengali-text"
+                    className="w-full block text-center border-2 border-accent-600 text-accent-600 py-4 rounded-xl font-bold text-lg hover:bg-accent-50 transition-all duration-200 bengali-text"
                   >
                     নতুন একাউন্ট তৈরি করুন
                   </Link>
@@ -110,9 +110,9 @@ export default function PaywallBlock({
 
           {/* Footer Info */}
           <div className="bg-gray-50 px-8 py-6 border-t border-gray-100">
-            <div className="grid md:grid-cols-3 gap-4 text-center">
+            <div className="grid md:grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-purple-600 font-semibold mb-1 bengali-text">
+                <div className="text-accent-600 font-semibold mb-1 bengali-text">
                   ✓ লাইফটাইম এক্সেস
                 </div>
                 <div className="text-sm text-gray-600 bengali-text">
@@ -120,15 +120,7 @@ export default function PaywallBlock({
                 </div>
               </div>
               <div>
-                <div className="text-purple-600 font-semibold mb-1 bengali-text">
-                  ✓ সম্পূর্ণ কন্টেন্ট
-                </div>
-                <div className="text-sm text-gray-600 bengali-text">
-                  সকল অধ্যায় আনলক হবে
-                </div>
-              </div>
-              <div>
-                <div className="text-purple-600 font-semibold mb-1 bengali-text">
+                <div className="text-accent-600 font-semibold mb-1 bengali-text">
                   ✓ লেখককে সাপোর্ট
                 </div>
                 <div className="text-sm text-gray-600 bengali-text">

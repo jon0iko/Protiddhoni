@@ -82,7 +82,7 @@ export default function ReviewCard({ review, onReviewDeleted, onReviewEdit }: Re
                     <div>
                         <Link 
                             href={`/profile/${review.user.username}`}
-                            className="font-medium hover:text-blue-600 transition-colors bengali-text"
+                            className="font-medium hover:text-primary-600 transition-colors bengali-text"
                             style={{ color: 'var(--reader-text)' }}
                         >
                             {review.user.full_name || review.user.username}

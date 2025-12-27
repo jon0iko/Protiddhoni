@@ -133,7 +133,7 @@ export default function CommentForm({
                         <button
                             type="submit"
                             disabled={loading || !commentText.trim()}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium bengali-text hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium bengali-text hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {loading ? (
                                 <>

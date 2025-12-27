@@ -119,7 +119,7 @@ exports.getBySlug = async (req, res) => {
         const baseAccess = new ContentAccess();
         const paywallAccess = new PaywallDecorator(baseAccess, db);
         
-        const accessCheck = await paywallAccess.checkAccess(req.user?.id, content.id);
+        const accessCheck = await paywallAccess.checkAccess(req.user, content.id);
         
         if (!accessCheck.granted) {
             // Premium content blocked by paywall

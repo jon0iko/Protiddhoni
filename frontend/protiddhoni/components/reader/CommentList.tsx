@@ -99,7 +99,7 @@ export default function CommentList({ contentId }: CommentListProps) {
                     <p className="text-red-600 bengali-text">{error}</p>
                     <button
                         onClick={fetchComments}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg bengali-text hover:bg-blue-700 transition-colors"
+                        className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg bengali-text hover:bg-primary-700 transition-colors"
                     >
                         আবার চেষ্টা করুন
                     </button>

@@ -126,7 +126,7 @@ export default function WritingHubPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -213,7 +213,7 @@ export default function WritingHubPage() {
                 
                 <div className="text-center">
                   <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <Users className="w-6 h-6 text-purple-600" />
+                    <Users className="w-6 h-6 text-accent-600" />
                   </div>
                   <div className="text-2xl font-bold text-gray-900">{userStats.totalViews.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট পাঠক</div>

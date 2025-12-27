@@ -99,7 +99,7 @@ export default function StoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -311,7 +311,7 @@ export default function StoryPage() {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <Link
                 href={`/read/${slug}`}
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors bengali-text"
+                className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-medium transition-colors bengali-text"
               >
                 <BookOpen className="w-5 h-5" />
                 সম্পূর্ণ পড়ুন

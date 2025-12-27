@@ -172,7 +172,7 @@ export default function ReviewForm({ contentId, onReviewSubmitted, existingRevie
             <button
                 type="submit"
                 disabled={loading || rating === 0}
-                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-medium bengali-text hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg font-medium bengali-text hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
                 {loading ? (
                     <>

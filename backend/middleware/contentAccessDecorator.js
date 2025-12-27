@@ -5,7 +5,7 @@
 
 // Base component for content access
 class ContentAccess {
-    async checkAccess(userId, contentId) {
+    async checkAccess(user, contentId) {
         return { granted: true };
     }
 }
@@ -18,9 +18,9 @@ class PaywallDecorator extends ContentAccess {
         this.db = db;
     }
 
-    async checkAccess(userId, contentId) {
+    async checkAccess(user, contentId) {
         // First check base access
-        const baseAccess = await this.wrappedAccess.checkAccess(userId, contentId);
+        const baseAccess = await this.wrappedAccess.checkAccess(user, contentId);
         
         if (!baseAccess.granted) {
             return baseAccess;
@@ -48,7 +48,7 @@ class PaywallDecorator extends ContentAccess {
         }
 
         // If no user is logged in for premium content, deny access
-        if (!userId) {
+        if (!user || !user.id) {
             return { 
                 granted: false, 
                 reason: 'premium_content_requires_auth', 
@@ -61,8 +61,13 @@ class PaywallDecorator extends ContentAccess {
             };
         }
 
+        // If user is admin, grant access (admins can access all premium content)
+        if (user.is_admin) {
+            return { granted: true, requiresPayment: false };
+        }
+
         // If user is the author, grant access
-        if (userId === content.author_id) {
+        if (user.id === content.author_id) {
             return { granted: true, requiresPayment: false };
         }
 
@@ -70,7 +75,7 @@ class PaywallDecorator extends ContentAccess {
         const { data: purchase, error: purchaseError } = await this.db.getClient()
             .from('purchases')
             .select('id, payment_status, amount')
-            .eq('user_id', userId)
+            .eq('user_id', user.id)
             .eq('content_id', contentId)
             .eq('payment_status', 'completed')
             .single();

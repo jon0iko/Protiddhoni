@@ -171,8 +171,8 @@ export default function ForgotPasswordPage() {
           {/* Additional Help */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 text-center">
-              সমস্যা হচ্ছে? <a href="/support" className="text-blue-600 hover:underline">সাহায্য নিন</a> অথবা{' '}
-              <a href="mailto:support@protiddhoni.com" className="text-blue-600 hover:underline">
+              সমস্যা হচ্ছে? <a href="/support" className="text-primary-600 hover:underline">সাহায্য নিন</a> অথবা{' '}
+              <a href="mailto:support@protiddhoni.com" className="text-primary-600 hover:underline">
                 আমাদের সাথে যোগাযোগ করুন
               </a>
             </p>

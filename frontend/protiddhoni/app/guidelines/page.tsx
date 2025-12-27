@@ -113,9 +113,9 @@ export default function GuidelinesPage() {
             <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-3 mb-6">
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  section.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                  section.color === 'blue' ? 'bg-primary-100 text-primary-600' :
                   section.color === 'green' ? 'bg-green-100 text-green-600' :
-                  section.color === 'purple' ? 'bg-purple-100 text-purple-600' :
+                  section.color === 'purple' ? 'bg-accent-100 text-accent-600' :
                   'bg-red-100 text-red-600'
                 }`}>
                   {section.icon}
