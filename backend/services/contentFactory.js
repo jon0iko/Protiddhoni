@@ -65,3 +65,12 @@ class ContentFactory {
 }
 
 module.exports = ContentFactory;
+
+ContentFactory.createContent('story', {
+    title: 'Story Title',
+    body: 'Story Body',
+    author_id: 1,
+    category_id: 1,
+    excerpt: 'Story Excerpt',
+    cover_image_url: 'https://example.com/cover.jpg'
+});

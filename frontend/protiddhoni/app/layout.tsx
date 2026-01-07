@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
+import BengaliNumberInit from "@/components/BengaliNumberInit";
 
 const kalpurush = localFont({
   src: "../public/fonts/Kalpurush.ttf",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{children: React.React
       <body
         className={`${kalpurush.variable} font-kalpurush antialiased min-h-screen flex flex-col`}
       >
+        <BengaliNumberInit />
         <AuthProvider>
           <LayoutWrapper>
             {children}

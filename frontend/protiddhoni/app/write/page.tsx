@@ -199,7 +199,7 @@ export default function WritingHubPage() {
                   <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <BookOpen className="w-6 h-6 text-blue-600" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900">{userStats.totalStories}</div>
+                  <div className="text-2xl font-bold text-gray-900">{userStats.totalStories.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট গল্প</div>
                 </div>
                 
@@ -223,7 +223,7 @@ export default function WritingHubPage() {
                   <div className="bg-yellow-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <Star className="w-6 h-6 text-yellow-600" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900">{userStats.totalLikes}</div>
+                  <div className="text-2xl font-bold text-gray-900">{userStats.totalLikes.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট পছন্দ</div>
                 </div>
               </div>

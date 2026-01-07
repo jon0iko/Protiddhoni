@@ -2,31 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, Ghost, Search, BookOpen, Users, Laugh, Baby, Clock, Rocket } from 'lucide-react';
 import { api } from '@/lib/api';
 
-const iconMap: Record<string, any> = {
-    '❤️': Heart,
-    '👻': Ghost,
-    '🔍': Search,
-    '📜': BookOpen,
-    '👥': Users,
-    '😂': Laugh,
-    '🧸': Baby,
-    '🏛️': Clock,
-    '🚀': Rocket,
-};
 
 const colorMap: Record<string, string> = {
-    'romance': 'from-pink-500 to-rose-500',
-    'horror': 'from-purple-500 to-indigo-500',
-    'mystery': 'from-gray-500 to-slate-500',
-    'poetry': 'from-emerald-500 to-teal-500',
-    'social': 'from-blue-500 to-cyan-500',
-    'comedy': 'from-yellow-500 to-orange-500',
-    'children': 'from-green-500 to-lime-500',
-    'historical': 'from-amber-500 to-yellow-500',
-    'sci-fi': 'from-indigo-500 to-purple-500',
+    'romance': 'from-accent-500 to-accent-600',
+    'horror': 'from-olive-600 to-olive-700',
+    'mystery': 'from-neutral-600 to-neutral-700',
+    'poetry': 'from-primary-400 to-primary-500',
+    'social': 'from-primary-600 to-primary-700',
+    'comedy': 'from-primary-500 to-accent-500',
+    'children': 'from-primary-400 to-primary-600',
+    'historical': 'from-olive-500 to-olive-600',
+    'sci-fi': 'from-accent-600 to-olive-600',
 };
 
 export default function CategoryShowcase() {
@@ -50,7 +38,7 @@ export default function CategoryShowcase() {
 
     if (loading) {
         return (
-            <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50">
+            <section className="py-16 bg-gradient-to-br from-gray-50 to-primary-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center py-12">
                         <p className="text-gray-600 bengali-text">লোড হচ্ছে...</p>
@@ -61,7 +49,7 @@ export default function CategoryShowcase() {
     }
 
     return (
-        <section className="py-16 bg-gradient-to-br from-gray-50 to-blue-50">
+        <section className="py-16 bg-gradient-to-br from-gray-50 to-primary-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Section Header */}
                 <div className="text-center mb-12">
@@ -76,8 +64,7 @@ export default function CategoryShowcase() {
                 {/* Categories Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {categories.map((category) => {
-                        const IconComponent = iconMap[category.icon] || BookOpen;
-                        const colorClass = colorMap[category.slug] || 'from-blue-500 to-cyan-500';
+                        const colorClass = colorMap[category.slug] || 'from-primary-500 to-primary-600';
                         
                         return (
                             <Link
@@ -89,7 +76,7 @@ export default function CategoryShowcase() {
                                     {/* Header with gradient */}
                                     <div className={`bg-gradient-to-r ${colorClass} p-6 text-white`}>
                                         <div className="flex items-center justify-between mb-2">
-                                            <IconComponent className="w-8 h-8" />
+                                            
                                             <span className="text-sm font-medium bg-white/20 px-2 py-1 rounded-full">
                                                 {(category.contentCount || 0).toLocaleString()} টি
                                             </span>
@@ -115,27 +102,6 @@ export default function CategoryShowcase() {
                             </Link>
                         );
                     })}
-                </div>
-
-                {/* Popular Tags */}
-                <div className="mt-12 text-center">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6 bengali-text">
-                        জনপ্রিয় ট্যাগসমূহ
-                    </h3>
-                    <div className="flex flex-wrap justify-center gap-3">
-                        {[
-                            'প্রেম', 'বিরহ', 'পরিবার', 'বন্ধুত্ব', 'স্বপ্ন', 'যুদ্ধ',
-                            'গ্রাম', 'শহর', 'প্রকৃতি', 'রাত', 'বৃষ্টি', 'সূর্যাস্ত'
-                        ].map((tag, index) => (
-                            <Link
-                                key={index}
-                                href={`/tag/${tag}`}
-                                className="bg-white hover:bg-primary-50 text-gray-700 hover:text-primary-600 px-4 py-2 rounded-full border border-gray-200 hover:border-primary-200 transition-colors text-sm bengali-text"
-                            >
-                                #{tag}
-                            </Link>
-                        ))}
-                    </div>
                 </div>
             </div>
         </section>
