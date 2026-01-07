@@ -506,7 +506,7 @@ export default function ChapterReadingPage() {
                             <ThumbsUp className="h-4 w-4" />
                             <span>{comment.likes}</span>
                           </button>
-                          <button className="text-sm text-gray-500 hover:text-blue-600 bengali-text">
+                          <button className="text-sm text-gray-500 hover:text-primary-600 bengali-text">
                             উত্তর দিন
                           </button>
                           <button className="text-sm text-gray-500 hover:text-red-600">
@@ -546,7 +546,7 @@ export default function ChapterReadingPage() {
                                     <ThumbsUp className="h-3 w-3" />
                                     <span>{reply.likes}</span>
                                   </button>
-                                  <button className="text-xs text-gray-500 hover:text-blue-600 bengali-text">
+                                  <button className="text-xs text-gray-500 hover:text-primary-600 bengali-text">
                                     উত্তর দিন
                                   </button>
                                 </div>

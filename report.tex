@@ -1,0 +1,36 @@
+\section{System Overview}
+
+\subsection{System Architecture}
+
+Protiddhoni follows a robust \textbf{3-Tier Architecture}, ensuring a clear separation of concerns between the user interface, business logic, and data management. This architecture enhances maintainability, scalability, and testability.
+
+\subsubsection*{1. Presentation Layer (Frontend)}
+The client-side is built using \textbf{Next.js 14}, responsible for rendering the user interface and handling user interactions.
+\begin{itemize}
+    \item \textbf{Server-Side Rendering (SSR):} Delivers pre-rendered HTML to the browser, ensuring fast initial load times and search engine optimization (SEO).
+    \item \textbf{State Management:} Uses \textbf{Zustand} to manage local states such as user authentication status and reading preferences (theme, font size).
+    \item \textbf{Communication:} Interacts with the backend via secure RESTful API calls.
+\end{itemize}
+
+\subsubsection*{2. Business Logic Layer (Backend)}
+The server-side is powered by \textbf{Node.js} and \textbf{Express.js}, serving as the intermediary between the frontend and the database.
+\begin{itemize}
+    \item \textbf{MVC Pattern:} Implements the Model-View-Controller pattern where Controllers handle incoming HTTP requests and Services execute the core business logic.
+    \item \textbf{Middleware:} Utilizes middleware for critical functions such as JWT authentication, input validation, and error handling.
+    \item \textbf{Design Patterns:} Heavily utilizes patterns like Repository, Factory, and Strategy to decouple logic from database implementation.
+\end{itemize}
+
+\subsubsection*{3. Data Layer (Database)}
+The data persistence layer is managed by \textbf{Supabase (PostgreSQL)}.
+\begin{itemize}
+    \item \textbf{Relational Data:} Stores structured data including users, content, series, comments, and ratings.
+    \item \textbf{Optimization:} Uses database indexes for efficient querying and Stored Procedures for complex, atomic operations like incrementing view counts.
+    \item \textbf{Storage:} Manages binary assets like cover images and user avatars via Supabase Storage buckets.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{images/architecture_diagram.png}
+    \caption{High-Level System Architecture Diagram showing the interaction between Next.js Client, Express Server, and Supabase Database.}
+    \label{fig:architecture}
+\end{figure}

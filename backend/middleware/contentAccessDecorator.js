@@ -1,10 +1,11 @@
 /**
  * Design Pattern: Decorator
+ * Implements a paywall system to protect premium content
  */
 
 // Base component for content access
 class ContentAccess {
-    async checkAccess(userId, contentId) {
+    async checkAccess(user, contentId) {
         return { granted: true };
     }
 }
@@ -17,9 +18,9 @@ class PaywallDecorator extends ContentAccess {
         this.db = db;
     }
 
-    async checkAccess(userId, contentId) {
+    async checkAccess(user, contentId) {
         // First check base access
-        const baseAccess = await this.wrappedAccess.checkAccess(userId, contentId);
+        const baseAccess = await this.wrappedAccess.checkAccess(user, contentId);
         
         if (!baseAccess.granted) {
             return baseAccess;
@@ -28,36 +29,71 @@ class PaywallDecorator extends ContentAccess {
         // Check if content is premium
         const { data: content, error: contentError } = await this.db.getClient()
             .from('content')
-            .select('is_premium')
+            .select('is_premium, price, title, author_id')
             .eq('id', contentId)
             .single();
 
         if (contentError || !content) {
-            return { granted: false, reason: 'content_not_found', message: 'Content not found' };
+            return { 
+                granted: false, 
+                reason: 'content_not_found', 
+                message: 'Content not found',
+                requiresPayment: false
+            };
         }
 
         // If content is not premium, grant access
         if (!content.is_premium) {
-            return { granted: true };
+            return { granted: true, requiresPayment: false };
+        }
+
+        // If no user is logged in for premium content, deny access
+        if (!user || !user.id) {
+            return { 
+                granted: false, 
+                reason: 'premium_content_requires_auth', 
+                message: 'This premium content requires login',
+                requiresPayment: true,
+                contentDetails: {
+                    title: content.title,
+                    price: content.price || 0
+                }
+            };
+        }
+
+        // If user is admin, grant access (admins can access all premium content)
+        if (user.is_admin) {
+            return { granted: true, requiresPayment: false };
+        }
+
+        // If user is the author, grant access
+        if (user.id === content.author_id) {
+            return { granted: true, requiresPayment: false };
         }
 
         // Check if user has purchased the premium content
         const { data: purchase, error: purchaseError } = await this.db.getClient()
             .from('purchases')
-            .select('id')
-            .eq('user_id', userId)
+            .select('id, payment_status, amount')
+            .eq('user_id', user.id)
             .eq('content_id', contentId)
             .eq('payment_status', 'completed')
             .single();
 
         if (purchase) {
-            return { granted: true };
+            return { granted: true, requiresPayment: false };
         }
 
+        // Premium content not purchased - block access
         return { 
             granted: false, 
-            reason: 'premium_content', 
-            message: 'This content requires purchase' 
+            reason: 'premium_content_not_purchased', 
+            message: 'This premium content requires purchase to access',
+            requiresPayment: true,
+            contentDetails: {
+                title: content.title,
+                price: content.price || 0
+            }
         };
     }
 }

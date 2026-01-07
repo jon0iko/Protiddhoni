@@ -126,7 +126,7 @@ export default function WritingHubPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -199,7 +199,7 @@ export default function WritingHubPage() {
                   <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <BookOpen className="w-6 h-6 text-blue-600" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900">{userStats.totalStories}</div>
+                  <div className="text-2xl font-bold text-gray-900">{userStats.totalStories.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট গল্প</div>
                 </div>
                 
@@ -213,7 +213,7 @@ export default function WritingHubPage() {
                 
                 <div className="text-center">
                   <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <Users className="w-6 h-6 text-purple-600" />
+                    <Users className="w-6 h-6 text-accent-600" />
                   </div>
                   <div className="text-2xl font-bold text-gray-900">{userStats.totalViews.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট পাঠক</div>
@@ -223,7 +223,7 @@ export default function WritingHubPage() {
                   <div className="bg-yellow-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <Star className="w-6 h-6 text-yellow-600" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900">{userStats.totalLikes}</div>
+                  <div className="text-2xl font-bold text-gray-900">{userStats.totalLikes.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট পছন্দ</div>
                 </div>
               </div>

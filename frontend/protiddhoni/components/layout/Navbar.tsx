@@ -1,16 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield } from 'lucide-react';
+import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
+import { api } from '@/lib/api';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showWriteMenu, setShowWriteMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
   const { user, isLoggedIn, logout } = useAuth();
   const router = useRouter();
 
@@ -22,6 +29,60 @@ export default function Navbar() {
     await logout();
     setShowUserMenu(false);
     router.push('/');
+  };
+
+  // Search functionality
+  useEffect(() => {
+    const delaySearch = setTimeout(async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsSearching(true);
+        try {
+          const response = await api.content.search({ q: searchQuery, limit: 5 });
+          setSearchResults(response.data || []);
+          setShowSearchResults(true);
+        } catch (error) {
+          console.error('Search error:', error);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setShowSearchResults(false);
+      setSearchQuery('');
+    }
+  };
+
+  const handleResultClick = (slug: string) => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    router.push(`/read/${slug}`);
   };
 
   return (
@@ -42,26 +103,82 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
+            <Link href="/" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
               মূলপাতা
             </Link>
-            <Link href="/categories" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
+            <Link href="/categories" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
               বিভাগ
             </Link>
-            <Link href="/write" className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors">
+            <Link href="/write" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
               লেখালেখি
             </Link>
           </div>
 
           {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="গল্প, কবিতা, লেখক খুঁজুন..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
-              />
+            <div className="relative w-full" ref={searchRef}>
+              <form onSubmit={handleSearchSubmit}>
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
+                  placeholder="গল্প, কবিতা, লেখক খুঁজুন..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+                />
+              </form>
+
+              {/* Search Results Dropdown */}
+              {showSearchResults && (
+                <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                  {isSearching ? (
+                    <div className="p-4 text-center">
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                      <p className="text-sm text-gray-500 mt-2 bengali-text">খুঁজছি...</p>
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <>
+                      {searchResults.map((result) => (
+                        <button
+                          key={result.id}
+                          onClick={() => handleResultClick(result.slug)}
+                          className="w-full px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                        >
+                          <h4 className="font-medium text-gray-900 bengali-text line-clamp-1">
+                            {result.title}
+                          </h4>
+                          {result.author && (
+                            <p className="text-xs text-gray-500 mt-1 bengali-text">
+                              লেখক: {result.author.full_name}
+                            </p>
+                          )}
+                          {result.excerpt && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2 bengali-text">
+                              {result.excerpt}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => {
+                          router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+                          setShowSearchResults(false);
+                          setSearchQuery('');
+                        }}
+                        className="w-full px-4 py-3 text-center text-primary-600 hover:bg-primary-50 font-medium flex items-center justify-center gap-2 bengali-text"
+                      >
+                        সব ফলাফল দেখুন
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="p-4 text-center">
+                      <p className="text-sm text-gray-500 bengali-text">কোনো ফলাফল পাওয়া যায়নি</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -75,7 +192,7 @@ export default function Navbar() {
                 <div className="relative">
                   {/* <button 
                     onClick={toggleWriteMenu}
-                    className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors bengali-text"
+                    className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors bengali-text"
                   >
                     <Edit3 className="w-4 h-4" />
                     <span>লিখুন</span>
@@ -86,7 +203,7 @@ export default function Navbar() {
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-50 border">
                       <Link 
                         href="/write/new" 
-                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors bengali-text"
+                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors bengali-text"
                         onClick={() => setShowWriteMenu(false)}
                       >
                         <PlusCircle className="w-4 h-4 text-blue-500" />
@@ -108,7 +225,7 @@ export default function Navbar() {
                       </Link>
                       <Link 
                         href="/drafts" 
-                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors bengali-text"
+                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-olive-50 hover:text-olive-600 transition-colors bengali-text"
                         onClick={() => setShowWriteMenu(false)}
                       >
                         <FileText className="w-4 h-4 text-purple-500" />
@@ -123,7 +240,7 @@ export default function Navbar() {
                 <div className="relative">
                   <button 
                     onClick={toggleUserMenu}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
+                    className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {user?.avatar ? (
                       <img 
@@ -143,7 +260,7 @@ export default function Navbar() {
                         <>
                           <Link 
                             href="/admin/review" 
-                            className="flex items-center space-x-2 px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 bengali-text font-medium"
+                            className="flex items-center space-x-2 px-4 py-2 text-sm text-accent-600 hover:bg-accent-50 bengali-text font-medium"
                             onClick={() => setShowUserMenu(false)}
                           >
                             <Shield className="w-4 h-4" />
@@ -196,13 +313,13 @@ export default function Navbar() {
               <div className="flex items-center space-x-3">
                 <Link 
                   href="/login" 
-                  className="text-gray-700 hover:text-blue-600 font-medium bengali-text transition-colors"
+                  className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors"
                 >
                   লগইন
                 </Link>
                 <Link 
                   href="/register" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors bengali-text"
+                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors bengali-text"
                 >
                   যোগদান
                 </Link>
@@ -227,13 +344,68 @@ export default function Navbar() {
             <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
               {/* Search */}
               <div className="px-3 py-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="খুঁজুন..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
-                  />
+                <div className="relative" ref={mobileSearchRef}>
+                  <form onSubmit={handleSearchSubmit}>
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
+                      placeholder="খুঁজুন..."
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+                    />
+                  </form>
+
+                  {/* Mobile Search Results Dropdown */}
+                  {showSearchResults && (
+                    <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-80 overflow-y-auto">
+                      {isSearching ? (
+                        <div className="p-4 text-center">
+                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                          <p className="text-sm text-gray-500 mt-2 bengali-text">খুঁজছি...</p>
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        <>
+                          {searchResults.map((result) => (
+                            <button
+                              key={result.id}
+                              onClick={() => {
+                                handleResultClick(result.slug);
+                                setIsMenuOpen(false);
+                              }}
+                              className="w-full px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                            >
+                              <h4 className="font-medium text-gray-900 bengali-text line-clamp-1">
+                                {result.title}
+                              </h4>
+                              {result.author && (
+                                <p className="text-xs text-gray-500 mt-1 bengali-text">
+                                  লেখক: {result.author.full_name}
+                                </p>
+                              )}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+                              setShowSearchResults(false);
+                              setSearchQuery('');
+                              setIsMenuOpen(false);
+                            }}
+                            className="w-full px-4 py-3 text-center text-primary-600 hover:bg-primary-50 font-medium flex items-center justify-center gap-2 bengali-text"
+                          >
+                            সব ফলাফল দেখুন
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="p-4 text-center">
+                          <p className="text-sm text-gray-500 bengali-text">কোনো ফলাফল পাওয়া যায়নি</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -258,7 +430,7 @@ export default function Navbar() {
                   <div className="px-3 py-2">
                     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 bengali-text">লেখালেখি</div>
                     <div className="space-y-1">
-                      <Link href="/write/new" className="flex items-center space-x-3 px-2 py-2 text-blue-600 hover:bg-blue-50 rounded-md font-medium bengali-text">
+                      <Link href="/write/new" className="flex items-center space-x-3 px-2 py-2 text-primary-600 hover:bg-primary-50 rounded-md font-medium bengali-text">
                         <PlusCircle className="w-4 h-4" />
                         <span>নতুন গল্প</span>
                       </Link>
@@ -266,7 +438,7 @@ export default function Navbar() {
                         <BookOpen className="w-4 h-4" />
                         <span>গল্প চালিয়ে যান</span>
                       </Link>
-                      <Link href="/drafts" className="flex items-center space-x-3 px-2 py-2 text-purple-600 hover:bg-purple-50 rounded-md font-medium bengali-text">
+                      <Link href="/drafts" className="flex items-center space-x-3 px-2 py-2 text-olive-600 hover:bg-olive-50 rounded-md font-medium bengali-text">
                         <FileText className="w-4 h-4" />
                         <span>খসড়া</span>
                       </Link>
@@ -284,7 +456,7 @@ export default function Navbar() {
                   <Link href="/login" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
                     লগইন
                   </Link>
-                  <Link href="/register" className="block px-3 py-2 bg-blue-600 text-white rounded-md font-medium bengali-text">
+                  <Link href="/register" className="block px-3 py-2 bg-primary-600 text-white rounded-md font-medium bengali-text">
                     যোগদান
                   </Link>
                 </>

@@ -26,13 +26,9 @@ export default function FeaturedContent() {
         const fetchContent = async () => {
             try {
                 setLoading(true);
-                const filters: any = {
-                    paginated: 'true',
-                    page: currentPage.toString(),
-                    limit: ITEMS_PER_PAGE.toString()
-                };
+                const filters: any = {};
                 
-                // Apply category-specific filters and sorting
+                // Apply category-specific filters (without pagination - fetch all)
                 if (activeCategory === 'premium') {
                     filters.is_premium = 'true';
                     filters.sort_by = 'published_at';
@@ -49,10 +45,11 @@ export default function FeaturedContent() {
                     filters.order = 'desc';
                 }
                 
-                // Fetch both standalone content and series
+                // Fetch both standalone content and series (all data, no pagination)
                 const [contentResponse, seriesResponse] = await Promise.all([
                     api.content.getPublished(filters),
-                    api.series.getPublished(filters)
+                    // Don't fetch series for premium category since series don't have premium status
+                    activeCategory === 'premium' ? Promise.resolve({ data: [] }) : api.series.getPublished(filters)
                 ]);
                 
                 // Combine and mark series items
@@ -115,14 +112,12 @@ export default function FeaturedContent() {
     const nextSlide = () => {
         if (currentPage < totalPages) {
             setCurrentPage(prev => prev + 1);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
     const prevSlide = () => {
         if (currentPage > 1) {
             setCurrentPage(prev => prev - 1);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
@@ -196,7 +191,7 @@ export default function FeaturedContent() {
                             onClick={() => setActiveCategory(category.slug)}
                             className={`px-6 py-2 rounded-full font-medium bengali-text transition-colors ${
                                 activeCategory === category.slug
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-primary-500 text-white'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                         >
@@ -282,13 +277,10 @@ export default function FeaturedContent() {
                                         return (
                                             <button
                                                 key={i}
-                                                onClick={() => {
-                                                    setCurrentPage(pageNum);
-                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                }}
+                                                onClick={() => setCurrentPage(pageNum)}
                                                 className={`w-10 h-10 rounded-full font-medium transition-colors ${
                                                     currentPage === pageNum
-                                                        ? 'bg-blue-600 text-white'
+                                                        ? 'bg-primary-600 text-white'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                             >

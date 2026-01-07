@@ -128,7 +128,7 @@ export default function DraftsListModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-purple-100">
-              <FolderOpen className="w-6 h-6 text-purple-600" />
+              <FolderOpen className="w-6 h-6 text-olive-600" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 bengali-text">
@@ -156,7 +156,7 @@ export default function DraftsListModal({
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+              <Loader2 className="w-8 h-8 text-primary-600 animate-spin mb-3" />
               <p className="text-gray-500 bengali-text">খসড়া লোড হচ্ছে...</p>
             </div>
           ) : error ? (

@@ -12,10 +12,13 @@ import {
   Share2,
   Loader2,
   Calendar,
-  Tag
+  Tag,
+  Crown,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import PaywallBlock from '@/components/reader/PaywallBlock';
 
 export default function StoryPage() {
   const params = useParams();
@@ -26,6 +29,8 @@ export default function StoryPage() {
   const [content, setContent] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [paywallInfo, setPaywallInfo] = useState<any>(null);
 
   useEffect(() => {
     loadStoryData();
@@ -33,8 +38,25 @@ export default function StoryPage() {
 
   const loadStoryData = async () => {
     setLoading(true);
+    setIsBlocked(false);
+    setPaywallInfo(null);
+    
     try {
       const response = await api.content.getBySlug(slug);
+      
+      // Check if content is blocked by paywall
+      if (!response.success && response.isPremiumBlocked) {
+        setIsBlocked(true);
+        setPaywallInfo({
+          title: response.contentDetails?.title || 'Premium Content',
+          price: response.contentDetails?.price || 0,
+          reason: response.reason,
+          message: response.error
+        });
+        setLoading(false);
+        return;
+      }
+      
       if (response.success) {
         setContent(response.data);
         
@@ -50,19 +72,47 @@ export default function StoryPage() {
       } else {
         router.push('/404');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading story:', error);
-      router.push('/404');
+      
+      // Check if error response indicates paywall
+      if (error?.response?.data?.isPremiumBlocked) {
+        setIsBlocked(true);
+        setPaywallInfo({
+          title: error.response.data.contentDetails?.title || 'Premium Content',
+          price: error.response.data.contentDetails?.price || 0,
+          reason: error.response.data.reason,
+          message: error.response.data.error
+        });
+      } else {
+        router.push('/404');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleLogin = () => {
+    router.push(`/login?redirect=/story/${slug}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
+    );
+  }
+
+  // Show paywall if content is blocked
+  if (isBlocked && paywallInfo) {
+    return (
+      <PaywallBlock
+        contentTitle={paywallInfo.title}
+        price={paywallInfo.price}
+        onLogin={handleLogin}
+        isLoggedIn={isLoggedIn}
+      />
     );
   }
 
@@ -161,14 +211,25 @@ export default function StoryPage() {
                 <span className="bengali-text">{chapters.length} টি পর্ব</span>
               </div>
             )}
+            {content.is_premium && content.price && (
+              <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-lg">
+                <Crown className="w-5 h-5 text-yellow-300" />
+                <span className="font-semibold">৳{content.price}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 mt-6">
             <Link
               href={`/read/${slug}`}
-              className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 bengali-text"
+              className={`px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 bengali-text ${
+                content.is_premium 
+                  ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:shadow-lg' 
+                  : 'bg-white text-blue-600 hover:bg-blue-50'
+              }`}
             >
-              <BookOpen className="w-5 h-5" />
+              {content.is_premium && <Crown className="w-5 h-5" />}
+              {!content.is_premium && <BookOpen className="w-5 h-5" />}
               পড়া শুরু করুন
             </Link>
             <button
@@ -250,7 +311,7 @@ export default function StoryPage() {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <Link
                 href={`/read/${slug}`}
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors bengali-text"
+                className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-medium transition-colors bengali-text"
               >
                 <BookOpen className="w-5 h-5" />
                 সম্পূর্ণ পড়ুন

@@ -84,7 +84,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
           {/* Logo and Title */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <BookOpen className="h-10 w-10 text-blue-600 mr-2" />
+              <BookOpen className="h-10 w-10 text-primary-600 mr-2" />
               <h1 className="text-3xl font-bold text-gray-900">প্রতিধ্বনি</h1>
             </div>
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">
@@ -112,7 +112,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black"
                     placeholder="আপনার নাম লিখুন"
                   />
                 </div>
@@ -134,7 +134,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                     type="text"
                     value={formData.username}
                     onChange={(e) => handleInputChange('username', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black"
                     placeholder="ইউনিক ব্যবহারকারী নাম"
                   />
                 </div>
@@ -155,7 +155,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                   type={isLogin ? 'text' : 'email'}
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black"
                   placeholder={isLogin ? 'ইমেইল বা ব্যবহারকারী নাম' : 'আপনার ইমেইল লিখুন'}
                 />
               </div>
@@ -175,7 +175,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-black"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black"
                   placeholder="পাসওয়ার্ড লিখুন"
                 />
                 <button
@@ -225,7 +225,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
               <div className="text-right">
                 <Link 
                   href="/forgot-password" 
-                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                  className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
                 >
                   পাসওয়ার্ড ভুলে গেছেন?
                 </Link>
@@ -236,7 +236,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-primary-600 to-accent-600 text-white py-3 px-4 rounded-lg font-medium hover:from-primary-700 hover:to-accent-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
@@ -265,7 +265,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
               {isLogin ? 'একাউন্ট নেই?' : 'ইতিমধ্যে একাউন্ট আছে?'}{' '}
               <Link 
                 href={isLogin ? '/register' : '/login'} 
-                className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
               >
                 {isLogin ? 'নিবন্ধন করুন' : 'লগইন করুন'}
               </Link>
@@ -275,7 +275,7 @@ export default function AuthForm({ type, onSubmit, isLoading = false }: AuthForm
       </div>
 
       {/* Right Side - Illustration/Info */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 items-center justify-center p-8">
+      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-neutral-900 via-olive-800 to-accent-800 items-center justify-center p-8">
         <div className="text-white text-center max-w-md">
           <div className="mb-8">
             <BookOpen className="h-20 w-20 mx-auto mb-6 text-white/90" />

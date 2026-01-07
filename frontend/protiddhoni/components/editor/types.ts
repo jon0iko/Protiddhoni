@@ -56,6 +56,7 @@ export interface PublishFormData {
   seriesId?: string;
   chapterNumber?: number;
   isPremium: boolean;
+  price?: number;
   coverImage: File | null;
   coverImagePreview: string | null;
 }
@@ -67,6 +68,7 @@ export interface PublishFormErrors {
   category?: string;
   series?: string;
   chapterNumber?: string;
+  price?: string;
   coverImage?: string;
   general?: string;
 }

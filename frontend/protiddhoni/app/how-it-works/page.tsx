@@ -20,7 +20,7 @@ const steps = [
     icon: <UserPlus className="w-8 h-8" />,
     title: "অ্যাকাউন্ট তৈরি করুন",
     description: "বিনামূল্যে সাইন আপ করুন এবং আপনার প্রোফাইল সেট করুন",
-    color: "from-blue-500 to-blue-600"
+    color: "from-primary-500 to-primary-600"
   },
   {
     id: 2,
@@ -64,8 +64,8 @@ const features = [
     icon: <MessageCircle className="w-6 h-6" />,
     title: "মতামত এবং পরামর্শ",
     description: "পাঠকদের সাথে সরাসরি যোগাযোগ এবং মতামত বিনিময়",
-    bgColor: "bg-purple-50",
-    iconColor: "text-purple-600"
+    bgColor: "bg-accent-50",
+    iconColor: "text-accent-600"
   },
   {
     icon: <TrendingUp className="w-6 h-6" />,
@@ -245,7 +245,7 @@ export default function HowItWorksPage() {
 
         {/* CTA */}
         <div className="text-center">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
+          <div className="bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-4 bengali-text">
               আজই শুরু করুন আপনার সাহিত্যিক যাত্রা
             </h3>
@@ -254,7 +254,7 @@ export default function HowItWorksPage() {
             </p>
             <a 
               href="/register" 
-              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text inline-block"
+              className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text inline-block"
             >
               বিনামূল্যে যোগদান করুন
             </a>

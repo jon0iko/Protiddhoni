@@ -70,7 +70,7 @@ function SearchResults() {
                 <div className="flex items-center gap-2 text-gray-600">
                     <Search className="w-5 h-5" />
                     <p className="bengali-text text-lg">
-                        {total > 0 ? `${total}টি ফলাফল পাওয়া গেছে` : 'কোনো ফলাফল পাওয়া যায়নি'}
+                        {total > 0 ? `${total.toLocaleString()} টি ফলাফল পাওয়া গেছে` : 'কোনো ফলাফল পাওয়া যায়নি'}
                     </p>
                 </div>
             </div>

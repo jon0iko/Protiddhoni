@@ -5,7 +5,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --primary: #2563eb;
+  --primary: #e7b62e;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #475569;
@@ -14,7 +14,7 @@
   --accent: #f59e0b;
   --accent-foreground: #ffffff;
   --border: #e2e8f0;
-  --ring: #2563eb;
+  --ring: #ebb625;
 
   /* Reading Theme Variables - Light (Default) */
   --reader-bg: #ffffff;
@@ -121,7 +121,7 @@ body {
   }
   
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-orange-400 to-[#B92F1F] bg-clip-text text-transparent;
   }
 
   /* Reader Content Styling */

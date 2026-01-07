@@ -180,7 +180,7 @@ export default function FAQPage() {
                 onClick={() => setActiveCategory(category.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
                   activeCategory === category.id
-                    ? 'bg-blue-600 text-white border-blue-600'
+                    ? 'bg-primary-600 text-white border-primary-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
               >

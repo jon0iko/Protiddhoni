@@ -131,7 +131,7 @@ export default function EditorHeader({
               onClick={onPublish}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-blue-600 text-white",
+                "bg-primary-600 text-white",
                 "hover:bg-blue-700",
                 "transition-colors bengali-text"
               )}
@@ -154,7 +154,7 @@ export default function EditorHeader({
 
             <button
               onClick={onPublish}
-              className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="p-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
               title="প্রকাশ"
             >
               <Send className="h-5 w-5" />

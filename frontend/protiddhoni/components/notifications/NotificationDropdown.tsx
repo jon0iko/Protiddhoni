@@ -126,7 +126,7 @@ export default function NotificationDropdown() {
     <div className="relative">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 text-gray-500 hover:text-blue-600 transition-colors relative"
+        className="p-2 text-gray-500 hover:text-primary-600 transition-colors relative"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -153,7 +153,7 @@ export default function NotificationDropdown() {
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium bengali-text"
+                    className="text-xs text-primary-600 hover:text-primary-700 font-medium bengali-text"
                   >
                     সব পঠিত করুন
                   </button>
@@ -214,7 +214,7 @@ export default function NotificationDropdown() {
                         {!notification.is_read && (
                           <button
                             onClick={(e) => handleMarkAsRead(notification.id, e)}
-                            className="flex-shrink-0 p-1 text-blue-600 hover:text-blue-700"
+                            className="flex-shrink-0 p-1 text-primary-600 hover:text-primary-700"
                             title="পঠিত হিসেবে চিহ্নিত করুন"
                           >
                             <Check className="w-4 h-4" />

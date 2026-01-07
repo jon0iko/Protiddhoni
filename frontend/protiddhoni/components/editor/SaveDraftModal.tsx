@@ -94,7 +94,7 @@ export default function SaveDraftModal({
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-xl bg-blue-100">
-            <FileText className="w-6 h-6 text-blue-600" />
+            <FileText className="w-6 h-6 text-primary-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900 bengali-text">
@@ -158,7 +158,7 @@ export default function SaveDraftModal({
             disabled={isSaving || !draftName.trim()}
             className={cn(
               "flex-1 px-4 py-2.5 rounded-xl font-medium bengali-text",
-              "bg-blue-600 text-white",
+              "bg-primary-600 text-white",
               "hover:bg-blue-700",
               "transition-colors flex items-center justify-center gap-2",
               "disabled:opacity-50 disabled:cursor-not-allowed"

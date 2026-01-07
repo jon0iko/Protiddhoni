@@ -47,7 +47,7 @@ const Tiptap = forwardRef<TiptapRef, TiptapProps>(({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 underline hover:text-blue-800',
+          class: 'text-primary-600 underline hover:text-primary-800',
         },
       }),
       // Use our custom image with caption extension

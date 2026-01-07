@@ -158,7 +158,7 @@ export default function ReviewList({ contentId }: ReviewListProps) {
                     {!userReview && !showReviewForm && !editingReview && (
                         <button
                             onClick={() => setShowReviewForm(true)}
-                            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-medium bengali-text hover:bg-blue-700 transition-colors"
+                            className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg font-medium bengali-text hover:bg-primary-700 transition-colors"
                         >
                             রিভিউ লিখুন
                         </button>
