@@ -4,6 +4,7 @@
  */
 
 const db = require('../config/database');
+const pushService = require('./pushService');
 
 class NotificationService {
     constructor() {
@@ -47,6 +48,17 @@ class NotificationService {
             await db.getClient()
                 .from('notifications')
                 .insert(notifications);
+
+            // Send push notifications to followers
+            const followerIds = followers.map(f => f.follower_id);
+            await pushService.sendToUsers(followerIds, {
+                title: 'নতুন লেখা প্রকাশিত',
+                body: `নতুন লেখা: ${content.title}`,
+                url: `/read/${content.slug || content.id}`,
+                icon: '/icons/icon-192.png'
+            });
+
+            return followerIds;
         } catch (error) {
             console.error('Error notifying followers:', error);
         }
@@ -84,7 +96,15 @@ class NotificationService {
                     related_entity_id: content.id
                 });
 
-            // Also notify followers
+            // Push notification to author about approval
+            await pushService.sendToUser(content.author_id, {
+                title: 'লেখা অনুমোদিত হয়েছে',
+                body: `আপনার লেখা "${content.title}" প্রকাশিত হয়েছে`,
+                url: `/read/${content.slug || content.id}`,
+                icon: '/icons/icon-192.png'
+            });
+
+            // Also notify followers (includes push)
             await this.notifyFollowers(content.author_id, content);
         } catch (error) {
             console.error('Error notifying content approval:', error);

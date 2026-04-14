@@ -5,7 +5,7 @@
 
 import { getAuthToken } from './auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 // Helper function to get headers with automatic token injection
 const getHeaders = (token?: string | null): HeadersInit => {
@@ -513,6 +513,28 @@ export const api = {
         markAllAsRead: async () => {
             return makeAuthRequest(`${API_URL}/api/notifications/read-all`, {
                 method: 'PUT'
+            });
+        }
+    },
+
+    // Push notification endpoints
+    push: {
+        getVapidPublicKey: async () => {
+            const response = await fetch(`${API_URL}/api/push/vapid-public-key`);
+            return handleResponse(response);
+        },
+
+        subscribe: async (subscription: { endpoint: string; keys: { p256dh?: string; auth?: string } }) => {
+            return makeAuthRequest(`${API_URL}/api/push/subscribe`, {
+                method: 'POST',
+                body: JSON.stringify(subscription)
+            });
+        },
+
+        unsubscribe: async (endpoint: string) => {
+            return makeAuthRequest(`${API_URL}/api/push/unsubscribe`, {
+                method: 'POST',
+                body: JSON.stringify({ endpoint })
             });
         }
     }

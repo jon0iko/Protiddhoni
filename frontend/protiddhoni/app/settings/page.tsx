@@ -2,9 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Lock, Image, FileText, Save, Loader2, CheckCircle } from 'lucide-react';
+import { User, Mail, Lock, Image, FileText, Save, Loader2, CheckCircle, Bell, BellOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export default function SettingsPage() {
   const { user, isLoggedIn, isLoading, refreshUser } = useAuth();
@@ -19,6 +30,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Push notification state
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushToggling, setPushToggling] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
       router.push('/login?redirect=/settings');
@@ -30,6 +47,69 @@ export default function SettingsPage() {
       });
     }
   }, [isLoggedIn, isLoading, user]);
+
+  // Check push notification status
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    setPushSupported(supported);
+    if (!supported) return;
+
+    setPushPermission(Notification.permission);
+
+    navigator.serviceWorker.ready.then((registration) => {
+      return registration.pushManager.getSubscription();
+    }).then((subscription) => {
+      setPushSubscribed(!!subscription);
+    }).catch(() => {});
+  }, []);
+
+  const handlePushToggle = async () => {
+    setPushToggling(true);
+    try {
+      if (pushSubscribed) {
+        // Unsubscribe
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          await api.push.unsubscribe(subscription.endpoint);
+          await subscription.unsubscribe();
+        }
+        setPushSubscribed(false);
+      } else {
+        // Subscribe
+        const permission = await Notification.requestPermission();
+        setPushPermission(permission);
+        if (permission !== 'granted') return;
+
+        const vapidResponse = await api.push.getVapidPublicKey();
+        if (!vapidResponse.success || !vapidResponse.key) {
+          console.error('Failed to get VAPID key');
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidResponse.key),
+        });
+
+        const subJson = subscription.toJSON();
+        await api.push.subscribe({
+          endpoint: subJson.endpoint!,
+          keys: {
+            p256dh: subJson.keys?.p256dh,
+            auth: subJson.keys?.auth,
+          },
+        });
+        setPushSubscribed(true);
+      }
+    } catch (error) {
+      console.error('Push toggle error:', error);
+    } finally {
+      setPushToggling(false);
+    }
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -201,6 +281,54 @@ export default function SettingsPage() {
               )}
             </div>
           </form>
+        </div>
+
+        {/* Push Notification Settings */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <Bell className="w-5 h-5 text-blue-600" />
+            বিজ্ঞপ্তি সেটিংস
+          </h2>
+
+          {!pushSupported ? (
+            <p className="text-sm text-gray-500">
+              আপনার ব্রাউজার পুশ বিজ্ঞপ্তি সমর্থন করে না।
+            </p>
+          ) : pushPermission === 'denied' ? (
+            <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg">
+              <BellOff className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-red-800">বিজ্ঞপ্তি ব্লক করা হয়েছে</p>
+                <p className="text-xs text-red-600 mt-1">
+                  ব্রাউজার সেটিংস থেকে এই সাইটের জন্য বিজ্ঞপ্তি অনুমতি দিন।
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium text-gray-900">পুশ বিজ্ঞপ্তি</p>
+                <p className="text-sm text-gray-500">
+                  {pushSubscribed
+                    ? 'নতুন লেখা প্রকাশিত হলে বিজ্ঞপ্তি পাবেন'
+                    : 'বিজ্ঞপ্তি চালু করুন নতুন লেখার খবর পেতে'}
+                </p>
+              </div>
+              <button
+                onClick={handlePushToggle}
+                disabled={pushToggling}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                  pushSubscribed ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    pushSubscribed ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Account Information */}
