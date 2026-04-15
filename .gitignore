@@ -1,5 +1,54 @@
-/Lab mats
-backend/env
-backend/.env
-env
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.log
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment variables
 .env
+.env.*
+!.env.example
+env/
+backend/env/
+backend/.env
+
+# Next.js (Frontend)
+.next/
+out/
+build/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# LaTeX (for report.tex)
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.pdf
+*.toc
+*.out
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sw?
+
+# Custom
+/Lab mats
