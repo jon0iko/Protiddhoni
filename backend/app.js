@@ -7,13 +7,19 @@ const logger = require('./config/logger');
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-
-// CORS configuration
-app.use(cors({
+// CORS configuration (must be before helmet)
+const corsOptions = {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+app.options('/{*splat}', cors(corsOptions));
+
+// Security middleware
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
 // Logging middleware
@@ -48,6 +54,7 @@ app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/reading-preferences', require('./routes/readingPreferences'));
 app.use('/api/drafts', require('./routes/drafts'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/push', require('./routes/push'));
 
 // 404 handler
 app.use((req, res) => {

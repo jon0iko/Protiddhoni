@@ -4,6 +4,8 @@ import "./globals.css";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
 import BengaliNumberInit from "@/components/BengaliNumberInit";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import PushNotificationManager from "@/components/notifications/PushNotificationManager";
 
 const kalpurush = localFont({
   src: "../public/fonts/Kalpurush.ttf",
@@ -16,6 +18,7 @@ export const metadata: Metadata = {
   title: "প্রতিধ্বনি - Protiddhoni",
   description: "বাংলা সাহিত্যের ডিজিটাল প্ল্যাটফর্ম - Bengali Digital Storytelling Platform",
   keywords: "বাংলা সাহিত্য, গল্প, কবিতা, ধারাবাহিক, Bengali literature, stories, poems",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode;}>) {
@@ -25,10 +28,12 @@ export default function RootLayout({ children }: Readonly<{children: React.React
         className={`${kalpurush.variable} font-kalpurush antialiased min-h-screen flex flex-col`}
       >
         <BengaliNumberInit />
+        <ServiceWorkerRegistration />
         <AuthProvider>
           <LayoutWrapper>
             {children}
           </LayoutWrapper>
+          <PushNotificationManager />
         </AuthProvider>
       </body>
     </html>
