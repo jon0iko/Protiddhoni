@@ -41,6 +41,7 @@ export default function ReadContentPage() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [paywallInfo, setPaywallInfo] = useState<any>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -74,6 +75,7 @@ export default function ReadContentPage() {
       
       if (response.success) {
         setContent(response.data);
+        setIsFollowing(response.data.author?.isFollowing || false);
         
         // If this is a chapter in a series, load all chapters for navigation
         if (response.data.series_id) {
@@ -140,6 +142,29 @@ export default function ReadContentPage() {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
       alert('লিংক কপি করা হয়েছে!');
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      if (isFollowing) {
+        await api.users.unfollow(content.author.id, token);
+      } else {
+        await api.users.follow(content.author.id, token);
+      }
+
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      alert('সমস্যা হয়েছে। আবার চেষ্টা করুন।');
     }
   };
 
@@ -400,8 +425,16 @@ export default function ReadContentPage() {
                 >
                   {content.author.full_name || content.author.username}
                 </Link>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                  অনুসরণ করুন
+                <button 
+                  onClick={handleFollow}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${
+                    isFollowing
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
+                  <span>{isFollowing ? 'অনুসরণ করা হচ্ছে' : 'অনুসরণ করুন'}</span>
                 </button>
               </div>
               {content.author.bio && (

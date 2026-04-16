@@ -129,25 +129,7 @@ export default function PayoutSection() {
       </div>
 
       {/* Breakdown Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* Deductions */}
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <h4 className="font-bold text-gray-900 mb-3 bengali-text flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-orange-600" />
-            উপার্জন
-          </h4>
-          <div className="space-y-2 bengali-text text-sm">
-            <p className="flex justify-between">
-              <span className="text-gray-600">লেখকদের টিপ:</span>
-              <span className="font-medium">{payoutData?.spent || 0}</span>
-            </p>
-            <p className="flex justify-between">
-              <span className="text-gray-600">ইতিমধ্যে উত্তোলিত:</span>
-              <span className="font-medium">{payoutData?.withdrawn || 0}</span>
-            </p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4">
 
         {/* Info */}
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">

@@ -33,7 +33,7 @@ export default function WalletPage() {
     if (!selectedPackage) return;
     try {
       // Mock checkout flow for Sprint 1
-      alert(`এই মুহূর্তে ${selectedPackage} কড়ি কেনার সিমুলেশন করা হচ্ছে। (Sprint 1)`);
+      alert(`এই মুহূর্তে ${selectedPackage} কড়ি কেনার সিমুলেশন করা হচ্ছে।`);
       // Simulating a successful purchase
       // const res = await api.payments.checkout(selectedPackage);
       // window.location.href = res.url;
