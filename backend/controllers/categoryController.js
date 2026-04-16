@@ -6,6 +6,7 @@
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ContentRepository = require('../repositories/ContentRepository');
 const slugify = require('../utils/slugify');
+const { updateSlugFromTitle } = require('../utils/slugify');
 
 exports.getAll = async (req, res) => {
     try {
@@ -71,8 +72,9 @@ exports.create = async (req, res) => {
         // Generate slug from name
         const slug = slugify(name);
 
-        // Check if slug already exists
-        const existing = await CategoryRepository.findBySlug(slug);
+        // Check if category with this name already exists (prevent duplicates)
+        const allCategories = await CategoryRepository.findAll();
+        const existing = allCategories.find(cat => cat.name.toLowerCase() === name.toLowerCase());
         if (existing) {
             return res.status(409).json({ success: false, error: 'A category with this name already exists' });
         }

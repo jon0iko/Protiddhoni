@@ -7,6 +7,7 @@ interface User {
     username: string;
     full_name: string;
     is_admin: boolean;
+    kori_balance?: number;
 }
 
 interface AuthState {
@@ -14,6 +15,7 @@ interface AuthState {
     token: string | null;
     setUser: (user: User | null) => void;
     setToken: (token: string | null) => void;
+    updateKoriBalance: (amount: number) => void;
     logout: () => void;
 }
 
@@ -24,6 +26,9 @@ export const useAuthStore = create<AuthState>()(
             token: null,
             setUser: (user) => set({ user }),
             setToken: (token) => set({ token }),
+            updateKoriBalance: (amount) => set((state) => ({
+                user: state.user ? { ...state.user, kori_balance: (state.user.kori_balance || 0) + amount } : null
+            })),
             logout: () => set({ user: null, token: null }),
         }),
         {

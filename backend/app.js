@@ -54,6 +54,8 @@ app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/reading-preferences', require('./routes/readingPreferences'));
 app.use('/api/drafts', require('./routes/drafts'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/push', require('./routes/push'));
 
 // 404 handler

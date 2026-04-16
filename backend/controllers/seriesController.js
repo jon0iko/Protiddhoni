@@ -6,6 +6,7 @@
 const SeriesRepository = require('../repositories/SeriesRepository');
 const ContentRepository = require('../repositories/ContentRepository');
 const slugify = require('../utils/slugify');
+const { updateSlugFromTitle } = require('../utils/slugify');
 
 exports.create = async (req, res) => {
     try {
@@ -124,7 +125,7 @@ exports.update = async (req, res) => {
 
         const updates = { ...req.body };
         if (req.body.title) {
-            updates.slug = slugify(req.body.title);
+            updates.slug = updateSlugFromTitle(series.slug, req.body.title);
         }
 
         const updatedSeries = await SeriesRepository.update(req.params.id, updates);

@@ -20,7 +20,7 @@ class UserRepository {
     async findById(id) {
         const { data, error } = await db.getClient()
             .from('users')
-            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, is_verified, created_at, updated_at')
+            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, created_at, updated_at')
             .eq('id', id)
             .single();
         
@@ -31,7 +31,7 @@ class UserRepository {
     async findByEmail(email) {
         const { data, error } = await db.getClient()
             .from('users')
-            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, is_verified, created_at, updated_at')
+            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, created_at, updated_at')
             .eq('email', email)
             .single();
         
@@ -54,7 +54,7 @@ class UserRepository {
         console.log('UserRepository.findByUsername called with:', username);
         const { data, error } = await db.getClient()
             .from('users')
-            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, is_verified, created_at, updated_at')
+            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, created_at, updated_at')
             .eq('username', username)
             .single();
         
@@ -82,7 +82,7 @@ class UserRepository {
             .from('users')
             .update({ ...updates, updated_at: new Date().toISOString() })
             .eq('id', id)
-            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, is_verified, created_at, updated_at')
+            .select('id, email, username, full_name, bio, profile_picture_url, is_admin, created_at, updated_at')
             .single();
         
         if (error) throw error;

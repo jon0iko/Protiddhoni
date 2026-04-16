@@ -6,6 +6,7 @@
 const ContentRepository = require('../repositories/ContentRepository');
 const NotificationService = require('../services/notificationService');
 const slugify = require('../utils/slugify');
+const { updateSlugFromTitle } = require('../utils/slugify');
 const ContentQueryBuilder = require('../utils/ContentQueryBuilder');
 const { ContentAccess, PaywallDecorator } = require('../middleware/contentAccessDecorator');
 const db = require('../config/database');
@@ -251,7 +252,7 @@ exports.update = async (req, res) => {
         
         // Update slug if title changed or if slug is empty
         if (req.body.title && (req.body.title !== existingContent.title || !existingContent.slug)) {
-            updates.slug = slugify(req.body.title);
+            updates.slug = updateSlugFromTitle(existingContent.slug, req.body.title);
         }
 
         const content = await ContentRepository.update(req.params.id, updates);

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield, ArrowRight } from 'lucide-react';
+import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield, ArrowRight, Coins } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 import { api } from '@/lib/api';
@@ -16,9 +16,10 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, refreshBalance } = useAuth();
   const router = useRouter();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -29,6 +30,18 @@ export default function Navbar() {
     await logout();
     setShowUserMenu(false);
     router.push('/');
+  };
+
+  // Handle manual balance refresh with loading state
+  const handleManualRefresh = async () => {
+    setIsRefreshingBalance(true);
+    try {
+      await refreshBalance();
+    } catch (err) {
+      console.warn('Failed to refresh balance:', err);
+    } finally {
+      setIsRefreshingBalance(false);
+    }
   };
 
   // Search functionality
@@ -84,6 +97,7 @@ export default function Navbar() {
     setSearchQuery('');
     router.push(`/read/${slug}`);
   };
+
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
@@ -186,6 +200,22 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
+                <div className="flex items-center gap-2">
+                  <Link href="/wallet" className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 bg-yellow-50 px-3 py-1.5 rounded-full transition-colors" title="আমার ওয়ালেট">
+                    <Coins className="w-4 h-4" />
+                    <span className="font-semibold text-sm bengali-text">{user?.kori_balance || 0}</span>
+                  </Link>
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshingBalance}
+                    className="p-1.5 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="ব্যালেন্স রিফ্রেশ করুন"
+                  >
+                    <svg className={`w-4 h-4 ${isRefreshingBalance ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
                 <NotificationDropdown />
                 
                 {/* Write Menu */}
@@ -269,6 +299,16 @@ export default function Navbar() {
                           <hr className="border-gray-200 my-1" />
                         </>
                       )}
+                      <Link 
+                        href="/wallet" 
+                        className="block px-4 py-2 text-sm text-yellow-700 hover:bg-yellow-50 bengali-text font-medium"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Coins className="w-4 h-4" />
+                          <span>আমার ওয়ালেট</span>
+                        </div>
+                      </Link>
                       <Link 
                         href="/my-stories" 
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
