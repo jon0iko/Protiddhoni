@@ -5,7 +5,7 @@
 
 import { getAuthToken } from './auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // Helper function to get headers with automatic token injection
 const getHeaders = (token?: string | null): HeadersInit => {
@@ -536,6 +536,64 @@ export const api = {
                 method: 'POST',
                 body: JSON.stringify({ endpoint })
             });
+        }
+    },
+    
+    // Payments & Wallet endpoints
+    payments: {
+        getWallet: async () => {
+            return makeAuthRequest(`${API_URL}/api/payments/wallet`);
+        },
+        
+        getTransactions: async (limit: number = 20, offset: number = 0) => {
+            return makeAuthRequest(`${API_URL}/api/payments/transactions?limit=${limit}&offset=${offset}`);
+        },
+        
+        getPayoutable: async () => {
+            return makeAuthRequest(`${API_URL}/api/payments/payoutable`);
+        },
+        
+        getPayoutSimulation: async () => {
+            return makeAuthRequest(`${API_URL}/api/payments/payout-simulation`);
+        },
+        
+        processPayout: async (amount?: number) => {
+            return makeAuthRequest(`${API_URL}/api/payments/payout`, {
+                method: 'POST',
+                body: JSON.stringify({ amount })
+            });
+        },
+        
+        tipAuthor: async (authorId: string, amount: number) => {
+            return makeAuthRequest(`${API_URL}/api/payments/tip/${authorId}`, {
+                method: 'POST',
+                body: JSON.stringify({ amount })
+            });
+        },
+        
+        initiateTopUp: async (data: { amount: number; paymentMethod?: string }) => {
+            return makeAuthRequest(`${API_URL}/api/payments/checkout`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+        }
+    },
+
+    // Content Purchase endpoints
+    purchases: {
+        checkPurchase: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/purchases/check/${contentId}`);
+        },
+        
+        purchaseContent: async (contentId: string, amount: number) => {
+            return makeAuthRequest(`${API_URL}/api/purchases/${contentId}`, {
+                method: 'POST',
+                body: JSON.stringify({ amount })
+            });
+        },
+        
+        getUserPurchases: async () => {
+            return makeAuthRequest(`${API_URL}/api/purchases`);
         }
     }
 };

@@ -12,6 +12,7 @@ export interface User {
   profile_picture_url?: string;
   is_admin?: boolean;
   is_verified?: boolean;
+  kori_balance?: number;
   created_at?: string;
   updated_at?: string;
 }

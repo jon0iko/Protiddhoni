@@ -55,6 +55,7 @@ class PaywallDecorator extends ContentAccess {
                 message: 'This premium content requires login',
                 requiresPayment: true,
                 contentDetails: {
+                    id: contentId,
                     title: content.title,
                     price: content.price || 0
                 }
@@ -73,11 +74,10 @@ class PaywallDecorator extends ContentAccess {
 
         // Check if user has purchased the premium content
         const { data: purchase, error: purchaseError } = await this.db.getClient()
-            .from('purchases')
-            .select('id, payment_status, amount')
+            .from('content_purchases')
+            .select('id, amount')
             .eq('user_id', user.id)
             .eq('content_id', contentId)
-            .eq('payment_status', 'completed')
             .single();
 
         if (purchase) {
@@ -91,6 +91,7 @@ class PaywallDecorator extends ContentAccess {
             message: 'This premium content requires purchase to access',
             requiresPayment: true,
             contentDetails: {
+                id: contentId,
                 title: content.title,
                 price: content.price || 0
             }

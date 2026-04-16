@@ -1,5 +1,5 @@
-import React from 'react';
-import { Lock, Crown, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lock, Crown, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface PaywallBlockProps {
@@ -7,14 +7,34 @@ interface PaywallBlockProps {
   price: number;
   onLogin?: () => void;
   isLoggedIn?: boolean;
+  onPurchase?: () => Promise<void>;
+  userBalance?: number;
 }
 
 export default function PaywallBlock({ 
   contentTitle, 
   price, 
   onLogin, 
-  isLoggedIn = false 
+  isLoggedIn = false,
+  onPurchase,
+  userBalance = 0
 }: PaywallBlockProps) {
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePurchase = async () => {
+    try {
+      setError(null);
+      setIsPurchasing(true);
+      if (onPurchase) {
+        await onPurchase();
+      }
+    } catch (err: any) {
+      setError(err.message || 'ক্রয় ব্যর্থ হয়েছে');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-accent-50 via-white to-primary-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
@@ -52,7 +72,7 @@ export default function PaywallBlock({
               <div className="inline-flex items-center gap-3 bg-gradient-to-r from-accent-100 to-primary-100 px-8 py-4 rounded-xl mb-6">
                 <span className="text-gray-600 bengali-text">মূল্য:</span>
                 <span className="text-4xl font-bold text-accent-600">
-                  ৳{price || 0}
+                  {price || 0} <span className="text-2xl bengali-text">কড়ি</span>
                 </span>
               </div>
 
@@ -60,6 +80,17 @@ export default function PaywallBlock({
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                   <p className="text-yellow-800 bengali-text mb-2">
                     ⚠️ কন্টেন্ট কিনতে হলে প্রথমে লগইন করুন
+                  </p>
+                </div>
+              )}
+
+              {isLoggedIn && userBalance < price && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <p className="text-red-800 bengali-text mb-2">
+                    ⚠️ আপনার কড়ির পরিমাণ অপর্যাপ্ত
+                  </p>
+                  <p className="text-red-700 text-sm bengali-text">
+                    আপনার ব্যালেন্স: {userBalance} কড়ি | প্রয়োজনীয়: {price} কড়ি
                   </p>
                 </div>
               )}
@@ -85,17 +116,43 @@ export default function PaywallBlock({
                 </>
               ) : (
                 <>
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                      <p className="text-red-700 text-sm bengali-text">{error}</p>
+                    </div>
+                  )}
+                  
                   <button
-                    disabled
-                    className="w-full bg-gray-300 text-gray-600 py-4 rounded-xl font-bold text-lg cursor-not-allowed flex items-center justify-center gap-2 bengali-text"
-                    title="পেমেন্ট গেটওয়ে শীঘ্রই যুক্ত হবে"
+                    onClick={handlePurchase}
+                    disabled={userBalance < price || isPurchasing}
+                    className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 bengali-text transition-all duration-200 ${
+                      userBalance >= price
+                        ? 'bg-gradient-to-r from-accent-600 to-primary-600 text-white hover:shadow-lg'
+                        : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    }`}
+                    title={userBalance < price ? 'অপর্যাপ্ত কড়ি' : ''}
                   >
-                    <Crown className="w-5 h-5" />
-                    এখনই কিনুন (আসছে শীঘ্রই)
+                    {isPurchasing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        কেনা হচ্ছে...
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="w-5 h-5" />
+                        এখনই কিনুন - {price} কড়ি
+                      </>
+                    )}
                   </button>
-                  <p className="text-center text-sm text-gray-500 bengali-text">
-                    পেমেন্ট গেটওয়ে শীঘ্রই যুক্ত করা হবে
-                  </p>
+
+                  {userBalance < price && (
+                    <Link
+                      href="/wallet"
+                      className="w-full block text-center border-2 border-accent-600 text-accent-600 py-3 rounded-xl font-semibold hover:bg-accent-50 transition-all duration-200 bengali-text"
+                    >
+                      ওয়ালেট রিচার্জ করুন
+                    </Link>
+                  )}
                 </>
               )}
               

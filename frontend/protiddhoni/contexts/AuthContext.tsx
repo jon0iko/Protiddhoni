@@ -12,6 +12,7 @@ interface User {
   profile_picture_url?: string;
   is_admin?: boolean;
   is_verified?: boolean;
+  kori_balance?: number;
 }
 
 interface AuthContextType {
@@ -23,7 +24,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isLoggedIn: boolean;
   refreshUser: () => Promise<void>;
+  refreshBalance: () => Promise<void>;
   getToken: () => string | null;
+  updateKoriBalance: (amount: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,9 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(storedToken);
 
         // Try to restore user from cache first for instant UI update
+        let cachedUser: User | null = null;
         if (storedUser) {
           try {
-            const cachedUser = JSON.parse(storedUser);
+            cachedUser = JSON.parse(storedUser);
             setUser(cachedUser);
           } catch (e) {
             console.warn('Failed to parse cached user:', e);
@@ -84,9 +88,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await api.auth.getProfile(storedToken);
           
           if (response.success && response.data) {
-            setUser(response.data);
-            // Update cached user
-            localStorage.setItem(USER_KEY, JSON.stringify(response.data));
+            // Merge fresh profile with cached balance (profile doesn't include wallet data)
+            const mergedUser = {
+              ...response.data,
+              kori_balance: cachedUser?.kori_balance ?? response.data.kori_balance,
+            };
+            setUser(mergedUser);
+            // Update cached user with merged data
+            localStorage.setItem(USER_KEY, JSON.stringify(mergedUser));
+            
+            // Then fetch fresh wallet balance from server
+            try {
+              const walletResponse = await api.payments.getWallet();
+              if (walletResponse?.balance !== undefined) {
+                const userWithFreshBalance = {
+                  ...mergedUser,
+                  kori_balance: walletResponse.balance,
+                };
+                setUser(userWithFreshBalance);
+                localStorage.setItem(USER_KEY, JSON.stringify(userWithFreshBalance));
+              }
+            } catch (walletError) {
+              console.warn('Failed to fetch wallet during init:', walletError);
+              // Keep merged user with cached balance if wallet fetch fails
+            }
           } else {
             // Invalid token, clear auth state
             clearAuthState();
@@ -148,7 +173,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Update state
         setToken(authToken);
         setUser(userData);
-      } else {
+        
+        // Refresh balance immediately after login
+        await refreshBalance(); 
+      }
+      else{
         throw new Error(response.error || 'লগইন করতে সমস্যা হয়েছে');
       }
     } catch (error) {
@@ -180,6 +209,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Update state
         setToken(authToken);
         setUser(userData);
+        
+        // Refresh balance immediately after registration
+        await refreshBalance();
       } else {
         throw new Error(response.error || 'নিবন্ধন করতে সমস্যা হয়েছে');
       }
@@ -234,6 +266,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshBalance = useCallback(async () => {
+    try {
+      const response = await api.payments.getWallet();
+      
+      if (response?.balance !== undefined) {
+        setUser((prevUser) => {
+          if (!prevUser) return null;
+          const updatedUser = {
+            ...prevUser,
+            kori_balance: response.balance,
+          };
+          // Persist to localStorage for consistency
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+          }
+          return updatedUser;
+        });
+      }
+    } catch (error) {
+      console.error('Refresh balance error:', error);
+    }
+  }, []);
+
+  const updateKoriBalance = useCallback((amount: number) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      const updatedUser = {
+        ...prevUser,
+        kori_balance: (prevUser.kori_balance || 0) + amount,
+      };
+      // Persist to localStorage for consistency
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      }
+      return updatedUser;
+    });
+  }, []);
+
   const value: AuthContextType = {
     user,
     token,
@@ -243,7 +313,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isLoggedIn: !!user && !!token,
     refreshUser,
+    refreshBalance,
     getToken,
+    updateKoriBalance,
   };
 
   return (

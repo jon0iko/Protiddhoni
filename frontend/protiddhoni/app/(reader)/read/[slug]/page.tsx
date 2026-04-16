@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import TippingWidget from '@/components/reader/TippingWidget';
 import { 
   ArrowLeft, 
   Heart, 
@@ -27,7 +28,7 @@ import PaywallBlock from '@/components/reader/PaywallBlock';
 export default function ReadContentPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, refreshBalance } = useAuth();
   const slug = params.slug as string;
 
   const [content, setContent] = useState<any>(null);
@@ -39,6 +40,7 @@ export default function ReadContentPage() {
   const [nextChapter, setNextChapter] = useState<any>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [paywallInfo, setPaywallInfo] = useState<any>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -60,6 +62,7 @@ export default function ReadContentPage() {
       if (!response.success && response.isPremiumBlocked) {
         setIsBlocked(true);
         setPaywallInfo({
+          id: response.contentDetails?.id,
           title: response.contentDetails?.title || 'Premium Content',
           price: response.contentDetails?.price || 0,
           reason: response.reason,
@@ -104,6 +107,7 @@ export default function ReadContentPage() {
       if (error?.response?.data?.isPremiumBlocked) {
         setIsBlocked(true);
         setPaywallInfo({
+          id: error.response.data.contentDetails?.id,
           title: error.response.data.contentDetails?.title || 'Premium Content',
           price: error.response.data.contentDetails?.price || 0,
           reason: error.response.data.reason,
@@ -139,6 +143,36 @@ export default function ReadContentPage() {
     }
   };
 
+  const handlePurchase = async () => {
+    if (!paywallInfo || !isBlocked) return;
+
+    try {
+      setIsPurchasing(true);
+      const contentId = content?.id || paywallInfo.id;
+      if (!contentId) {
+        throw new Error('সামগ্রী ID পাওয়া যায়নি');
+      }
+      const response = await api.purchases.purchaseContent(contentId, paywallInfo.price);
+      
+      if (!response?.success) {
+        throw new Error(response?.error || response?.message || 'ক্রয় ব্যর্থ হয়েছে');
+      }
+
+      // Refresh balance from server to ensure accuracy
+      await refreshBalance();
+      
+      // Success! Reload content to remove paywall
+      alert(response.message || 'সাফল্যপূর্ণ ক্রয়!');
+      loadContent();
+    } catch (error: any) {
+      const errorMsg = error?.message || 'ক্রয় ব্যর্থ হয়েছে';
+      alert(errorMsg);
+      console.error('Purchase error:', error);
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -155,6 +189,8 @@ export default function ReadContentPage() {
         price={paywallInfo.price}
         onLogin={handleLogin}
         isLoggedIn={isLoggedIn}
+        onPurchase={handlePurchase}
+        userBalance={user?.kori_balance || 0}
       />
     );
   }
@@ -298,6 +334,11 @@ export default function ReadContentPage() {
             color: 'var(--reader-text)'
           }}
           dangerouslySetInnerHTML={{ __html: content.body }}
+        />
+
+        <TippingWidget 
+          authorId={content.author.id} 
+          authorName={content.author.full_name || content.author.username}
         />
 
         {/* Series Navigation */}
