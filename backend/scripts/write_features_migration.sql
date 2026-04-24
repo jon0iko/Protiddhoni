@@ -26,6 +26,22 @@ ON content(view_count DESC);
 -- 2. CREATE VIEW FOR AUTHOR STATS
 -- =============================================
 
+-- Helper function to strip HTML tags (needed before counting words)
+CREATE OR REPLACE FUNCTION strip_html_tags(html TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+BEGIN
+    IF html IS NULL OR html = '' THEN
+        RETURN '';
+    END IF;
+    RETURN TRIM(regexp_replace(regexp_replace(html, E'<[^>]*>', ' ', 'g'), E'\\s+', ' ', 'g'));
+END;
+$$;
+
+COMMENT ON FUNCTION strip_html_tags(TEXT) IS 'Strips HTML tags from text and normalizes whitespace';
+
 CREATE OR REPLACE VIEW author_stats AS
 SELECT 
     c.author_id,
@@ -33,7 +49,7 @@ SELECT
     COUNT(CASE WHEN c.is_published = true THEN 1 END) as published_count,
     COUNT(CASE WHEN c.status = 'draft' THEN 1 END) as draft_count,
     COUNT(CASE WHEN c.status = 'pending' THEN 1 END) as pending_count,
-    COALESCE(SUM(LENGTH(c.body)), 0) as total_words,
+    COALESCE(SUM(count_words(c.body)), 0) as total_words,
     COALESCE(SUM(c.view_count), 0) as total_views,
     COUNT(DISTINCT r.id) as total_ratings
 FROM content c
@@ -66,7 +82,7 @@ BEGIN
         COUNT(CASE WHEN c.is_published = true THEN 1 END)::BIGINT as published_count,
         COUNT(CASE WHEN c.status = 'draft' THEN 1 END)::BIGINT as draft_count,
         COUNT(CASE WHEN c.status = 'pending' THEN 1 END)::BIGINT as pending_count,
-        COALESCE(SUM(LENGTH(c.body)), 0)::BIGINT as total_words,
+        COALESCE(SUM(count_words(c.body)), 0)::BIGINT as total_words,
         COALESCE(SUM(c.view_count), 0)::BIGINT as total_views,
         COUNT(DISTINCT r.id)::BIGINT as total_ratings
     FROM content c
@@ -130,13 +146,27 @@ EXECUTE FUNCTION update_reading_preferences_timestamp();
 CREATE OR REPLACE FUNCTION count_words(text_content TEXT)
 RETURNS INTEGER
 LANGUAGE plpgsql
+IMMUTABLE
 AS $$
+DECLARE
+    clean_text TEXT;
 BEGIN
-    RETURN array_length(regexp_split_to_array(TRIM(text_content), E'\\s+'), 1);
+    IF text_content IS NULL OR TRIM(text_content) = '' THEN
+        RETURN 0;
+    END IF;
+    
+    -- Strip HTML tags first (body stores TipTap HTML)
+    clean_text := strip_html_tags(text_content);
+    
+    IF clean_text = '' THEN
+        RETURN 0;
+    END IF;
+    
+    RETURN array_length(regexp_split_to_array(clean_text, E'\\s+'), 1);
 END;
 $$;
 
-COMMENT ON FUNCTION count_words(TEXT) IS 'Counts words in a text string';
+COMMENT ON FUNCTION count_words(TEXT) IS 'Counts words in a text string, stripping HTML tags first';
 
 -- =============================================
 -- 7. CREATE FUNCTION TO GET RECENT ACTIVITY
@@ -217,7 +247,7 @@ SELECT
     COUNT(c.id) as total_content,
     COUNT(CASE WHEN c.is_published = true THEN 1 END) as published_count,
     COUNT(CASE WHEN c.status = 'draft' THEN 1 END) as draft_count,
-    COALESCE(SUM(LENGTH(c.body)), 0) as total_words,
+    COALESCE(SUM(count_words(c.body)), 0) as total_words,
     COALESCE(SUM(c.view_count), 0) as total_views,
     COUNT(DISTINCT r.id) as total_ratings,
     MAX(c.updated_at) as last_activity
@@ -252,6 +282,7 @@ GRANT SELECT ON mv_author_stats TO authenticated;
 GRANT EXECUTE ON FUNCTION get_author_stats(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_recent_activity(UUID, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION count_words(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION strip_html_tags(TEXT) TO authenticated;
 
 -- =============================================
 -- VERIFICATION QUERIES
