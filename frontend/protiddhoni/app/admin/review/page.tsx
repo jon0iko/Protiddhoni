@@ -113,7 +113,9 @@ export default function AdminReviewPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('bn-BD', {
+    // Ensure UTC timestamps are parsed correctly
+    const date = /Z|[+-]\d{2}:\d{2}$/.test(dateString) ? new Date(dateString) : new Date(dateString + 'Z');
+    return date.toLocaleDateString('bn-BD', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

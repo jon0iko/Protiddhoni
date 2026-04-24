@@ -94,14 +94,17 @@ export default function CommentCard({ comment, contentId, onCommentUpdate, depth
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
+        // Ensure UTC timestamps are parsed correctly
+        const date = /Z|[+-]\d{2}:\d{2}$/.test(dateString) ? new Date(dateString) : new Date(dateString + 'Z');
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
+        const diffSecs = Math.floor(diffMs / 1000);
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'এইমাত্র';
+        if (diffSecs < 5) return 'এইমাত্র';
+        if (diffSecs < 60) return `${diffSecs} সেকেন্ড আগে`;
         if (diffMins < 60) return `${diffMins} মিনিট আগে`;
         if (diffHours < 24) return `${diffHours} ঘন্টা আগে`;
         if (diffDays < 7) return `${diffDays} দিন আগে`;

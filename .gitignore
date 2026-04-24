@@ -22,6 +22,9 @@ lerna-debug.log*
 env/
 backend/env/
 backend/.env
+frontend/protiddhoni/.env.local
+frontend/protiddhoni/.env.example
+frontend/protiddhoni/.env
 
 # Next.js (Frontend)
 .next/

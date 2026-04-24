@@ -107,13 +107,18 @@ export default function WritingHubPage() {
   }, [user, router, fetchUserStats, fetchRecentActivity]);
 
   const formatRelativeTime = (date: string) => {
+    // Ensure UTC timestamps are parsed correctly
+    const then = /Z|[+-]\d{2}:\d{2}$/.test(date) ? new Date(date) : new Date(date + 'Z');
     const now = new Date();
-    const then = new Date(date);
     const diffInMs = now.getTime() - then.getTime();
+    const diffInSecs = Math.floor(diffInMs / 1000);
+    const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInHours / 24);
 
-    if (diffInHours < 1) return 'এখনই';
+    if (diffInSecs < 5) return 'এইমাত্র';
+    if (diffInSecs < 60) return `${diffInSecs} সেকেন্ড আগে`;
+    if (diffInMins < 60) return `${diffInMins} মিনিট আগে`;
     if (diffInHours < 24) return `${diffInHours} ঘন্টা আগে`;
     if (diffInDays === 1) return '১ দিন আগে';
     return `${diffInDays} দিন আগে`;
