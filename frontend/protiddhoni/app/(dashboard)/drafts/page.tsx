@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FileText, Clock, Trash2, Edit, Plus, Loader2 } from 'lucide-react';
+import { FileText, Clock, Trash2, Edit, Plus, Loader2, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { formatRelativeTime, getExcerptFromHtml } from '@/lib/utils';
+import { PublishModal } from '@/components/editor';
 
 export default function DraftsPage() {
   const { user, isLoggedIn, isLoading } = useAuth();
@@ -14,6 +15,7 @@ export default function DraftsPage() {
   const [drafts, setDrafts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [publishingDraft, setPublishingDraft] = useState<any | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
@@ -50,6 +52,26 @@ export default function DraftsPage() {
     } finally {
       setDeleting(null);
     }
+  };
+
+  const handlePublishClick = (draft: any) => {
+    if (!draft.body || draft.body === '<p></p>') {
+      alert('প্রকাশ করার আগে কিছু লিখুন।');
+      return;
+    }
+    setPublishingDraft(draft);
+  };
+
+  const handlePublishSuccess = async () => {
+    if (!publishingDraft) return;
+    const draftId = publishingDraft.id;
+    try {
+      await api.drafts.deleteDraft(draftId);
+    } catch (error) {
+      console.error('Error deleting draft after publish:', error);
+    }
+    setDrafts(prev => prev.filter(d => d.id !== draftId));
+    setPublishingDraft(null);
   };
 
   if (isLoading || loading) {
@@ -125,6 +147,13 @@ export default function DraftsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={() => handlePublishClick(draft)}
+                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="প্রকাশ করুন"
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
                     <Link
                       href={`/write/editor?draft=${draft.id}`}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -151,6 +180,14 @@ export default function DraftsPage() {
           </div>
         )}
       </div>
+
+      <PublishModal
+        isOpen={!!publishingDraft}
+        onClose={() => setPublishingDraft(null)}
+        content={publishingDraft?.body || ''}
+        initialTitle={publishingDraft?.title || ''}
+        onPublishSuccess={handlePublishSuccess}
+      />
     </div>
   );
 }

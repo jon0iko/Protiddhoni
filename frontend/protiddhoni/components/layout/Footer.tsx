@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Mail, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 export default function Footer() {
     return (
@@ -20,23 +20,9 @@ export default function Footer() {
                             </div>
                         </div>
                         <p className="text-gray-300 mb-4 bengali-text leading-relaxed">
-                            বাংলা সাহিত্যের ডিজিটাল প্ল্যাটফর্ম। এখানে আপনি পড়তে পারেন হাজারো গল্প, কবিতা এবং ধারাবাহিক। 
+                            বাংলা সাহিত্যের ডিজিটাল প্ল্যাটফর্ম। এখানে আপনি পড়তে পারেন হাজারো গল্প, কবিতা এবং ধারাবাহিক।
                             নিজের লেখাও প্রকাশ করুন এবং পাঠকদের সাথে যুক্ত হন।
                         </p>
-                        <div className="flex space-x-4">
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                                <Facebook className="w-5 h-5" />
-                            </a>
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                                <Twitter className="w-5 h-5" />
-                            </a>
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                                <Instagram className="w-5 h-5" />
-                            </a>
-                            <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
-                                <Mail className="w-5 h-5" />
-                            </a>
-                        </div>
                     </div>
 
                     {/* Quick Links */}
@@ -107,7 +93,7 @@ export default function Footer() {
                 {/* Bottom Section */}
                 <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
                     <p className="text-gray-400 text-sm bengali-text mb-4 md:mb-0">
-                        © ২০২৫ প্রতিধ্বনি। সকল অধিকার সংরক্ষিত।
+                        © ২০২৬ প্রতিধ্বনি। সকল অধিকার সংরক্ষিত।
                     </p>
                     <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6">
                         <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors bengali-text">
