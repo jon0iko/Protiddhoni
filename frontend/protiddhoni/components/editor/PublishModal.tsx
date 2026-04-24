@@ -23,6 +23,7 @@ interface PublishModalProps {
   onClose: () => void;
   content: string;
   onPublishSuccess: () => void;
+  initialTitle?: string;
 }
 
 const CONTENT_TYPES = [
@@ -36,6 +37,7 @@ export default function PublishModal({
   onClose,
   content,
   onPublishSuccess,
+  initialTitle,
 }: PublishModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -254,7 +256,7 @@ export default function PublishModal({
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        title: '',
+        title: initialTitle || '',
         excerpt: '',
         contentType: 'story',
         categoryId: '',
@@ -268,7 +270,7 @@ export default function PublishModal({
       setErrors({});
       setShowSuccess(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTitle]);
 
   if (!isOpen) return null;
 
