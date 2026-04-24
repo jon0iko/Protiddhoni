@@ -29,7 +29,7 @@ export default function BookmarksPage() {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      const response = await api.bookmarks.getMyBookmarks(token);
+      const response = await api.bookmarks.getMyBookmarks();
       if (response.success) {
         setBookmarks(response.data || []);
       }
@@ -48,7 +48,7 @@ export default function BookmarksPage() {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
 
-      await api.bookmarks.removeBookmark(contentId, token);
+      await api.bookmarks.removeBookmark(contentId);
       setBookmarks(bookmarks.filter(b => b.content_id !== contentId));
     } catch (error) {
       console.error('Error removing bookmark:', error);

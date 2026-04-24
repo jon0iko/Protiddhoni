@@ -448,6 +448,34 @@ export const api = {
         }
     },
 
+    // Likes endpoints
+    likes: {
+        getMyLikes: async () => {
+            return makeAuthRequest(`${API_URL}/api/likes`);
+        },
+
+        addLike: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/likes`, {
+                method: 'POST',
+                body: JSON.stringify({ contentId })
+            });
+        },
+
+        removeLike: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/likes/${contentId}`, {
+                method: 'DELETE'
+            });
+        },
+
+        checkLike: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/likes/check/${contentId}`);
+        },
+
+        getLikeCount: async (contentId: string) => {
+            return makeAuthRequest(`${API_URL}/api/likes/count/${contentId}`);
+        }
+    },
+
     // Drafts endpoints
     drafts: {
         getMyDrafts: async () => {

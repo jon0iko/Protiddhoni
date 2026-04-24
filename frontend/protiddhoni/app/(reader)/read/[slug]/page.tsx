@@ -47,6 +47,24 @@ export default function ReadContentPage() {
     loadContent();
   }, [slug]);
 
+  useEffect(() => {
+    if (content && isLoggedIn) {
+      const fetchInteractionStates = async () => {
+        try {
+          const [bookmarkRes, likeRes] = await Promise.all([
+            api.bookmarks.checkBookmark(content.id),
+            api.likes.checkLike(content.id)
+          ]);
+          setIsBookmarked(bookmarkRes.success && bookmarkRes.isBookmarked);
+          setIsLiked(likeRes.success && likeRes.isLiked);
+        } catch (error) {
+          console.error('Error fetching interactions state:', error);
+        }
+      };
+      fetchInteractionStates();
+    }
+  }, [content, isLoggedIn]);
+
   const loadContent = async () => {
     setLoading(true);
     setIsBlocked(false);
@@ -168,6 +186,42 @@ export default function ReadContentPage() {
     }
   };
 
+  const handleBookmark = async () => {
+    if (!isLoggedIn) {
+      router.push('/login?redirect=/read/' + slug);
+      return;
+    }
+    try {
+      if (isBookmarked) {
+        await api.bookmarks.removeBookmark(content.id);
+        setIsBookmarked(false);
+      } else {
+        await api.bookmarks.addBookmark(content.id);
+        setIsBookmarked(true);
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!isLoggedIn) {
+      router.push('/login?redirect=/read/' + slug);
+      return;
+    }
+    try {
+      if (isLiked) {
+        await api.likes.removeLike(content.id);
+        setIsLiked(false);
+      } else {
+        await api.likes.addLike(content.id);
+        setIsLiked(true);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
   const handlePurchase = async () => {
     if (!paywallInfo || !isBlocked) return;
 
@@ -253,6 +307,7 @@ export default function ReadContentPage() {
                 <Share2 className="w-5 h-5" />
               </button>
               <button
+                onClick={handleBookmark}
                 className="p-2 rounded-lg transition-colors"
                 style={{ color: 'var(--reader-secondary-text)' }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--reader-hover)'}
@@ -262,6 +317,7 @@ export default function ReadContentPage() {
                 <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current text-blue-600' : ''}`} />
               </button>
               <button
+                onClick={handleLike}
                 className="p-2 rounded-lg transition-colors"
                 style={{ color: 'var(--reader-secondary-text)' }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--reader-hover)'}

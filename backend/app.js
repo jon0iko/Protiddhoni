@@ -51,6 +51,7 @@ app.use('/api/comments', require('./routes/comments')); // New comments system
 app.use('/api/ratings', require('./routes/ratings')); // Separate rating system
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/bookmarks', require('./routes/bookmarks'));
+app.use('/api/likes', require('./routes/likes'));
 app.use('/api/reading-preferences', require('./routes/readingPreferences'));
 app.use('/api/drafts', require('./routes/drafts'));
 app.use('/api/notifications', require('./routes/notifications'));

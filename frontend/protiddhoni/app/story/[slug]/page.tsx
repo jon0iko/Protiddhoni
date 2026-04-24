@@ -31,10 +31,25 @@ export default function StoryPage() {
   const [loading, setLoading] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
   const [paywallInfo, setPaywallInfo] = useState<any>(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
     loadStoryData();
   }, [slug]);
+
+  useEffect(() => {
+    if (content && isLoggedIn) {
+      const fetchInteractionStates = async () => {
+        try {
+          const bookmarkRes = await api.bookmarks.checkBookmark(content.id);
+          setIsBookmarked(bookmarkRes.success && bookmarkRes.isBookmarked);
+        } catch (error) {
+          console.error('Error fetching interactions state:', error);
+        }
+      };
+      fetchInteractionStates();
+    }
+  }, [content, isLoggedIn]);
 
   const loadStoryData = async () => {
     setLoading(true);
@@ -123,16 +138,17 @@ export default function StoryPage() {
 
   const toggleBookmark = async () => {
     if (!isLoggedIn) {
-      router.push('/login');
+      router.push('/login?redirect=/story/' + slug);
       return;
     }
 
     try {
-      const isBookmarked = await api.bookmarks.checkBookmark(content.id);
-      if (isBookmarked.isBookmarked) {
+      if (isBookmarked) {
         await api.bookmarks.removeBookmark(content.id);
+        setIsBookmarked(false);
       } else {
         await api.bookmarks.addBookmark(content.id);
+        setIsBookmarked(true);
       }
     } catch (error) {
       console.error('Error toggling bookmark:', error);
@@ -234,10 +250,10 @@ export default function StoryPage() {
             </Link>
             <button
               onClick={toggleBookmark}
-              className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2"
+              className={`bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 ${isBookmarked ? 'bg-white/40' : ''}`}
             >
-              <BookOpen className="w-5 h-5" />
-              সেভ করুন
+              <BookOpen className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
+              {isBookmarked ? 'সেভ করা হয়েছে' : 'সেভ করুন'}
             </button>
             <button
               onClick={handleShare}
