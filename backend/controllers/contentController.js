@@ -4,6 +4,7 @@
  */
 
 const ContentRepository = require('../repositories/ContentRepository');
+const UserRepository = require('../repositories/UserRepository');
 const NotificationService = require('../services/notificationService');
 const slugify = require('../utils/slugify');
 const { updateSlugFromTitle } = require('../utils/slugify');
@@ -142,6 +143,17 @@ exports.getBySlug = async (req, res) => {
         // Get review stats
         const stats = await ContentRepository.getStats(content.id);
         content.stats = stats;
+
+        // Attach isFollowing for the author so the reader UI can show the
+        // correct Follow/Following state. The content route uses optionalAuth.
+        if (req.user && content.author && req.user.id !== content.author.id) {
+            content.author.isFollowing = await UserRepository.isFollowing(
+                req.user.id,
+                content.author.id
+            );
+        } else if (content.author) {
+            content.author.isFollowing = false;
+        }
 
         res.json({ success: true, data: content });
     } catch (error) {
