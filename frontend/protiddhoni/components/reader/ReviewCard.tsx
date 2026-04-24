@@ -59,7 +59,8 @@ export default function ReviewCard({ review, onReviewDeleted, onReviewEdit }: Re
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
+        // Ensure UTC timestamps are parsed correctly
+        const date = /Z|[+-]\d{2}:\d{2}$/.test(dateString) ? new Date(dateString) : new Date(dateString + 'Z');
         return date.toLocaleDateString('bn-BD', {
             year: 'numeric',
             month: 'long',

@@ -41,17 +41,34 @@ export function slugify(text: string): string {
 }
 
 /**
- * Format relative time in Bengali
+ * Parse a date string as UTC.
+ * Supabase returns timestamps in UTC but sometimes without the 'Z' suffix,
+ * causing browsers to treat them as local time (off by timezone offset).
+ */
+export function parseUTCDate(dateString: string): Date {
+  if (!dateString) return new Date();
+  // If the string already has timezone info (Z, +, or - offset), parse as-is
+  if (/Z|[+-]\d{2}:\d{2}$/.test(dateString)) {
+    return new Date(dateString);
+  }
+  // Otherwise append 'Z' to treat it as UTC
+  return new Date(dateString + 'Z');
+}
+
+/**
+ * Format relative time in Bengali with second-level precision
  */
 export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseUTCDate(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffMins < 1) return 'এইমাত্র';
+  if (diffSecs < 5) return 'এইমাত্র';
+  if (diffSecs < 60) return `${diffSecs} সেকেন্ড আগে`;
   if (diffMins < 60) return `${diffMins} মিনিট আগে`;
   if (diffHours < 24) return `${diffHours} ঘন্টা আগে`;
   if (diffDays === 1) return 'গতকাল';
