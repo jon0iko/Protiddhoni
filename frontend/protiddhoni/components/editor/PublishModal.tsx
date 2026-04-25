@@ -11,11 +11,13 @@ import {
   BookOpen,
   Feather,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Edit
 } from 'lucide-react';
 import { cn, validateImageFile, fileToBase64, getExcerptFromHtml } from '@/lib/utils';
 import { uploadCoverImage } from '@/lib/imageUpload';
 import { api } from '@/lib/api';
+import ImageCropper from './ImageCropper';
 import type { PublishFormData, PublishFormErrors, Category, Series } from './types';
 
 interface PublishModalProps {
@@ -73,6 +75,11 @@ export default function PublishModal({
   const [categoryCreationError, setCategoryCreationError] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
+  // Image cropper state
+  const [showCropper, setShowCropper] = useState(false);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
+
   // Load categories and user's series
   useEffect(() => {
     if (isOpen) {
@@ -129,14 +136,43 @@ export default function PublishModal({
 
     setErrors(prev => ({ ...prev, coverImage: undefined }));
 
-    // Generate preview
+    // Generate preview and show cropper
     const preview = await fileToBase64(file);
-    setFormData(prev => ({
-      ...prev,
-      coverImage: file,
-      coverImagePreview: preview,
-    }));
+    setOriginalImage(preview);
+    setOriginalImageFile(file);
+    setShowCropper(true);
   }, []);
+
+  // Handle crop complete
+  const handleCropComplete = useCallback((croppedFile: File) => {
+    // Generate preview from cropped file
+    fileToBase64(croppedFile).then((preview) => {
+      setFormData(prev => ({
+        ...prev,
+        coverImage: croppedFile,
+        coverImagePreview: preview,
+      }));
+      setShowCropper(false);
+    });
+  }, []);
+
+  // Handle crop cancel
+  const handleCropCancel = useCallback(() => {
+    setShowCropper(false);
+    setOriginalImage(null);
+    setOriginalImageFile(null);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  // Handle re-crop
+  const handleReCrop = useCallback(() => {
+    if (originalImage) {
+      setShowCropper(true);
+    }
+  }, [originalImage]);
 
   // Validate form
   const validateForm = (): boolean => {
@@ -806,6 +842,14 @@ export default function PublishModal({
                         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <button
                             type="button"
+                            onClick={handleReCrop}
+                            className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded shadow-md transition-all"
+                            title="ছবি পুনরায় ক্রপ করুন"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => fileInputRef.current?.click()}
                             className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded shadow-md transition-all"
                             title="ছবি পরিবর্তন করুন"
@@ -821,6 +865,8 @@ export default function PublishModal({
                                 coverImage: null,
                                 coverImagePreview: null,
                               }));
+                              setOriginalImage(null);
+                              setOriginalImageFile(null);
                             }}
                             className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded shadow-md transition-all"
                             title="ছবি মুছে ফেলুন"
@@ -935,6 +981,16 @@ export default function PublishModal({
           )}
         </div>
       </div>
+
+      {/* Image Cropper Modal */}
+      {showCropper && originalImage && originalImageFile && (
+        <ImageCropper
+          image={originalImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          originalFileName={originalImageFile.name}
+        />
+      )}
     </div>
   );
 }
