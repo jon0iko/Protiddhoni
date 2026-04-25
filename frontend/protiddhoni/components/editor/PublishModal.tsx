@@ -777,41 +777,68 @@ export default function PublishModal({
                   <ImageIcon className="h-4 w-4" />
                   কভার ছবি (ঐচ্ছিক)
                 </label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className={cn(
-                    "relative cursor-pointer border-2 border-dashed rounded-xl transition-all duration-200 overflow-hidden",
-                    formData.coverImagePreview
-                      ? "border-blue-500/50 bg-blue-50"
-                      : "border-gray-300 hover:border-blue-400 hover:bg-gray-50:bg-gray-800",
-                    errors.coverImage && "border-red-500"
-                  )}
-                >
-                  {formData.coverImagePreview ? (
-                    <div className="relative aspect-video">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={formData.coverImagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="text-white text-sm font-medium bengali-text">
-                          ছবি পরিবর্তন করুন
+                <div className="relative">
+                  <div
+                    onClick={() => !formData.coverImagePreview && fileInputRef.current?.click()}
+                    className={cn(
+                      "relative border-2 border-dashed rounded-xl transition-all duration-200 overflow-hidden",
+                      formData.coverImagePreview
+                        ? "border-blue-500/50 bg-blue-50 cursor-default"
+                        : "border-gray-300 hover:border-blue-400 hover:bg-gray-50 cursor-pointer",
+                      errors.coverImage && "border-red-500"
+                    )}
+                  >
+                    {formData.coverImagePreview ? (
+                      <div className="relative group">
+                        {/* Image Preview */}
+                        <div className="relative aspect-video">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={formData.coverImagePreview}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        
+                        {/* Control Buttons - Show on hover */}
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="bg-white/90 hover:bg-white text-gray-700 p-2 rounded shadow-md transition-all"
+                            title="ছবি পরিবর্তন করুন"
+                          >
+                            <Upload className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFormData(prev => ({
+                                ...prev,
+                                coverImage: null,
+                                coverImagePreview: null,
+                              }));
+                            }}
+                            className="bg-red-500/90 hover:bg-red-600 text-white p-2 rounded shadow-md transition-all"
+                            title="ছবি মুছে ফেলুন"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 px-6">
+                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-600 font-medium bengali-text">
+                          ছবি আপলোড করুন
+                        </span>
+                        <span className="text-xs text-gray-400 mt-1 bengali-text">
+                          JPEG, PNG, GIF, বা WebP (সর্বোচ্চ ৫MB)
                         </span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 px-6">
-                      <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600 font-medium bengali-text">
-                        ছবি আপলোড করুন
-                      </span>
-                      <span className="text-xs text-gray-400 mt-1 bengali-text">
-                        JPEG, PNG, GIF, বা WebP (সর্বোচ্চ ৫MB)
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 <input
                   ref={fileInputRef}
