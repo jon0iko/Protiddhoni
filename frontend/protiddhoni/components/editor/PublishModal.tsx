@@ -349,7 +349,7 @@ export default function PublishModal({
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               {/* General Error */}
               {errors.general && (
                 <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
