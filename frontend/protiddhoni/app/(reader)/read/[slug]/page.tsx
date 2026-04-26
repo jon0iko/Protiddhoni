@@ -42,6 +42,8 @@ export default function ReadContentPage() {
   const [paywallInfo, setPaywallInfo] = useState<any>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [authorProfile, setAuthorProfile] = useState<any>(null);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -64,6 +66,33 @@ export default function ReadContentPage() {
       fetchInteractionStates();
     }
   }, [content, isLoggedIn]);
+
+  useEffect(() => {
+    if (!content?.author?.username) {
+      setAuthorProfile(null);
+      setIsFollowing(false);
+      return;
+    }
+
+    const fetchAuthorProfile = async () => {
+      try {
+        const profileRes = await api.users.getProfile(content.author.username);
+        if (profileRes.success && profileRes.data) {
+          setAuthorProfile(profileRes.data);
+          setIsFollowing(Boolean(profileRes.data.isFollowing));
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading author profile for reader card:', error);
+      }
+
+      // Fallback to content payload when profile endpoint fails.
+      setAuthorProfile(content.author);
+      setIsFollowing(Boolean(content.author?.isFollowing));
+    };
+
+    fetchAuthorProfile();
+  }, [content?.author?.username, isLoggedIn]);
 
   const loadContent = async () => {
     setLoading(true);
@@ -169,20 +198,71 @@ export default function ReadContentPage() {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
+    if (!content?.author?.id || isFollowLoading) {
+      return;
+    }
 
-      if (isFollowing) {
-        await api.users.unfollow(content.author.id, token);
+    const previousFollowing = isFollowing;
+
+    setIsFollowLoading(true);
+    setIsFollowing(!previousFollowing);
+    setAuthorProfile((prev: any) => {
+      if (!prev) return prev;
+
+      const nextFollowerCount = Math.max(
+        0,
+        (prev.stats?.followerCount || prev.stats?.followersCount || 0) + (previousFollowing ? -1 : 1)
+      );
+
+      return {
+        ...prev,
+        isFollowing: !previousFollowing,
+        stats: {
+          ...prev.stats,
+          followerCount: nextFollowerCount,
+          followersCount: nextFollowerCount
+        }
+      };
+    });
+
+    try {
+      if (previousFollowing) {
+        await api.users.unfollow(content.author.id);
       } else {
-        await api.users.follow(content.author.id, token);
+        await api.users.follow(content.author.id);
       }
 
-      setIsFollowing(!isFollowing);
+      if (content.author.username) {
+        const profileRes = await api.users.getProfile(content.author.username);
+        if (profileRes.success && profileRes.data) {
+          setAuthorProfile(profileRes.data);
+          setIsFollowing(Boolean(profileRes.data.isFollowing));
+        }
+      }
     } catch (error) {
       console.error('Error toggling follow:', error);
+      setIsFollowing(previousFollowing);
+      setAuthorProfile((prev: any) => {
+        if (!prev) return prev;
+
+        const rollbackFollowerCount = Math.max(
+          0,
+          (prev.stats?.followerCount || prev.stats?.followersCount || 0) + (previousFollowing ? 1 : -1)
+        );
+
+        return {
+          ...prev,
+          isFollowing: previousFollowing,
+          stats: {
+            ...prev.stats,
+            followerCount: rollbackFollowerCount,
+            followersCount: rollbackFollowerCount
+          }
+        };
+      });
       alert('সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    } finally {
+      setIsFollowLoading(false);
     }
   };
 
@@ -277,6 +357,12 @@ export default function ReadContentPage() {
   if (!content) {
     return null;
   }
+
+  const displayAuthor = authorProfile || content.author;
+  const authorName = displayAuthor?.full_name || displayAuthor?.username;
+  const authorStats = displayAuthor?.stats || {};
+  const authorContentCount = authorStats.contentCount || 0;
+  const authorFollowerCount = authorStats.followerCount || authorStats.followersCount || 0;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--reader-bg)', color: 'var(--reader-text)' }}>
@@ -469,36 +555,37 @@ export default function ReadContentPage() {
         <div className="rounded-lg p-6 mb-8" style={{ backgroundColor: 'var(--reader-card-bg)' }}>
           <div className="flex items-start gap-4">
             <img
-              src={content.author.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(content.author.full_name || content.author.username)}&background=4F46E5&color=fff&size=80`}
-              alt={content.author.full_name || content.author.username}
+              src={displayAuthor?.profile_picture_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName || 'Author')}&background=4F46E5&color=fff&size=80`}
+              alt={authorName || 'Author'}
               className="w-16 h-16 rounded-full"
             />
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <Link 
-                  href={`/profile/${content.author.username}`}
+                  href={`/profile/${displayAuthor?.username}`}
                   className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
                 >
-                  {content.author.full_name || content.author.username}
+                  {authorName}
                 </Link>
                 <button 
                   onClick={handleFollow}
+                  disabled={isFollowLoading}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${
                     isFollowing
                       ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
+                  } ${isFollowLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   <Heart className={`w-4 h-4 ${isFollowing ? 'fill-current' : ''}`} />
                   <span>{isFollowing ? 'অনুসরণ করা হচ্ছে' : 'অনুসরণ করুন'}</span>
                 </button>
               </div>
-              {content.author.bio && (
-                <p className="text-gray-600 mb-3">{content.author.bio}</p>
+              {displayAuthor?.bio && (
+                <p className="text-gray-600 mb-3">{displayAuthor.bio}</p>
               )}
               <div className="flex gap-4 text-sm text-gray-500">
-                <span>{content.author.stats?.contentCount || 0} রচনা</span>
-                <span>{content.author.stats?.followersCount || 0} অনুসারী</span>
+                <span>{authorContentCount} রচনা</span>
+                <span>{authorFollowerCount} অনুসারী</span>
               </div>
             </div>
           </div>
