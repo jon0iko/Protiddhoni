@@ -6,6 +6,7 @@
 const UserRepository = require('../repositories/UserRepository');
 const ContentRepository = require('../repositories/ContentRepository');
 const SeriesRepository = require('../repositories/SeriesRepository');
+const NotificationService = require('../services/notificationService');
 
 exports.getProfile = async (req, res) => {
     try {
@@ -83,6 +84,21 @@ exports.follow = async (req, res) => {
         }
 
         await UserRepository.follow(req.user.id, userId);
+
+        // Notify the followed user. Fetch follower profile so the notification
+        // shows their full name; fall back to username if not available.
+        try {
+            const follower = await UserRepository.findById(req.user.id);
+            if (follower) {
+                await NotificationService.notifyNewFollower(userId, {
+                    id: follower.id,
+                    full_name: follower.full_name || follower.username
+                });
+            }
+        } catch (notifyError) {
+            console.error('Error sending new-follower notification:', notifyError);
+        }
+
         res.json({ success: true, message: 'Followed successfully' });
     } catch (error) {
         console.error('Follow error:', error);

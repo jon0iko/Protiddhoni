@@ -59,10 +59,10 @@ export default function NotificationDropdown() {
     }
   };
 
-  const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
+  const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+
     try {
       await api.notifications.markAsRead(id);
       setNotifications(prev => 
@@ -189,7 +189,7 @@ export default function NotificationDropdown() {
                       href={getNotificationLink(notification)}
                       onClick={() => {
                         if (!notification.is_read) {
-                          handleMarkAsRead(notification.id, {} as React.MouseEvent);
+                          handleMarkAsRead(notification.id);
                         }
                         setIsOpen(false);
                       }}
