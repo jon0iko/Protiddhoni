@@ -106,11 +106,19 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
   const maxSize = 5 * 1024 * 1024; // 5MB
   
   if (!validTypes.includes(file.type)) {
-    return { valid: false, error: 'শুধুমাত্র JPEG, PNG, GIF, বা WebP ফাইল আপলোড করুন' };
+    const fileExt = file.name.split('.').pop()?.toUpperCase() || 'অজানা';
+    return { 
+      valid: false, 
+      error: `${fileExt} ফরম্যাট সমর্থিত নয়। শুধুমাত্র JPEG, PNG, GIF, বা WebP ফাইল আপলোড করুন।` 
+    };
   }
   
   if (file.size > maxSize) {
-    return { valid: false, error: 'ফাইলের আকার ৫MB এর বেশি হতে পারবে না' };
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    return { 
+      valid: false, 
+      error: `ফাইলের আকার ${fileSizeMB}MB। সর্বোচ্চ ৫MB আকারের ফাইল আপলোড করুন।` 
+    };
   }
   
   return { valid: true };
