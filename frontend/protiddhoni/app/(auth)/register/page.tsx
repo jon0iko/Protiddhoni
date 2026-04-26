@@ -27,7 +27,29 @@ export default function RegisterPage() {
                 router.push('/');
             }, 1500);
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'নিবন্ধন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+            let errorMessage = 'নিবন্ধন করতে সমস্যা হয়েছে।';
+            
+            if (error instanceof Error) {
+                const msg = error.message.toLowerCase();
+                if (msg.includes('already exists') || msg.includes('duplicate') || msg.includes('taken')) {
+                    if (msg.includes('email')) {
+                        errorMessage = 'এই ইমেইল ইতিমধ্যে ব্যবহৃত হয়েছে। অন্য ইমেইল ব্যবহার করুন বা লগইন করুন।';
+                    } else if (msg.includes('username')) {
+                        errorMessage = 'এই ব্যবহারকারী নাম ইতিমধ্যে নেওয়া হয়েছে। অন্য নাম চেষ্টা করুন।';
+                    } else {
+                        errorMessage = 'এই ইমেইল বা ব্যবহারকারী নাম ইতিমধ্যে ব্যবহৃত হয়েছে।';
+                    }
+                } else if (msg.includes('invalid email')) {
+                    errorMessage = 'বৈধ ইমেইল ঠিকানা প্রদান করুন।';
+                } else if (msg.includes('password') && (msg.includes('short') || msg.includes('weak'))) {
+                    errorMessage = 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।';
+                } else if (msg.includes('network') || msg.includes('connection')) {
+                    errorMessage = 'ইন্টারনেট সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+            
             setError(errorMessage);
         } finally {
             setIsLoading(false);

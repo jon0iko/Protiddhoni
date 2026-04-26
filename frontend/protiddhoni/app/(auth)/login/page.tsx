@@ -25,7 +25,23 @@ export default function LoginPage() {
             await login(identifier, formData.password);
             router.push('/');
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+            let errorMessage = 'লগইন করতে সমস্যা হয়েছে।';
+            
+            if (error instanceof Error) {
+                const msg = error.message.toLowerCase();
+                if (msg.includes('invalid') || msg.includes('incorrect') || msg.includes('wrong')) {
+                    errorMessage = 'ইমেইল/ব্যবহারকারী নাম বা পাসওয়ার্ড ভুল। আবার চেষ্টা করুন।';
+                } else if (msg.includes('not found') || msg.includes('does not exist')) {
+                    errorMessage = 'এই ইমেইল/ব্যবহারকারী নাম দিয়ে কোনো একাউন্ট পাওয়া যায়নি। নিবন্ধন করুন।';
+                } else if (msg.includes('network') || msg.includes('connection')) {
+                    errorMessage = 'ইন্টারনেট সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।';
+                } else if (msg.includes('blocked') || msg.includes('suspended')) {
+                    errorMessage = 'আপনার একাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে। সহায়তার জন্য যোগাযোগ করুন।';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+            
             setError(errorMessage);
         } finally {
             setIsLoading(false);
