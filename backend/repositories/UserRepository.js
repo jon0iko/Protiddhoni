@@ -77,6 +77,26 @@ class UserRepository {
         return data;
     }
 
+    async findLegacyUsernameWithPassword(baseUsername) {
+        const { data, error } = await db.getClient()
+            .from('users')
+            .select('*')
+            .like('username', `${baseUsername}-%`)
+            .limit(10);
+
+        if (error || !data || data.length === 0) return null;
+
+        const escapedBase = baseUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const legacyPattern = new RegExp(`^${escapedBase}-[a-f0-9]{8}$`);
+        const legacyMatches = data.filter((item) => legacyPattern.test(item.username));
+
+        if (legacyMatches.length === 1) {
+            return legacyMatches[0];
+        }
+
+        return null;
+    }
+
     async update(id, updates) {
         const { data, error } = await db.getClient()
             .from('users')
