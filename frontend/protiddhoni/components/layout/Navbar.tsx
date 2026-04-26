@@ -145,7 +145,11 @@ export default function Navbar() {
 
               {/* Search Results Dropdown */}
               {showSearchResults && (
-                <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                <div 
+                  role="listbox" 
+                  aria-label="অনুসন্ধান ফলাফল"
+                  className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto"
+                >
                   {isSearching ? (
                     <div className="p-4 text-center">
                       <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
@@ -156,6 +160,7 @@ export default function Navbar() {
                       {searchResults.map((result) => (
                         <button
                           key={result.id}
+                          role="option"
                           onClick={() => handleResultClick(result.slug)}
                           className="w-full px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-100 last:border-b-0 transition-colors"
                         >
@@ -201,14 +206,15 @@ export default function Navbar() {
             {isLoggedIn ? (
               <>
                 <div className="flex items-center gap-2">
-                  <Link href="/wallet" className="flex items-center space-x-1 text-yellow-600 hover:text-yellow-700 bg-yellow-50 px-3 py-1.5 rounded-full transition-colors" title="আমার ওয়ালেট">
+                  <Link href="/wallet" className="flex items-center space-x-1 text-yellow-700 hover:text-yellow-800 bg-yellow-100 px-3 py-1.5 rounded-full transition-colors" title="আমার ওয়ালেট" aria-label="আমার ওয়ালেট">
                     <Coins className="w-4 h-4" />
                     <span className="font-semibold text-sm bengali-text">{user?.kori_balance || 0}</span>
                   </Link>
                   <button
                     onClick={handleManualRefresh}
                     disabled={isRefreshingBalance}
-                    className="p-1.5 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="ব্যালেন্স রিফ্রেশ করুন"
+                    className="p-1.5 text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="ব্যালেন্স রিফ্রেশ করুন"
                   >
                     <svg className={`w-4 h-4 ${isRefreshingBalance ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,6 +276,9 @@ export default function Navbar() {
                 <div className="relative">
                   <button 
                     onClick={toggleUserMenu}
+                    aria-label="ব্যবহারকারী মেনু খুলুন"
+                    aria-expanded={showUserMenu}
+                    aria-haspopup="true"
                     className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {user?.avatar ? (
@@ -371,7 +380,9 @@ export default function Navbar() {
           <div className="md:hidden">
             <button
               onClick={toggleMenu}
-              className="text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700"
+              aria-label={isMenuOpen ? "মেনু বন্ধ করুন" : "মেনু খুলুন"}
+              aria-expanded={isMenuOpen}
+              className="text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-700 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

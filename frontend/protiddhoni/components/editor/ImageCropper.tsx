@@ -145,7 +145,7 @@ export default function ImageCropper({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-labelledby="cropper-title" aria-modal="true">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
 
@@ -153,10 +153,11 @@ export default function ImageCropper({
       <div className="relative w-full max-w-4xl max-h-[90vh] mx-4 bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="relative z-10 flex items-center justify-between px-6 py-4 bg-gray-800/95 backdrop-blur-sm border-b border-gray-700">
-          <h3 className="text-lg font-semibold text-white bengali-text">ছবি ক্রপ করুন</h3>
+          <h3 id="cropper-title" className="text-lg font-semibold text-white bengali-text">ছবি ক্রপ করুন</h3>
           <button
             onClick={onCancel}
             disabled={isProcessing}
+            aria-label="ক্রপার বন্ধ করুন"
             className="p-2 rounded-full hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
             <X className="h-5 w-5 text-white" />
@@ -164,7 +165,7 @@ export default function ImageCropper({
         </div>
 
         {/* Cropper Area */}
-        <div className="relative h-[60vh] bg-black">
+        <div className="relative h-[50vh] md:h-[60vh] bg-black">
           <Cropper
             image={image}
             crop={crop}
@@ -199,6 +200,7 @@ export default function ImageCropper({
               type="button"
               onClick={handleApplyCrop}
               disabled={isProcessing}
+              aria-label="ছবি ক্রপ করুন"
               className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 bengali-text disabled:opacity-50"
             >
               {isProcessing ? (
