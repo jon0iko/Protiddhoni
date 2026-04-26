@@ -10,9 +10,9 @@ export default function HeroSection() {
                 <div className="text-center">
                     {/* Main Heading */}
                     <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 bengali-text">
-                        <span className="text-gradient px-2">বাংলা সাহিত্যের</span>
+                        <span className="text-gradient px-2 pointer-events-none">বাংলা সাহিত্যের</span>
                         <br />
-                        <span className='text-[#B92F1F]'>ডিজিটাল আবাসস্থল</span>
+                        <span className='text-[#B92F1F] pointer-events-none'>ডিজিটাল আবাসস্থল</span>
                     </h1>
                     
                     {/* Subtitle */}
@@ -42,7 +42,7 @@ export default function HeroSection() {
             </div>
 
             {/* Background Pattern - Desktop */}
-            <div className="absolute inset-0 z-10 opacity-30 overflow-hidden hidden md:block">
+            <div className="absolute inset-0 z-10 opacity-30 overflow-hidden hidden md:block pointer-events-none">
                 {/* Top row */}
                 <div className="absolute top-10 left-5 text-7xl text-gray-300 bengali-text font-light">প্র</div>
                 <div className="absolute top-20 left-32 text-6xl text-gray-300 bengali-text font-light">তি</div>
