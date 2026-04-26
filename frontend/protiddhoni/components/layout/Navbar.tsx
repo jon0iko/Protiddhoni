@@ -495,7 +495,7 @@ export default function Navbar() {
                       </Link>
                     </div>
                   </div>
-                  <Link href="/profile" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
+                  <Link href="/settings" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
                     প্রোফাইল
                   </Link>
                   <Link href="/notifications" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
