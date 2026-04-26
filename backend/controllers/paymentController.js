@@ -1,6 +1,6 @@
 const db = require('../config/database');
 const logger = require('../config/logger');
-const { SSLCommerzPayment, BkashPayment } = require('../services/paymentStrategy');
+const { SSLCommerzPayment, BkashPayment, SimPayment } = require('../services/paymentStrategy');
 const WalletService = require('../services/walletService');
 const PayoutService = require('../services/payoutService');
 
@@ -11,6 +11,91 @@ class PaymentController {
     this.handleWebhook = this.handleWebhook.bind(this);
     this.tipWriter = this.tipWriter.bind(this);
     this.getWalletBalance = this.getWalletBalance.bind(this);
+    this.createCheckout = this.createCheckout.bind(this);
+  }
+
+  /**
+   * Simulated checkout — no external provider. Runs the SimPayment strategy
+   * and, on success, credits the user's wallet through the existing
+   * WalletService.topUpWallet path (same RPC the real webhook would use).
+   *
+   * POST /api/payments/checkout
+   * Body: { amount: number, paymentMethod?: string, simOutcome?: 'success'|'failure' }
+   */
+  async createCheckout(req, res) {
+    const userId = req.user.id;
+    const { amount, paymentMethod, simOutcome, simFailureRate, simLatencyMs } = req.body || {};
+
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be a positive number.' });
+    }
+    if (numericAmount > 100000) {
+      return res.status(400).json({ error: 'Amount exceeds simulator limit.' });
+    }
+
+    const strategy = new SimPayment();
+    const result = await strategy.processPayment(numericAmount, {
+      userId,
+      paymentMethod: paymentMethod || 'sim',
+      simOutcome,
+      simFailureRate,
+      simLatencyMs
+    });
+
+    try {
+      await this.supabase.from('payment_webhooks_log').insert({
+        provider: 'sim',
+        transaction_id: result.transactionId,
+        payload: { userId, amount: numericAmount, paymentMethod, simOutcome, result },
+        status: result.success ? 'received' : 'failed',
+        error_message: result.success ? null : result.error
+      });
+    } catch (logErr) {
+      this.logger.warn(`Sim checkout log insert failed (non-fatal): ${logErr.message}`);
+    }
+
+    if (!result.success) {
+      this.logger.info(`Sim checkout declined for user ${userId}: ${result.transactionId}`);
+      return res.status(402).json({
+        success: false,
+        status: 'failed',
+        transactionId: result.transactionId,
+        error: result.error || 'Payment declined'
+      });
+    }
+
+    try {
+      const newBalance = await WalletService.topUpWallet(userId, numericAmount, result.transactionId);
+
+      await this.supabase
+        .from('payment_webhooks_log')
+        .update({ status: 'processed', processed_at: new Date() })
+        .eq('transaction_id', result.transactionId);
+
+      this.logger.info(`Sim checkout processed: user ${userId} +${numericAmount} kori (txn ${result.transactionId})`);
+      return res.status(200).json({
+        success: true,
+        status: 'completed',
+        transactionId: result.transactionId,
+        amount: numericAmount,
+        balance: newBalance,
+        method: result.method,
+        processedAt: result.processedAt
+      });
+    } catch (error) {
+      this.logger.error(`Sim checkout wallet top-up failed for user ${userId}:`, error);
+      await this.supabase
+        .from('payment_webhooks_log')
+        .update({ status: 'failed', error_message: error.message })
+        .eq('transaction_id', result.transactionId);
+      return res.status(500).json({
+        success: false,
+        status: 'failed',
+        transactionId: result.transactionId,
+        error: 'Failed to credit wallet after simulated payment.'
+      });
+    }
   }
 
   /**
