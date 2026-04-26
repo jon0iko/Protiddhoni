@@ -13,6 +13,17 @@ router.post('/webhook/:provider', async (req, res) => {
 });
 
 /**
+ * @route POST /api/payments/checkout
+ * @desc Simulated checkout — credits the authenticated user's wallet without
+ *       contacting any external provider. Useful for development and demos.
+ * @access Private
+ * @body { amount: number, paymentMethod?: string, simOutcome?: 'success'|'failure' }
+ */
+router.post('/checkout', authenticate, async (req, res) => {
+    await PaymentController.createCheckout(req, res);
+});
+
+/**
  * @route GET /api/payments/wallet
  * @desc Get the current authenticated user's digital Kori wallet balance
  * @access Private

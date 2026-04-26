@@ -2,15 +2,24 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
-import { Wallet, CreditCard, ChevronRight, Activity, ArrowUpRight, Coins } from 'lucide-react';
+import { Wallet, CreditCard, ChevronRight, Activity, ArrowUpRight, Coins, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import TransactionHistoryModal from '@/components/wallet/TransactionHistoryModal';
 import PayoutSection from '@/components/wallet/PayoutSection';
+import { api } from '@/lib/api';
+
+type CheckoutFeedback = {
+  type: 'success' | 'error';
+  message: string;
+  transactionId?: string;
+};
 
 export default function WalletPage() {
   const { user, isLoggedIn, refreshBalance } = useAuth();
   const [, setIsLoading] = useState(true);
   const [selectedPackage, setSelectedPackage] = useState<number | null>(null);
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [feedback, setFeedback] = useState<CheckoutFeedback | null>(null);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -30,15 +39,36 @@ export default function WalletPage() {
   };
 
   const handleTopUp = async () => {
-    if (!selectedPackage) return;
+    if (!selectedPackage || isProcessing) return;
+    setIsProcessing(true);
+    setFeedback(null);
     try {
-      // Mock checkout flow for Sprint 1
-      alert(`এই মুহূর্তে ${selectedPackage} কড়ি কেনার সিমুলেশন করা হচ্ছে।`);
-      // Simulating a successful purchase
-      // const res = await api.payments.checkout(selectedPackage);
-      // window.location.href = res.url;
+      const res = await api.payments.initiateTopUp({
+        amount: selectedPackage,
+        paymentMethod: 'sim',
+      });
+
+      if (res?.success) {
+        await refreshBalance();
+        setFeedback({
+          type: 'success',
+          message: `${selectedPackage} কড়ি সফলভাবে যোগ হয়েছে।`,
+          transactionId: res.transactionId,
+        });
+        setSelectedPackage(null);
+      } else {
+        setFeedback({
+          type: 'error',
+          message: res?.error || 'পেমেন্ট সম্পন্ন করা যায়নি। আবার চেষ্টা করুন।',
+          transactionId: res?.transactionId,
+        });
+      }
     } catch (error) {
       console.error('Checkout failed', error);
+      const message = error instanceof Error ? error.message : 'পেমেন্ট সিমুলেশনে সমস্যা হয়েছে।';
+      setFeedback({ type: 'error', message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -123,22 +153,55 @@ export default function WalletPage() {
       <div className="bg-gray-50 border rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between">
         <div>
           <h3 className="font-bold text-gray-900 mb-1 bengali-text text-lg">পেমেন্ট মেথড</h3>
-          <p className="text-sm text-gray-500 bengali-text">বিকাশ, রকেট, নগদ বা ডেবিট/ক্রেডিট কার্ডের মাধ্যমে পেমেন্ট করুন</p>
+          <p className="text-sm text-gray-500 bengali-text">সিমুলেটেড পেমেন্ট গেটওয়ে — কোনো প্রকৃত প্রদানকারী ছাড়াই কড়ি যোগ হবে।</p>
           <div className="flex gap-2 mt-3">
              <span className="text-xs font-bold bg-pink-100 text-pink-600 px-2 py-1 rounded">bKash</span>
              <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded">Card</span>
+             <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded">Sim</span>
           </div>
         </div>
         <button
           onClick={handleTopUp}
-          disabled={!selectedPackage}
+          disabled={!selectedPackage || isProcessing}
           className="w-full sm:w-auto mt-4 sm:mt-0 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 bengali-text shadow-sm"
         >
-          <CreditCard className="w-5 h-5" />
-          <span>পেমেন্ট করুন {selectedPackage ? `(৳${selectedPackage})` : ''}</span>
-          <ChevronRight className="w-4 h-4 ml-1" />
+          {isProcessing ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>প্রসেস হচ্ছে...</span>
+            </>
+          ) : (
+            <>
+              <CreditCard className="w-5 h-5" />
+              <span>পেমেন্ট করুন {selectedPackage ? `(৳${selectedPackage})` : ''}</span>
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </>
+          )}
         </button>
       </div>
+
+      {feedback && (
+        <div
+          role="status"
+          className={`mt-4 flex items-start gap-3 rounded-xl border p-4 text-sm ${
+            feedback.type === 'success'
+              ? 'border-green-200 bg-green-50 text-green-800'
+              : 'border-red-200 bg-red-50 text-red-800'
+          }`}
+        >
+          {feedback.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          )}
+          <div className="flex-1">
+            <p className="font-medium bengali-text">{feedback.message}</p>
+            {feedback.transactionId && (
+              <p className="mt-1 text-xs opacity-80 font-mono break-all">Txn: {feedback.transactionId}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Payout Section */}
       <div className="my-10">

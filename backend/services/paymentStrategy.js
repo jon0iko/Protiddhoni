@@ -90,6 +90,49 @@ class BkashPayment extends PaymentStrategy {
     }
 }
 
+/**
+ * SimPayment — in-backend simulator. No external provider.
+ * Generates a deterministic-looking transaction id, optionally simulates
+ * latency and a configurable failure rate so the UI flows can be exercised.
+ */
+class SimPayment extends PaymentStrategy {
+    async processPayment(amount, data = {}) {
+        const latencyMs = Number.isFinite(data.simLatencyMs) ? data.simLatencyMs : 600;
+        if (latencyMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, latencyMs));
+        }
+
+        const failureRate = Number.isFinite(data.simFailureRate) ? data.simFailureRate : 0;
+        const forceOutcome = data.simOutcome;
+        const failed = forceOutcome === 'failure' || (forceOutcome !== 'success' && Math.random() < failureRate);
+
+        const transactionId = `SIM_${Date.now()}_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+        if (failed) {
+            return {
+                success: false,
+                transactionId,
+                method: 'sim',
+                status: 'FAILED',
+                error: 'Simulated payment declined'
+            };
+        }
+
+        return {
+            success: true,
+            transactionId,
+            method: 'sim',
+            status: 'COMPLETED',
+            amount,
+            processedAt: new Date().toISOString()
+        };
+    }
+
+    verifyWebhook() {
+        return true;
+    }
+}
+
 class PaymentContext {
     setStrategy(strategy) {
         this.strategy = strategy;
@@ -106,5 +149,6 @@ class PaymentContext {
 module.exports = {
     PaymentContext,
     SSLCommerzPayment,
-    BkashPayment
+    BkashPayment,
+    SimPayment
 };
