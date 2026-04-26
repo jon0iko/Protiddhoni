@@ -8,15 +8,25 @@ const jwt = require('jsonwebtoken');
 const UserRepository = require('../repositories/UserRepository');
 const slugify = require('../utils/slugify');
 
+const normalizeUsername = (value) => slugify(value, false);
+
 exports.register = async (req, res) => {
     try {
         const { email, username, password, full_name } = req.body;
+        const normalizedUsername = normalizeUsername(username || '');
         
         // Validate input
         if (!email || !username || !password) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'Email, username, and password are required' 
+            });
+        }
+
+        if (!normalizedUsername) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username must contain valid letters or numbers'
             });
         }
 
@@ -29,7 +39,7 @@ exports.register = async (req, res) => {
             });
         }
 
-        const existingUsername = await UserRepository.findByUsername(username);
+        const existingUsername = await UserRepository.findByUsername(normalizedUsername);
         if (existingUsername) {
             return res.status(400).json({ 
                 success: false, 
@@ -43,7 +53,7 @@ exports.register = async (req, res) => {
         // Create user
         const userData = {
             email,
-            username: slugify(username),
+            username: normalizedUsername,
             full_name: full_name || username,
             password_hash,
             is_admin: false,
@@ -91,7 +101,13 @@ exports.login = async (req, res) => {
         if (identifier.includes('@')) {
             user = await UserRepository.findByEmailWithPassword(identifier);
         } else {
-            user = await UserRepository.findByUsernameWithPassword(identifier);
+            const normalizedIdentifier = normalizeUsername(identifier);
+            user = await UserRepository.findByUsernameWithPassword(normalizedIdentifier);
+
+            // Backward compatibility for accounts created when username had random suffix appended.
+            if (!user) {
+                user = await UserRepository.findLegacyUsernameWithPassword(normalizedIdentifier);
+            }
         }
 
         if (!user) {
