@@ -7,11 +7,36 @@ import { getAuthToken } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+const getClientSessionId = (): string | null => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const sessionStorageKey = 'protiddhoni_client_session_id';
+    let sessionId = sessionStorage.getItem(sessionStorageKey);
+
+    if (!sessionId) {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            sessionId = crypto.randomUUID();
+        } else {
+            sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+        }
+        sessionStorage.setItem(sessionStorageKey, sessionId);
+    }
+
+    return sessionId;
+};
+
 // Helper function to get headers with automatic token injection
 const getHeaders = (token?: string | null): HeadersInit => {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
+
+    const sessionId = getClientSessionId();
+    if (sessionId) {
+        headers['X-Client-Session-Id'] = sessionId;
+    }
     
     // Use provided token, or auto-fetch from storage
     const authToken = token !== undefined ? token : getAuthToken();
