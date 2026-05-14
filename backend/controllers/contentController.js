@@ -15,9 +15,13 @@ const db = require('../config/database');
 exports.advancedSearch = async (req, res) => {
     try {
         const builder = new ContentQueryBuilder();
-        
-        // Build query from request parameters
+
+        // Text search accepts q, query, or search for compatibility with both the
+        // navbar suggestion bar (`q`) and the filter sidebar (`query`).
+        const searchText = req.query.q || req.query.query || req.query.search;
+
         builder
+            .setSearchText(searchText)
             .setCategory(req.query.category)
             .setContentType(req.query.type)
             .setAuthor(req.query.author)

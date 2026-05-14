@@ -277,81 +277,96 @@ class ContentRepository {
      */
     async findAdvanced(queryParams) {
         const { filters, sort, pagination } = queryParams;
-        
-        let query = db.getClient()
-            .from('content')
-            .select(`
-                *,
-                author:author_id (id, username, full_name, profile_picture_url),
-                category:category_id!inner (id, name, slug, icon),
-                series:series_id (id, title, slug)
-            `, { count: 'exact' })
-            .eq('is_published', true)
-            .eq('status', 'approved');
 
-        // Apply Filters
-        if (filters.categorySlug) {
-            query = query.eq('category.slug', filters.categorySlug);
-        }
-        if (filters.contentType) {
-            query = query.eq('content_type', filters.contentType);
-        }
-        if (filters.authorId) {
-            query = query.eq('author_id', filters.authorId);
-        }
-        if (filters.seriesId) {
-            query = query.eq('series_id', filters.seriesId);
-        }
-        if (filters.isPremium !== undefined) {
-            query = query.eq('is_premium', filters.isPremium);
-        }
+        // Use inner join only when filtering by category slug, so content with no
+        // category isn't accidentally hidden.
+        const categoryJoin = filters.categorySlug
+            ? 'category:category_id!inner (id, name, slug, icon)'
+            : 'category:category_id (id, name, slug, icon)';
 
-        // Apply Sorting
-        query = query.order(sort.column, { ascending: sort.order === 'asc' });
+        const buildBaseQuery = (countOption) => {
+            let q = db.getClient()
+                .from('content')
+                .select(`
+                    *,
+                    author:author_id (id, username, full_name, profile_picture_url),
+                    ${categoryJoin},
+                    series:series_id (id, title, slug)
+                `, countOption)
+                .eq('is_published', true)
+                .eq('status', 'approved');
 
-        // Apply Pagination
-        const from = (pagination.page - 1) * pagination.limit;
-        const to = from + pagination.limit - 1;
-        query = query.range(from, to);
+            if (filters.searchText) {
+                const escaped = filters.searchText.replace(/[%,()]/g, ' ');
+                const term = `%${escaped}%`;
+                q = q.or(`title.ilike.${term},excerpt.ilike.${term}`);
+            }
+            if (filters.categorySlug) {
+                q = q.eq('category.slug', filters.categorySlug);
+            }
+            if (filters.contentType) {
+                q = q.eq('content_type', filters.contentType);
+            }
+            if (filters.authorId) {
+                q = q.eq('author_id', filters.authorId);
+            }
+            if (filters.seriesId) {
+                q = q.eq('series_id', filters.seriesId);
+            }
+            if (filters.isPremium !== undefined) {
+                q = q.eq('is_premium', filters.isPremium);
+            }
+            return q;
+        };
 
-        const { data, error, count } = await query;
-        
-        if (error) throw error;
-
-        // Post-processing for Rating Filter (since it's in a separate table)
-        // Note: In a real high-scale app, we'd denormalize average_rating to the content table.
-        // For this assignment, we'll filter in memory or do a join if possible.
-        // Supabase join filtering is tricky on computed columns. 
-        // Let's assume we filter after fetching for now, or if the user wants "minRating",
-        // we might need a more complex query. 
-        // For simplicity and performance in this scope, let's filter the results if minRating is present.
-        
-        let results = data;
+        // When filtering by minimum rating, we must filter in memory (ratings live
+        // in a separate table). Fetch the full filtered set, compute averages,
+        // then paginate after — so total count and page slicing are correct.
         if (filters.minRating) {
-            // Fetch ratings for these contents
-            const contentIds = data.map(c => c.id);
-            const { data: reviews } = await db.getClient()
-                .from('reviews')
-                .select('content_id, rating')
-                .in('content_id', contentIds);
+            const fullQuery = buildBaseQuery({ count: 'exact' })
+                .order(sort.column, { ascending: sort.order === 'asc' });
 
-            const ratingMap = {};
-            reviews.forEach(r => {
-                if (!ratingMap[r.content_id]) ratingMap[r.content_id] = [];
-                ratingMap[r.content_id].push(r.rating);
-            });
+            const { data: allData, error: fullError } = await fullQuery;
+            if (fullError) throw fullError;
 
-            results = data.filter(item => {
+            const contentIds = (allData || []).map(c => c.id);
+            let ratingMap = {};
+            if (contentIds.length > 0) {
+                const { data: reviews } = await db.getClient()
+                    .from('reviews')
+                    .select('content_id, rating')
+                    .in('content_id', contentIds);
+
+                (reviews || []).forEach(r => {
+                    if (!ratingMap[r.content_id]) ratingMap[r.content_id] = [];
+                    ratingMap[r.content_id].push(r.rating);
+                });
+            }
+
+            const filtered = (allData || []).filter(item => {
                 const itemReviews = ratingMap[item.id] || [];
-                const avg = itemReviews.length > 0 
-                    ? itemReviews.reduce((a, b) => a + b, 0) / itemReviews.length 
+                const avg = itemReviews.length > 0
+                    ? itemReviews.reduce((a, b) => a + b, 0) / itemReviews.length
                     : 0;
-                item.average_rating = avg; // Attach it while we are here
+                item.average_rating = avg;
                 return avg >= filters.minRating;
             });
+
+            const from = (pagination.page - 1) * pagination.limit;
+            const to = from + pagination.limit;
+            return { data: filtered.slice(from, to), count: filtered.length };
         }
 
-        return { data: results, count };
+        // Standard path: paginate at the database.
+        const query = buildBaseQuery({ count: 'exact' })
+            .order(sort.column, { ascending: sort.order === 'asc' });
+
+        const from = (pagination.page - 1) * pagination.limit;
+        const to = from + pagination.limit - 1;
+        const { data, error, count } = await query.range(from, to);
+
+        if (error) throw error;
+        return { data: data || [], count: count || 0 };
     }
 }
 
