@@ -16,8 +16,11 @@ export default function SearchFilter() {
     const searchParams = useSearchParams();
     const [categories, setCategories] = useState<Category[]>([]);
 
+    // Accept either `q` (used by the navbar search bar) or `query` (legacy)
+    const initialQuery = searchParams.get('q') || searchParams.get('query') || '';
+
     const [filters, setFilters] = useState({
-        query: searchParams.get('query') || '',
+        query: initialQuery,
         category: searchParams.get('category') || '',
         type: searchParams.get('type') || 'all',
         rating: searchParams.get('rating') ? parseInt(searchParams.get('rating')!) : 0,
@@ -25,6 +28,20 @@ export default function SearchFilter() {
         sort_by: searchParams.get('sort_by') || 'published_at',
         order: searchParams.get('order') || 'desc'
     });
+
+    // Keep the filter state in sync if the URL changes externally (e.g. user
+    // submits a new query from the navbar while staying on /search).
+    useEffect(() => {
+        setFilters({
+            query: searchParams.get('q') || searchParams.get('query') || '',
+            category: searchParams.get('category') || '',
+            type: searchParams.get('type') || 'all',
+            rating: searchParams.get('rating') ? parseInt(searchParams.get('rating')!) : 0,
+            is_premium: searchParams.get('is_premium') === 'true',
+            sort_by: searchParams.get('sort_by') || 'published_at',
+            order: searchParams.get('order') || 'desc'
+        });
+    }, [searchParams]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -40,7 +57,7 @@ export default function SearchFilter() {
 
     const handleApplyFilters = () => {
         const params = new URLSearchParams();
-        if (filters.query) params.set('query', filters.query);
+        if (filters.query.trim()) params.set('q', filters.query.trim());
         if (filters.category) params.set('category', filters.category);
         if (filters.type && filters.type !== 'all') params.set('type', filters.type);
         if (filters.rating > 0) params.set('rating', filters.rating.toString());
@@ -87,12 +104,18 @@ export default function SearchFilter() {
                 {/* Title Search */}
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700 bengali-text">শিরোনাম খুঁজুন</label>
-                    <input 
+                    <input
                         type="text"
                         className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text text-black"
-                        placeholder="গল্প, কবিতা খুঁজুন..." 
+                        placeholder="গল্প, কবিতা খুঁজুন..."
                         value={filters.query}
                         onChange={(e) => setFilters({...filters, query: e.target.value})}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleApplyFilters();
+                            }
+                        }}
                     />
                 </div>
 
@@ -122,7 +145,7 @@ export default function SearchFilter() {
                         <option value="all">সব ধরনের</option>
                         <option value="story">গল্প</option>
                         <option value="poem">কবিতা</option>
-                        <option value="series">সিরিজ</option>
+                        <option value="chapter">ধারাবাহিক</option>
                     </select>
                 </div>
 

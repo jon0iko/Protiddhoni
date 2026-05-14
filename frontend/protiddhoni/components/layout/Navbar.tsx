@@ -45,28 +45,37 @@ export default function Navbar() {
     }
   };
 
-  // Search functionality
+  // Search functionality — debounced typeahead for the navbar suggestion list.
   useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setIsSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearching(true);
+    setShowSearchResults(true);
     const delaySearch = setTimeout(async () => {
-      if (searchQuery.trim().length >= 2) {
-        setIsSearching(true);
-        try {
-          const response = await api.content.search({ q: searchQuery, limit: 5 });
-          setSearchResults(response.data || []);
-          setShowSearchResults(true);
-        } catch (error) {
-          console.error('Search error:', error);
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
+      try {
+        const response = await api.content.search({ q: trimmed, limit: 5 });
+        if (cancelled) return;
+        setSearchResults(response.data || []);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Search error:', error);
         setSearchResults([]);
-        setShowSearchResults(false);
+      } finally {
+        if (!cancelled) setIsSearching(false);
       }
     }, 300);
 
-    return () => clearTimeout(delaySearch);
+    return () => {
+      cancelled = true;
+      clearTimeout(delaySearch);
+    };
   }, [searchQuery]);
 
   // Close dropdowns when clicking outside

@@ -10,6 +10,13 @@ class ContentQueryBuilder {
         this.pagination = { page: 1, limit: 10 };
     }
 
+    setSearchText(text) {
+        if (text && typeof text === 'string' && text.trim().length > 0) {
+            this.filters.searchText = text.trim();
+        }
+        return this;
+    }
+
     setCategory(categorySlug) {
         if (categorySlug) {
             this.filters.categorySlug = categorySlug;
