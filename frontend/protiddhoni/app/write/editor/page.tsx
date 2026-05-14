@@ -23,7 +23,9 @@ const STORAGE_KEYS = {
   DRAFT_NAME: 'current_draft_name',
 } as const;
 
-export default function EditorPage() {
+import { Suspense } from 'react';
+
+function EditorContent() {
   const { user, isLoading: authLoading, isLoggedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -324,5 +326,20 @@ export default function EditorPage() {
         onPublishSuccess={handlePublishSuccess}
       />
     </div>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+          <p className="text-gray-500 bengali-text">লোড হচ্ছে...</p>
+        </div>
+      </div>
+    }>
+      <EditorContent />
+    </Suspense>
   );
 }

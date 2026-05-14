@@ -1,191 +1,196 @@
 # Protiddhoni (প্রতিধ্বনি)
-## Bengali Digital Storytelling Platform
 
-A web-based platform for Bengali writers and readers, democratizing publishing and creating a community for Bangla literature.
+Protiddhoni is a Bengali digital storytelling platform for readers, writers, and admins. The current codebase combines a Node.js/Express backend with a Next.js 14 frontend and supports publishing workflows, reader engagement, premium content, tipping, notifications, and a rich writing experience.
 
----
-
-## 📋 Project Structure
+## What’s In The Repo
 
 ```
 Protiddhoni/
-├── backend/              # Node.js + Express API
-│   ├── config/          # Database & Logger (Singleton Pattern)
-│   ├── middleware/      # Auth, Admin, Validation
-│   ├── models/          # Data models
-│   ├── repositories/    # Repository Pattern
-│   ├── services/        # Factory, Strategy, Observer patterns
-│   ├── controllers/     # Route handlers
-│   ├── routes/          # API endpoints
-│   └── utils/           # Helper functions
-│
-├── frontend/            # Next.js 14 + TypeScript
-│   └── protiddhoni/
-│       │── app/           # Next.js App Router pages
-│       │──components/    # React components
-│       │──lib/          # Utilities & API client
-│       │──stores/       # Zustand state management
-│       │──types/        # TypeScript types
-│       └── public/       # Static assets
-│
-├── plan.md              # Detailed implementation plan
-└── README.md            # This file
+├── backend/              # Express API, controllers, services, repositories, migrations/scripts
+├── frontend/protiddhoni/ # Next.js App Router frontend
+├── project_guide.md      # Project planning and course guidance
+├── planned-feat.md       # Earlier feature ideation and expansion notes
+├── schema.md             # Data model notes
+└── README.md             # This file
 ```
 
----
+The backend is organized with controllers, repositories, middleware, services, and route modules. The frontend includes reader pages, writing workflows, account areas, admin moderation, wallet screens, and notification components.
 
-## 🎯 Design Patterns Implemented
+## Current Stack
 
-### Backend Patterns:
-1. **Singleton Pattern** - Database connection, Logger, Cache Manager
-2. **Factory Pattern** - Content creation (Story, Poem, Chapter)
-3. **Repository Pattern** - Data access layer abstraction
-4. **Strategy Pattern** - Payment processing (SSLCommerz, bKash)
-5. **Observer Pattern** - Notification system for followers
-6. **Decorator Pattern** - Content access control (paywall)
+- Backend: Node.js, Express, PostgreSQL/Supabase, JWT auth, bcrypt, web-push
+- Frontend: Next.js 14, React 18, TypeScript, Tailwind CSS, Tiptap, Zustand
+- Tooling: Jest, ESLint, pnpm
 
-### Frontend Patterns:
-1. **Strategy Pattern** - Reading themes (Light, Dark, Sepia) and font sizes
+## Main Product Features
 
----
+### Reader Experience
+- Browse published stories, poems, and series
+- Search by query, category, author, or slug
+- Read with customizable preferences and reader controls
+- Like, bookmark, rate, comment, and review content
+- View comments and threaded replies
+- Follow authors and view author profiles, followers, and following lists
 
-## 🚀 Getting Started
+### Writer Experience
+- Create, edit, save, and delete drafts
+- Submit content for moderation and publication
+- Manage stories, series, and chapter-based content
+- Use the rich text editor with media upload support
+- Review wallet balance, transaction history, and payout details
+
+### Monetization And Wallet
+- Premium content purchase flow
+- Kori wallet balance tracking
+- Tipping authors from the wallet
+- Payout and payout simulation endpoints
+- Payment webhook handling for gateway confirmations
+
+### Notifications And PWA
+- In-app notifications and unread counts
+- Push subscription management with VAPID public key exposure
+- Service worker-based notification support in the frontend
+
+### Admin And Moderation
+- Review pending content submissions
+- Approve or reject content
+- Refresh author statistics
+- Moderate published content and user-generated activity
+
+## Frontend Areas
+
+- Home, about, FAQ, contact, privacy, terms, and guidelines pages
+- Reader routes for search, category browsing, story reading, and chapter reading
+- Writer routes for composing new content, continuing drafts, editor settings, and draft management
+- Account routes for bookmarks, settings, profile, wallet, login, register, and logout
+- Admin moderation screens
+
+## Backend Modules
+
+- Authentication, user profiles, and social follow graphs
+- Content publishing, draft management, search, author stats, and moderation
+- Comments, likes, bookmarks, ratings, and reviews
+- Series and chapter workflows
+- Reading preferences
+- Purchases, payments, wallet, tipping, and payout handling
+- Push subscriptions and notifications
+
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- pnpm (or npm/yarn)
-- Supabase account (for database)
+- Node.js 18+
+- pnpm
+- Supabase access
 
 ### Backend Setup
 
-1. Navigate to backend:
 ```bash
 cd backend
-```
-
-2. Install dependencies:
-```bash
 pnpm install
-```
-
-3. Create `.env` file:
-```bash
 cp .env.example .env
-```
-
-4. Fill in environment variables:
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_service_key
-JWT_SECRET=your_secret_key
-```
-
-5. Start development server:
-```bash
 pnpm dev
 ```
 
-Backend will run on: `http://localhost:5000`
+Set the backend environment variables required by your deployment, including database access, JWT signing, and payment credentials. The API runs on `http://localhost:5000` by default.
 
 ### Frontend Setup
 
-1. Navigate to frontend:
 ```bash
 cd frontend/protiddhoni
-```
-
-2. Install dependencies:
-```bash
 pnpm install
-```
-
-3. Install additional packages:
-```bash
-pnpm add zustand clsx tailwind-merge
-pnpm add @supabase/supabase-js
-```
-
-4. Create `.env.local` file:
-```bash
 cp .env.example .env.local
-```
-
-5. Fill in environment variables:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-NEXT_PUBLIC_API_URL=http://localhost:5000
-```
-
-6. Start development server:
-```bash
 pnpm dev
 ```
 
-Frontend will run on: `http://localhost:3000`
+Set the frontend environment variables for Supabase, the API base URL, and any push or auth values you use locally. The app runs on `http://localhost:3000` by default.
 
----
+## Helpful Scripts
 
+### Backend
+- `pnpm dev` - start the API in development mode
+- `pnpm start` - run the API normally
+- `pnpm test` - run backend tests
+- `pnpm seed` - seed the database with sample data
 
-## 📚 Key Features
+### Frontend
+- `pnpm dev` - start the Next.js app
+- `pnpm build` - build for production
+- `pnpm start` - run the production build
+- `pnpm lint` - run linting
+- `pnpm test` - run frontend tests
 
-### For All Users:
-- ✍️ Write content via "লিখুন" tab
-- 📖 Read published content
-- 💾 Save drafts
-- 📤 Submit content for review
-- ⭐ Rate and review content
-- 👥 Follow authors
-- 🔔 Receive notifications
-- 🎨 Customizable reading experience (themes, font sizes)
+## API Surface At A Glance
 
-### For Admins:
-- ✅ Approve submitted content
-- ❌ Reject with feedback
-- 📊 View pending content queue
-- 👥 Manage users
-
-### Content Types:
-- 📝 Stories (গল্প)
-- 🎭 Poems (কবিতা)
-- 📚 Series with chapters (ধারাবাহিক)
-
-
-## 📝 API Endpoints
-
-### Authentication
-```
-POST   /api/auth/register    - Register new user
-POST   /api/auth/login       - Login
-POST   /api/auth/logout      - Logout
-GET    /api/auth/profile     - Get current user
-```
+### Auth
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/profile`
 
 ### Content
-```
-GET    /api/content/published           - Get published content
-GET    /api/content/:id                 - Get content by ID
-POST   /api/content                     - Create content
-POST   /api/content/:id/submit          - Submit for review
-POST   /api/content/:id/approve         - Approve (admin)
-POST   /api/content/:id/reject          - Reject (admin)
-GET    /api/content/admin/pending       - Get pending (admin)
-```
+- `GET /api/content/published`
+- `GET /api/content/search`
+- `GET /api/content/category/:categorySlug`
+- `GET /api/content/author/:authorId`
+- `GET /api/content/slug/:slug`
+- `GET /api/content/:id`
+- `POST /api/content`
+- `PUT /api/content/:id`
+- `DELETE /api/content/:id`
+- `POST /api/content/:id/submit`
+- `GET /api/content/my/drafts`
+- `GET /api/content/admin/pending`
+- `POST /api/content/:id/approve`
+- `POST /api/content/:id/reject`
 
 ### Users
-```
-GET    /api/users/:username             - Get profile
-PUT    /api/users/profile               - Update profile
-POST   /api/users/:username/follow      - Follow user
-DELETE /api/users/:username/follow      - Unfollow user
-```
+- `GET /api/users/:username`
+- `GET /api/users/:userId/followers`
+- `GET /api/users/:userId/following`
+- `GET /api/users/:userId/content`
+- `GET /api/users/:userId/series`
+- `PUT /api/users/:userId`
+- `POST /api/users/:userId/follow`
+- `POST /api/users/:userId/unfollow`
 
-### Reviews
-```
-GET    /api/reviews/content/:contentId  - Get reviews
-POST   /api/reviews                     - Create review
-PUT    /api/reviews/:id                 - Update review
-DELETE /api/reviews/:id                 - Delete review
-```
+### Reader Engagement
+- `GET /api/bookmarks`
+- `POST /api/bookmarks`
+- `DELETE /api/bookmarks/:contentId`
+- `GET /api/likes`
+- `POST /api/likes`
+- `DELETE /api/likes/:contentId`
+- `GET /api/comments/content/:contentId`
+- `POST /api/comments`
+- `GET /api/ratings/stats/:contentId`
+- `POST /api/ratings`
+- `GET /api/reviews/content/:contentId`
+- `POST /api/reviews`
 
----
+### Writing And Series
+- `GET /api/drafts/my`
+- `POST /api/drafts`
+- `PUT /api/drafts/:id`
+- `GET /api/series/published`
+- `GET /api/series/author/:authorId`
+- `GET /api/series/slug/:slug`
+- `GET /api/series/:id`
+- `GET /api/series/:seriesId/chapters`
+
+### Wallet, Purchases, And Notifications
+- `GET /api/purchases`
+- `POST /api/purchases/:contentId`
+- `GET /api/payments/wallet`
+- `GET /api/payments/transactions`
+- `POST /api/payments/tip/:authorId`
+- `GET /api/payments/payoutable`
+- `POST /api/payments/payout`
+- `POST /api/payments/webhook/:provider`
+- `GET /api/notifications`
+- `GET /api/notifications/unread-count`
+- `PUT /api/notifications/:id/read`
+- `PUT /api/notifications/read-all`
+- `GET /api/push/vapid-public-key`
+- `POST /api/push/subscribe`
+- `POST /api/push/unsubscribe`
+
