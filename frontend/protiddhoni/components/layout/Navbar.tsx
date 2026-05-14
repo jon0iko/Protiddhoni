@@ -19,6 +19,7 @@ export default function Navbar() {
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, isLoggedIn, logout, refreshBalance } = useAuth();
   const router = useRouter();
 
@@ -68,7 +69,7 @@ export default function Navbar() {
     return () => clearTimeout(delaySearch);
   }, [searchQuery]);
 
-  // Close search results when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -76,6 +77,9 @@ export default function Navbar() {
       }
       if (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)) {
         setShowSearchResults(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
       }
     };
 
@@ -273,7 +277,7 @@ export default function Navbar() {
                     </div>
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative" ref={userMenuRef}>
                   <button 
                     onClick={toggleUserMenu}
                     aria-label="ব্যবহারকারী মেনু খুলুন"

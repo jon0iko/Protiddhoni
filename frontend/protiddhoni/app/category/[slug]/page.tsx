@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { 
   ArrowLeft,
   Loader2,
@@ -65,13 +64,13 @@ export default function CategoryPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
-          <Link 
-            href="/"
+          <button 
+            onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="bengali-text">ফিরে যান</span>
-          </Link>
+          </button>
 
           <div className="flex items-start gap-2 mb-4">
             <BookOpen className="w-8 h-8" />
