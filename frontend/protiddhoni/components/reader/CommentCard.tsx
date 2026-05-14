@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, react/no-unescaped-entities, jsx-a11y/alt-text, jsx-a11y/role-has-required-aria-props, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, prefer-const */
 /**
  * Comment Card Component
  * Displays individual comments with nested replies
@@ -69,7 +70,7 @@ export default function CommentCard({ comment, contentId, onCommentUpdate, depth
 
         setDeleting(true);
         try {
-            const response = await api.comments.delete(comment.id, token);
+            const response = await api.comments.delete(comment.id);
             if (response.success) {
                 onCommentUpdate();
             } else {

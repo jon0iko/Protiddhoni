@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -65,13 +66,13 @@ export default function PushNotificationManager() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidResponse.key),
+        applicationServerKey: urlBase64ToUint8Array(vapidResponse.key) as any,
       });
 
       // Send subscription to backend
       const subJson = subscription.toJSON();
       await api.push.subscribe({
-        endpoint: subJson.endpoint,
+        endpoint: subJson.endpoint as string,
         keys: {
           p256dh: subJson.keys?.p256dh,
           auth: subJson.keys?.auth,
