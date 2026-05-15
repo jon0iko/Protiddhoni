@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield, ArrowRight, Coins } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
@@ -23,6 +23,15 @@ export default function Navbar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, isLoggedIn, logout, refreshBalance } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Returns active nav link classes based on current path
+  const navLinkClass = (href: string) => {
+    const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+    return isActive
+      ? 'relative text-primary-600 font-semibold bengali-text transition-colors after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-[2px] after:bg-primary-600 after:rounded-full'
+      : 'relative text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-primary-600 after:rounded-full after:transition-all hover:after:w-full';
+  };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const toggleUserMenu = () => setShowUserMenu(!showUserMenu);
@@ -131,13 +140,13 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
+            <Link href="/" className={navLinkClass('/')}>
               মূলপাতা
             </Link>
-            <Link href="/categories" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
+            <Link href="/categories" className={navLinkClass('/categories')}>
               বিভাগ
             </Link>
-            <Link href="/write" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
+            <Link href="/write" className={navLinkClass('/write')}>
               লেখালেখি
             </Link>
           </div>
