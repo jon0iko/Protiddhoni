@@ -46,9 +46,16 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            # Load Node and PNPM into this shell's PATH
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PNPM_HOME="/home/azureuser/.local/share/pnpm"
+            export PATH="$PNPM_HOME:$PATH"
+            
             cd /home/azureuser/Protiddhoni
             
-            git pull origin main
+            git fetch --all
+            git reset --hard origin/main
             
             cd backend
             pnpm install
