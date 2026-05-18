@@ -141,3 +141,94 @@ export interface RegisterForm {
 export interface NewsletterForm {
     email: string;
 }
+
+// Quiz Types
+export type QuizDifficulty = 'easy' | 'medium' | 'hard';
+export type QuizStatus = 'draft' | 'published' | 'archived';
+
+export interface QuizSourceContent {
+    id: string;
+    title: string;
+    slug: string;
+    content_type?: string;
+}
+
+export interface QuizSummary {
+    id: string;
+    title: string;
+    description?: string | null;
+    difficulty: QuizDifficulty;
+    entry_cost: number;
+    reward_per_correct: number;
+    total_questions: number;
+    status: QuizStatus;
+    published_at?: string | null;
+    created_at: string;
+    ai_model?: string | null;
+    creator?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'>;
+    source_content?: QuizSourceContent | null;
+    user_attempt?: {
+        id: string;
+        status: 'in_progress' | 'completed' | 'abandoned';
+        score: number;
+        correct_answers: number;
+        kori_earned: number;
+    } | null;
+}
+
+export interface QuizSpecificLeaderboardEntry {
+    rank: number;
+    id: string;
+    score: number;
+    correct_answers: number;
+    kori_earned: number;
+    duration_ms: number | null;
+    completed_at: string | null;
+    user: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'>;
+}
+
+export interface QuizQuestionPlayable {
+    id: string;
+    position: number;
+    question_text: string;
+    options: string[];
+}
+
+export interface QuizQuestionFull extends QuizQuestionPlayable {
+    correct_index: number;
+    explanation?: string | null;
+}
+
+export interface QuizReviewItem extends QuizQuestionFull {
+    selected_index: number | null;
+    is_correct: boolean;
+}
+
+export interface QuizAttemptSummary {
+    id: string;
+    score: number;
+    total_questions: number;
+    correct_answers: number;
+    kori_spent: number;
+    kori_earned: number;
+    status: 'in_progress' | 'completed' | 'abandoned';
+    started_at: string;
+    completed_at?: string | null;
+    duration_ms?: number | null;
+    quiz?: {
+        id: string;
+        title: string;
+        difficulty?: QuizDifficulty;
+    };
+}
+
+export interface QuizLeaderboardEntry {
+    rank: number;
+    user: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'>;
+    totalScore: number;
+    totalCorrect: number;
+    totalKori: number;
+    gamesPlayed: number;
+    bestScore: number;
+    avgDurationMs: number | null;
+}

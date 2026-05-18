@@ -58,6 +58,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/push', require('./routes/push'));
+app.use('/api/quizzes', require('./routes/quizzes'));
 
 // 404 handler
 app.use((req, res) => {
