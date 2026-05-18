@@ -1,0 +1,606 @@
+/* eslint-disable @next/next/no-img-element, react/no-unescaped-entities, jsx-a11y/alt-text, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, prefer-const */
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Coins,
+  Edit3,
+  Loader2,
+  RefreshCw,
+  Save,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import { toBengaliNumber } from '@/lib/numberFormatter';
+
+type AdminQuizQuestion = {
+  id: string;
+  position: number;
+  question_text: string;
+  options: string[];
+  correct_index: number;
+  explanation?: string | null;
+};
+
+type AdminQuiz = {
+  id: string;
+  title: string;
+  description?: string | null;
+  source_material: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  entry_cost: number;
+  reward_per_correct: number;
+  total_questions: number;
+  status: 'draft' | 'published' | 'archived';
+  ai_model?: string | null;
+  time_limit_seconds?: number | null;
+  published_at?: string | null;
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'খসড়া',
+  published: 'প্রকাশিত',
+  archived: 'সংরক্ষিত',
+};
+
+export default function AdminQuizEditPage() {
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
+  const router = useRouter();
+  const { user, isLoggedIn, isLoading } = useAuth();
+
+  const [quiz, setQuiz] = useState<AdminQuiz | null>(null);
+  const [questions, setQuestions] = useState<AdminQuizQuestion[]>([]);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    difficulty: 'medium' as 'easy' | 'medium' | 'hard',
+    entry_cost: 0,
+    reward_per_correct: 0,
+    status: 'draft' as 'draft' | 'published' | 'archived',
+    time_limit_seconds: 0, // 0 = no limit
+  });
+  const [regenCount, setRegenCount] = useState(5);
+  const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (!isLoading && (!isLoggedIn || !user?.is_admin)) {
+      router.push('/');
+    }
+  }, [isLoading, isLoggedIn, user, router]);
+
+  useEffect(() => {
+    if (!id || !user?.is_admin) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.is_admin]);
+
+  const load = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await api.quizzes.admin.get(id);
+      if (res?.success) {
+        const q: AdminQuiz = res.data.quiz;
+        setQuiz(q);
+        setQuestions(res.data.questions || []);
+        setForm({
+          title: q.title,
+          description: q.description || '',
+          difficulty: q.difficulty,
+          entry_cost: Number(q.entry_cost),
+          reward_per_correct: Number(q.reward_per_correct),
+          status: q.status,
+          time_limit_seconds: q.time_limit_seconds ? Number(q.time_limit_seconds) : 0,
+        });
+        setRegenCount(q.total_questions || 5);
+      } else {
+        setFeedback({ type: 'error', message: res?.error || 'কুইজ লোড করা যায়নি' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'কুইজ লোড করা যায়নি' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    setSavingSettings(true);
+    setFeedback(null);
+    try {
+      const res = await api.quizzes.admin.update(id, {
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        difficulty: form.difficulty,
+        entry_cost: Number(form.entry_cost),
+        reward_per_correct: Number(form.reward_per_correct),
+        status: form.status,
+        time_limit_seconds: form.time_limit_seconds > 0 ? Number(form.time_limit_seconds) : null,
+      });
+      if (res?.success) {
+        setQuiz((prev) => (prev ? { ...prev, ...res.data } : prev));
+        setFeedback({ type: 'success', message: 'সেটিংস সংরক্ষিত হয়েছে' });
+      } else {
+        setFeedback({ type: 'error', message: res?.error || 'সংরক্ষণ ব্যর্থ' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'সংরক্ষণ ব্যর্থ' });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!id) return;
+    if (quiz?.status === 'published') {
+      if (!confirm('প্রকাশিত কুইজে নতুন প্রশ্ন তৈরি করতে আগে অপ্রকাশ করতে হবে। চালিয়ে যাবেন?')) return;
+      const unpub = await api.quizzes.admin.update(id, { status: 'draft' });
+      if (!unpub?.success) {
+        setFeedback({ type: 'error', message: unpub?.error || 'অপ্রকাশ করা যায়নি' });
+        return;
+      }
+      setQuiz((prev) => (prev ? { ...prev, status: 'draft' } : prev));
+      setForm((prev) => ({ ...prev, status: 'draft' }));
+    }
+    setRegenerating(true);
+    setFeedback(null);
+    try {
+      const res = await api.quizzes.admin.regenerate(id, { question_count: regenCount });
+      if (res?.success) {
+        setQuiz((prev) => (prev ? { ...prev, ...res.data.quiz } : res.data.quiz));
+        setQuestions(res.data.questions || []);
+        setFeedback({
+          type: 'success',
+          message: `${toBengaliNumber(res.data.questions.length)} টি নতুন প্রশ্ন তৈরি হয়েছে`,
+        });
+      } else {
+        setFeedback({ type: 'error', message: res?.error || 'প্রশ্ন তৈরি ব্যর্থ' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'প্রশ্ন তৈরি ব্যর্থ' });
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!id || !quiz) return;
+    if (!confirm(`"${quiz.title}" মুছে ফেলবেন?`)) return;
+    setDeleting(true);
+    try {
+      const res = await api.quizzes.admin.remove(id);
+      if (res?.success) router.push('/admin/quizzes');
+      else setFeedback({ type: 'error', message: res?.error || 'মুছে ফেলা যায়নি' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'মুছে ফেলা যায়নি' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (isLoading || loading || !quiz) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center text-gray-500">
+        <Loader2 className="w-6 h-6 animate-spin inline-block" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+      <Link
+        href="/admin/quizzes"
+        className="inline-flex items-center gap-2 text-primary-700 hover:text-primary-800 font-medium bengali-text"
+      >
+        <ArrowLeft className="w-4 h-4" /> কুইজ তালিকায় ফিরুন
+      </Link>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 bengali-text">{quiz.title}</h1>
+            <p className="text-sm text-gray-500 bengali-text mt-0.5">
+              অবস্থা: {STATUS_LABEL[quiz.status]} · {toBengaliNumber(quiz.total_questions)} প্রশ্ন
+              {quiz.ai_model ? ` · ${quiz.ai_model}` : ''}
+            </p>
+          </div>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-sm px-3 py-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 inline-flex items-center gap-1 bengali-text disabled:opacity-60"
+          >
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            মুছে ফেলুন
+          </button>
+        </div>
+
+        {feedback && (
+          <div
+            className={`mt-4 rounded-xl px-4 py-3 bengali-text ${
+              feedback.type === 'success'
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                : 'bg-red-50 border border-red-200 text-red-700'
+            }`}
+          >
+            {feedback.message}
+          </div>
+        )}
+
+        <form onSubmit={handleSaveSettings} className="mt-6 space-y-4">
+          <Field label="শিরোনাম">
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+            />
+          </Field>
+          <Field label="বিবরণ">
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+            />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Field label="কঠিনতা">
+              <select
+                value={form.difficulty}
+                onChange={(e) => setForm({ ...form, difficulty: e.target.value as any })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              >
+                <option value="easy">সহজ</option>
+                <option value="medium">মাঝারি</option>
+                <option value="hard">কঠিন</option>
+              </select>
+            </Field>
+            <Field label="প্রবেশ ফি">
+              <div className="relative">
+                <Coins className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-yellow-700" />
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={form.entry_cost}
+                  onChange={(e) => setForm({ ...form, entry_cost: Number(e.target.value) })}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+                />
+              </div>
+            </Field>
+            <Field label="প্রতি সঠিকের পুরস্কার">
+              <div className="relative">
+                <Sparkles className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600" />
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={form.reward_per_correct}
+                  onChange={(e) => setForm({ ...form, reward_per_correct: Number(e.target.value) })}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+                />
+              </div>
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="অবস্থা">
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              >
+                <option value="draft">খসড়া</option>
+                <option value="published">প্রকাশিত</option>
+                <option value="archived">সংরক্ষিত</option>
+              </select>
+            </Field>
+            <Field label="সময়সীমা (সেকেন্ড) — ০ হলে কোনো সীমা নেই">
+              <input
+                type="number"
+                min={0}
+                max={3600}
+                step={10}
+                value={form.time_limit_seconds}
+                onChange={(e) => setForm({ ...form, time_limit_seconds: Number(e.target.value) })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={savingSettings}
+              className="bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg font-medium bengali-text inline-flex items-center gap-2 disabled:opacity-60"
+            >
+              {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              সেটিংস সংরক্ষণ
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-bold text-gray-900 bengali-text">প্রশ্ন পুনঃনির্মাণ</h2>
+            <p className="text-sm text-gray-500 bengali-text">
+              একই পাঠ্য থেকে নতুনভাবে প্রশ্ন তৈরি হবে। পুরনো প্রশ্ন প্রতিস্থাপিত হবে।
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={15}
+              value={regenCount}
+              onChange={(e) => setRegenCount(Number(e.target.value))}
+              className="w-20 px-3 py-2 rounded-lg border border-gray-300 bengali-text"
+            />
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium bengali-text inline-flex items-center gap-2 disabled:opacity-60"
+            >
+              {regenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              পুনরায় তৈরি
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 className="font-bold text-gray-900 bengali-text mb-3">প্রশ্নসমূহ</h2>
+        <p className="text-xs text-gray-500 mb-3 bengali-text">
+          কোনো প্রশ্ন ভুল হলে পেন্সিল আইকনে চাপ দিয়ে শুধু সেই প্রশ্নটাই ঠিক করুন — বাকিগুলো অপরিবর্তিত থাকবে।
+        </p>
+        {questions.length === 0 ? (
+          <p className="text-sm text-gray-500 bengali-text">কোনো প্রশ্ন নেই।</p>
+        ) : (
+          <ol className="space-y-4">
+            {questions.map((q) => (
+              <EditableQuestion
+                key={q.id}
+                question={q}
+                onSaved={(updated) =>
+                  setQuestions((prev) =>
+                    prev.map((other) => (other.id === updated.id ? { ...other, ...updated } : other))
+                  )
+                }
+              />
+            ))}
+          </ol>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <h2 className="font-bold text-gray-900 bengali-text mb-2">পাঠ্য উপাদান</h2>
+        <pre className="whitespace-pre-wrap text-sm text-gray-700 bengali-text bg-gray-50 border border-gray-100 rounded-lg p-4 max-h-72 overflow-y-auto">
+{quiz.source_material}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium text-gray-700 bengali-text">{label}</span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+function EditableQuestion({
+  question,
+  onSaved,
+}: {
+  question: AdminQuizQuestion;
+  onSaved: (updated: AdminQuizQuestion) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({
+    question_text: question.question_text,
+    options: [...question.options] as string[],
+    correct_index: question.correct_index,
+    explanation: question.explanation || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startEdit = () => {
+    setDraft({
+      question_text: question.question_text,
+      options: [...question.options],
+      correct_index: question.correct_index,
+      explanation: question.explanation || '',
+    });
+    setError(null);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    if (!draft.question_text.trim()) {
+      setError('প্রশ্ন টেক্সট প্রয়োজন');
+      return;
+    }
+    if (draft.options.some((o) => !o.trim())) {
+      setError('চারটি অপশনই পূরণ করুন');
+      return;
+    }
+    if (!Number.isInteger(draft.correct_index) || draft.correct_index < 0 || draft.correct_index > 3) {
+      setError('সঠিক উত্তর নির্বাচন করুন');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await api.quizzes.admin.updateQuestion(question.id, {
+        question_text: draft.question_text.trim(),
+        options: draft.options.map((o) => o.trim()),
+        correct_index: draft.correct_index,
+        explanation: draft.explanation.trim() || null,
+      });
+      if (res?.success) {
+        onSaved({
+          ...question,
+          question_text: res.data.question_text,
+          options: res.data.options,
+          correct_index: res.data.correct_index,
+          explanation: res.data.explanation,
+        });
+        setEditing(false);
+      } else {
+        setError(res?.error || 'সংরক্ষণ ব্যর্থ');
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'সংরক্ষণ ব্যর্থ');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <li className="border border-gray-100 rounded-xl p-4">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-medium text-gray-900 bengali-text flex-1">
+            {toBengaliNumber(question.position + 1)}. {question.question_text}
+          </p>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="text-xs px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600 inline-flex items-center gap-1 bengali-text shrink-0"
+          >
+            <Edit3 className="w-3 h-3" /> সম্পাদনা
+          </button>
+        </div>
+        <ul className="mt-2 space-y-1 text-sm">
+          {question.options.map((opt, idx) => {
+            const isCorrect = idx === question.correct_index;
+            return (
+              <li
+                key={idx}
+                className={`bengali-text ${isCorrect ? 'text-emerald-700 font-semibold' : 'text-gray-700'}`}
+              >
+                {isCorrect ? <CheckCircle2 className="w-4 h-4 inline-block mr-1" /> : '•'} {opt}
+              </li>
+            );
+          })}
+        </ul>
+        {question.explanation && (
+          <p className="mt-2 text-sm text-gray-600 bengali-text">
+            <span className="font-medium text-gray-800">ব্যাখ্যা:</span> {question.explanation}
+          </p>
+        )}
+      </li>
+    );
+  }
+
+  return (
+    <li className="border border-primary-200 bg-primary-50/40 rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-primary-700 bengali-text">
+          প্রশ্ন {toBengaliNumber(question.position + 1)} সম্পাদনা
+        </span>
+        <button
+          type="button"
+          onClick={cancelEdit}
+          className="text-gray-400 hover:text-gray-700"
+          aria-label="বাতিল"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <textarea
+        value={draft.question_text}
+        onChange={(e) => setDraft({ ...draft, question_text: e.target.value })}
+        rows={3}
+        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+      />
+      <div className="space-y-2">
+        {draft.options.map((opt, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            <label className="inline-flex items-center gap-2 shrink-0">
+              <input
+                type="radio"
+                name={`correct-${question.id}`}
+                checked={draft.correct_index === idx}
+                onChange={() => setDraft({ ...draft, correct_index: idx })}
+                className="accent-emerald-600"
+                aria-label="সঠিক উত্তর হিসেবে সেট করুন"
+              />
+              <span className="text-sm text-gray-700 bengali-text w-8">
+                {String.fromCharCode(0x0995 + idx)}.
+              </span>
+            </label>
+            <input
+              type="text"
+              value={opt}
+              onChange={(e) => {
+                const next = [...draft.options];
+                next[idx] = e.target.value;
+                setDraft({ ...draft, options: next });
+              }}
+              className={`flex-1 px-3 py-2 rounded-lg border ${
+                draft.correct_index === idx
+                  ? 'border-emerald-300 bg-emerald-50/50'
+                  : 'border-gray-300'
+              } focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text`}
+            />
+          </div>
+        ))}
+      </div>
+      <Field label="ব্যাখ্যা (ঐচ্ছিক)">
+        <textarea
+          value={draft.explanation}
+          onChange={(e) => setDraft({ ...draft, explanation: e.target.value })}
+          rows={2}
+          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+        />
+      </Field>
+      {error && (
+        <p className="text-sm text-red-600 bengali-text">{error}</p>
+      )}
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={cancelEdit}
+          className="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium bengali-text"
+        >
+          বাতিল
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="px-3 py-1.5 rounded-md bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium bengali-text inline-flex items-center gap-1 disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          সংরক্ষণ
+        </button>
+      </div>
+    </li>
+  );
+}

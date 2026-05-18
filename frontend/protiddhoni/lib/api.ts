@@ -6,7 +6,7 @@
 
 import { getAuthToken } from './auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 const getClientSessionId = (): string | null => {
     if (typeof window === 'undefined') {
@@ -638,16 +638,130 @@ export const api = {
         checkPurchase: async (contentId: string) => {
             return makeAuthRequest(`${API_URL}/api/purchases/check/${contentId}`);
         },
-        
+
         purchaseContent: async (contentId: string, amount: number) => {
             return makeAuthRequest(`${API_URL}/api/purchases/${contentId}`, {
                 method: 'POST',
                 body: JSON.stringify({ amount })
             });
         },
-        
+
         getUserPurchases: async () => {
             return makeAuthRequest(`${API_URL}/api/purchases`);
+        }
+    },
+
+    // Quiz endpoints
+    quizzes: {
+        listPublished: async () => {
+            return makeAuthRequest(`${API_URL}/api/quizzes`);
+        },
+
+        getPreview: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/quizzes/${id}`);
+        },
+
+        start: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/quizzes/${id}/start`, {
+                method: 'POST'
+            });
+        },
+
+        submit: async (attemptId: string, payload: { answers: Array<{ question_id: string; selected_index: number }>; duration_ms?: number }) => {
+            return makeAuthRequest(`${API_URL}/api/quizzes/attempts/${attemptId}/submit`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+        },
+
+        getAttempt: async (attemptId: string) => {
+            return makeAuthRequest(`${API_URL}/api/quizzes/attempts/${attemptId}`);
+        },
+
+        myAttempts: async () => {
+            return makeAuthRequest(`${API_URL}/api/quizzes/me/attempts`);
+        },
+
+        globalLeaderboard: async (limit: number = 50) => {
+            const response = await fetch(`${API_URL}/api/quizzes/leaderboard?limit=${limit}`);
+            return handleResponse(response);
+        },
+
+        quizLeaderboard: async (id: string, limit: number = 25) => {
+            const response = await fetch(`${API_URL}/api/quizzes/${id}/leaderboard?limit=${limit}`);
+            return handleResponse(response);
+        },
+
+        admin: {
+            listAll: async () => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/all`);
+            },
+            get: async (id: string) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}`);
+            },
+            create: async (data: {
+                title: string;
+                description?: string;
+                source_material: string;
+                difficulty?: 'easy' | 'medium' | 'hard';
+                entry_cost?: number;
+                reward_per_correct?: number;
+                question_count?: number;
+                language?: 'bn' | 'en';
+            }) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+            },
+            createFromContent: async (
+                contentId: string,
+                data?: {
+                    title?: string;
+                    description?: string;
+                    difficulty?: 'easy' | 'medium' | 'hard';
+                    entry_cost?: number;
+                    reward_per_correct?: number;
+                    question_count?: number;
+                    language?: 'bn' | 'en';
+                }
+            ) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/from-content/${contentId}`, {
+                    method: 'POST',
+                    body: JSON.stringify(data || {})
+                });
+            },
+            update: async (id: string, data: Record<string, unknown>) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(data)
+                });
+            },
+            updateQuestion: async (
+                questionId: string,
+                data: {
+                    question_text?: string;
+                    options?: string[];
+                    correct_index?: number;
+                    explanation?: string | null;
+                }
+            ) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/questions/${questionId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(data)
+                });
+            },
+            regenerate: async (id: string, data?: { question_count?: number; language?: 'bn' | 'en' }) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}/regenerate`, {
+                    method: 'POST',
+                    body: JSON.stringify(data || {})
+                });
+            },
+            remove: async (id: string) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}`, {
+                    method: 'DELETE'
+                });
+            }
         }
     }
 };
