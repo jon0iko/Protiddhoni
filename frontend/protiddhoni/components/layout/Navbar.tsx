@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield, ArrowRight, Coins } from 'lucide-react';
+import { Menu, X, Book, Edit3, User, Search, LogOut, ChevronDown, PlusCircle, BookOpen, FileText, Shield, ArrowRight, Coins, Brain, History } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 import { api } from '@/lib/api';
@@ -134,6 +134,9 @@ export default function Navbar() {
             </Link>
             <Link href="/write" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors">
               লেখালেখি
+            </Link>
+            <Link href="/quizzes" className="text-gray-700 hover:text-primary-600 font-medium bengali-text transition-colors inline-flex items-center gap-1">
+              <Brain className="w-4 h-4" /> কুইজ
             </Link>
           </div>
 
@@ -306,13 +309,21 @@ export default function Navbar() {
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
                       {user?.is_admin && (
                         <>
-                          <Link 
-                            href="/admin/review" 
+                          <Link
+                            href="/admin/review"
                             className="flex items-center space-x-2 px-4 py-2 text-sm text-accent-600 hover:bg-accent-50 bengali-text font-medium"
                             onClick={() => setShowUserMenu(false)}
                           >
                             <Shield className="w-4 h-4" />
                             <span>পর্যালোচনা</span>
+                          </Link>
+                          <Link
+                            href="/admin/quizzes"
+                            className="flex items-center space-x-2 px-4 py-2 text-sm text-accent-600 hover:bg-accent-50 bengali-text font-medium"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <Brain className="w-4 h-4" />
+                            <span>কুইজ ব্যবস্থাপনা</span>
                           </Link>
                           <hr className="border-gray-200 my-1" />
                         </>
@@ -327,12 +338,20 @@ export default function Navbar() {
                           <span>আমার ওয়ালেট</span>
                         </div>
                       </Link>
-                      <Link 
-                        href="/my-stories" 
+                      <Link
+                        href="/my-stories"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
                         onClick={() => setShowUserMenu(false)}
                       >
                         আমার গল্প
+                      </Link>
+                      <Link
+                        href="/quizzes/me"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 bengali-text"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <History className="w-4 h-4 text-primary-600" />
+                        কুইজ ইতিহাস
                       </Link>
                       <Link 
                         href="/bookmarks" 
@@ -478,6 +497,12 @@ export default function Navbar() {
               </Link>
               <Link href="/write/new" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
                 লেখালেখি
+              </Link>
+              <Link href="/quizzes" className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
+                <Brain className="w-4 h-4" /> কুইজ
+              </Link>
+              <Link href="/quizzes/me" className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
+                <History className="w-4 h-4" /> কুইজ ইতিহাস
               </Link>
               <Link href="/authors" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md bengali-text">
                 লেখক
