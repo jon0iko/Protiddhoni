@@ -1,0 +1,63 @@
+name: Deploy Protiddhoni to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0' 
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.8.0
+
+      - name: Build Frontend
+        working-directory: ./frontend/protiddhoni
+        run: |
+          pnpm install
+          pnpm run build
+          tar -czf next_build.tar.gz .next
+
+      - name: Copy build to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "frontend/protiddhoni/next_build.tar.gz"
+          target: "/home/azureuser/Protiddhoni/frontend/protiddhoni"
+
+      - name: Execute Deployment Scripts on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/azureuser/Protiddhoni
+            
+            git pull origin main
+            
+            cd backend
+            pnpm install
+            pm2 restart protiddhoni-api
+            
+            cd ../frontend/protiddhoni
+            pnpm install
+            tar -xzf next_build.tar.gz
+            rm next_build.tar.gz
+            pm2 restart protiddhoni-app
+            
+            pm2 save
