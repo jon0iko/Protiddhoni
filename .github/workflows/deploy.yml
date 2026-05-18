@@ -25,6 +25,8 @@ jobs:
 
       - name: Build Frontend
         working-directory: ./frontend/protiddhoni
+        env:
+          NEXT_PUBLIC_API_URL: "https://protiddhoni.farefin.com/api"
         run: |
           pnpm install --no-frozen-lockfile
           pnpm run build
