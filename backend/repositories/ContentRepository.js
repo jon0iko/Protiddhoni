@@ -242,6 +242,72 @@ class ContentRepository {
         return data;
     }
 
+    async incrementViewCountWithSession(contentId, sessionKey, viewerKey) {
+        const { data, error } = await db.getClient()
+            .rpc('increment_view_count_once', {
+                p_content_id: contentId,
+                p_session_key: sessionKey,
+                p_viewer_key: viewerKey
+            });
+
+        if (!error) {
+            console.log('[ViewCount] RPC increment_view_count_once result:', {
+                contentId,
+                sessionKeyPreview: sessionKey?.slice(0, 12),
+                viewerKeyPreview: viewerKey?.slice(0, 12),
+                counted: data === true
+            });
+            return data;
+        }
+
+        console.error('[ViewCount] RPC increment_view_count_once failed:', {
+            contentId,
+            sessionKeyPreview: sessionKey?.slice(0, 12),
+            viewerKeyPreview: viewerKey?.slice(0, 12),
+            message: error.message,
+            code: error.code
+        });
+
+        // Safe fallback path: dedupe via table-level unique constraint.
+        const { data: insertedRows, error: insertError } = await db.getClient()
+            .from('content_view_sessions')
+            .upsert(
+                {
+                    content_id: contentId,
+                    session_key: sessionKey,
+                    viewer_key: viewerKey
+                },
+                {
+                    onConflict: 'content_id,session_key',
+                    ignoreDuplicates: true
+                }
+            )
+            .select('id');
+
+        if (insertError) {
+            console.error('[ViewCount] Table fallback failed, skipping increment:', {
+                contentId,
+                message: insertError.message,
+                code: insertError.code
+            });
+            return false;
+        }
+
+        const counted = Array.isArray(insertedRows) && insertedRows.length > 0;
+        if (counted) {
+            await this.incrementViewCount(contentId);
+        }
+
+        console.log('[ViewCount] Table fallback result:', {
+            contentId,
+            sessionKeyPreview: sessionKey?.slice(0, 12),
+            viewerKeyPreview: viewerKey?.slice(0, 12),
+            counted
+        });
+
+        return counted;
+    }
+
     async delete(id) {
         const { error } = await db.getClient()
             .from('content')

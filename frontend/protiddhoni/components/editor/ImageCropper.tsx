@@ -123,14 +123,15 @@ export default function ImageCropper({
       // Check minimum dimensions
       if (img.width < 400 || img.height < 300) {
         setError(
-          `সতর্কতা: ছবির আকার খুব ছোট (${img.width}x${img.height}px)। সর্বনিম্ন ৪০০x৩০০px সুপারিশ করা হয়।`
+          `সতর্কতা: ছবির আকার খুব ছোট (${img.width}x${img.height}px)। ভালো মানের জন্য সর্বনিম্ন ৪০০x৩০০px সুপারিশ করা হয়। তবুও চালিয়ে যেতে পারেন।`
         );
         // Allow to proceed with warning
       }
 
       // Check file size (5MB limit)
       if (croppedFile.size > 5 * 1024 * 1024) {
-        setError('ছবির আকার ৫MB এর বেশি। দয়া করে ছোট এলাকা নির্বাচন করুন।');
+        const fileSizeMB = (croppedFile.size / (1024 * 1024)).toFixed(2);
+        setError(`ক্রপ করা ছবির আকার ${fileSizeMB}MB। সর্বোচ্চ ৫MB অনুমোদিত। দয়া করে ছোট এলাকা নির্বাচন করুন।`);
         setIsProcessing(false);
         return;
       }

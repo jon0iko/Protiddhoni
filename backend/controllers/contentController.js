@@ -11,6 +11,19 @@ const { updateSlugFromTitle } = require('../utils/slugify');
 const ContentQueryBuilder = require('../utils/ContentQueryBuilder');
 const { ContentAccess, PaywallDecorator } = require('../middleware/contentAccessDecorator');
 const db = require('../config/database');
+const crypto = require('crypto');
+
+const getViewerKey = (req) => {
+    if (req.user?.id) {
+        return `u:${req.user.id}`;
+    }
+
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip || 'unknown-ip';
+    const userAgent = req.get('user-agent') || 'unknown-ua';
+    const raw = `${ip}|${userAgent}`;
+    const hash = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 32);
+    return `a:${hash}`;
+};
 
 exports.advancedSearch = async (req, res) => {
     try {
@@ -74,8 +87,24 @@ exports.getById = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Content not found' });
         }
 
-        // Increment view count
-        await ContentRepository.incrementViewCount(req.params.id);
+        // Increment view count with session dedupe
+        const sessionHeader = req.headers['x-client-session-id'];
+        const sessionKey = Array.isArray(sessionHeader) ? sessionHeader[0] : sessionHeader;
+        const viewerKey = getViewerKey(req);
+        const effectiveSessionKey = sessionKey || `fallback:${viewerKey}`;
+
+        const counted = await ContentRepository.incrementViewCountWithSession(
+            req.params.id,
+            effectiveSessionKey,
+            viewerKey
+        );
+
+        console.log('[ViewCount] getById increment decision:', {
+            contentId: req.params.id,
+            sessionKeyPreview: effectiveSessionKey.slice(0, 12),
+            viewerKeyPreview: viewerKey.slice(0, 12),
+            counted: counted === true
+        });
 
         // Get review stats
         const stats = await ContentRepository.getStats(req.params.id);
@@ -141,7 +170,24 @@ exports.getBySlug = async (req, res) => {
 
         // Increment view count for published content only
         if (content.is_published) {
-            await ContentRepository.incrementViewCount(content.id);
+            const sessionHeader = req.headers['x-client-session-id'];
+            const sessionKey = Array.isArray(sessionHeader) ? sessionHeader[0] : sessionHeader;
+            const viewerKey = getViewerKey(req);
+            const effectiveSessionKey = sessionKey || `fallback:${viewerKey}`;
+
+            const counted = await ContentRepository.incrementViewCountWithSession(
+                content.id,
+                effectiveSessionKey,
+                viewerKey
+            );
+
+            console.log('[ViewCount] getBySlug increment decision:', {
+                slug: slugOrId,
+                contentId: content.id,
+                sessionKeyPreview: effectiveSessionKey.slice(0, 12),
+                viewerKeyPreview: viewerKey.slice(0, 12),
+                counted: counted === true
+            });
         }
 
         // Get review stats

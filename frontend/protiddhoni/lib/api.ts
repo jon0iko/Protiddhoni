@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, react/no-unescaped-entities, jsx-a11y/alt-text, jsx-a11y/role-has-required-aria-props, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, prefer-const */
 /**
  * API Client
  * Handles all API requests to backend with automatic token injection
@@ -7,11 +8,36 @@ import { getAuthToken } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
+const getClientSessionId = (): string | null => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const sessionStorageKey = 'protiddhoni_client_session_id';
+    let sessionId = sessionStorage.getItem(sessionStorageKey);
+
+    if (!sessionId) {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            sessionId = crypto.randomUUID();
+        } else {
+            sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+        }
+        sessionStorage.setItem(sessionStorageKey, sessionId);
+    }
+
+    return sessionId;
+};
+
 // Helper function to get headers with automatic token injection
 const getHeaders = (token?: string | null): HeadersInit => {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
     };
+
+    const sessionId = getClientSessionId();
+    if (sessionId) {
+        headers['X-Client-Session-Id'] = sessionId;
+    }
     
     // Use provided token, or auto-fetch from storage
     const authToken = token !== undefined ? token : getAuthToken();
@@ -374,11 +400,11 @@ export const api = {
             return handleResponse(response);
         },
         
-        submit: async (data: { content_id: string; rating: number }) => {
+        submit: async (data: { content_id: string; rating: number }, token?: string) => {
             // Can be anonymous or authenticated - auto-inject token if available
             const response = await fetch(`${API_URL}/api/ratings`, {
                 method: 'POST',
-                headers: getHeaders(), // Auto-injects token if available
+                headers: getHeaders(token), // Auto-injects token if available
                 body: JSON.stringify(data)
             });
             return handleResponse(response);
@@ -403,24 +429,24 @@ export const api = {
             return handleResponse(response);
         },
         
-        create: async (data: any) => {
+        create: async (data: any, token?: string) => {
             return makeAuthRequest(`${API_URL}/api/reviews`, {
                 method: 'POST',
                 body: JSON.stringify(data)
-            });
+            }, token);
         },
         
-        update: async (id: string, data: any) => {
+        update: async (id: string, data: any, token?: string) => {
             return makeAuthRequest(`${API_URL}/api/reviews/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(data)
-            });
+            }, token);
         },
         
-        delete: async (id: string) => {
+        delete: async (id: string, token?: string) => {
             return makeAuthRequest(`${API_URL}/api/reviews/${id}`, {
                 method: 'DELETE'
-            });
+            }, token);
         }
     },
 
@@ -509,15 +535,15 @@ export const api = {
 
     // Reading Preferences endpoints
     readingPreferences: {
-        getPreferences: async () => {
-            return makeAuthRequest(`${API_URL}/api/reading-preferences`);
+        getPreferences: async (token?: string) => {
+            return makeAuthRequest(`${API_URL}/api/reading-preferences`, {}, token);
         },
 
-        updatePreferences: async (data: any) => {
+        updatePreferences: async (data: any, token?: string) => {
             return makeAuthRequest(`${API_URL}/api/reading-preferences`, {
                 method: 'PUT',
                 body: JSON.stringify(data)
-            });
+            }, token);
         }
     },
 

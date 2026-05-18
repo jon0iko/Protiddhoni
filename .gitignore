@@ -52,6 +52,7 @@ logs/
 .vscode/
 .idea/
 *.sw?
+.kiro/
 
 # Custom
 /Lab mats
