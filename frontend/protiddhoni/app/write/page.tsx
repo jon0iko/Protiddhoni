@@ -332,7 +332,7 @@ export default function WritingHubPage() {
                 </button>
                 
                 <button
-                  onClick={() => router.push('/profile')}
+                  onClick={() => router.push(user?.username ? `/profile/${user.username}` : '/login')}
                   className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <span className="text-sm text-gray-700 bengali-text">প্রোফাইল</span>

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { CreditCard, TrendingUp, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PayoutData {
   payoutable: number;
@@ -18,6 +19,7 @@ export default function PayoutSection() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { refreshBalance } = useAuth();
 
   useEffect(() => {
     loadPayoutData();
@@ -52,8 +54,10 @@ export default function PayoutSection() {
 
       if (response.success) {
         setSuccess(response.message || 'উত্তোলন সফল হয়েছে!');
-        // Reload data
-        setTimeout(loadPayoutData, 1500);
+        // Reflect the withdrawal in the global wallet balance (navbar + wallet
+        // header) right away, and refresh the payout breakdown.
+        await refreshBalance();
+        await loadPayoutData();
       } else {
         setError(response.error || 'উত্তোলন ব্যর্থ হয়েছে');
       }
