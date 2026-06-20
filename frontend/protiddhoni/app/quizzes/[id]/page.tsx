@@ -86,6 +86,8 @@ export default function PlayQuizPage() {
   const [timeLimitSeconds, setTimeLimitSeconds] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [expired, setExpired] = useState(false);
+  const expiredRef = useRef(false); // ensures the countdown auto-submits exactly once
+  const submittingRef = useRef(false); // guards against duplicate/overlapping submits
 
   useEffect(() => {
     if (!quizId) return;
@@ -146,6 +148,8 @@ export default function PlayQuizPage() {
       setTimeLimitSeconds(limit);
       setRemainingSeconds(limit);
       setExpired(false);
+      expiredRef.current = false;
+      submittingRef.current = false;
       await refreshBalance();
     } catch (err: any) {
       const status = err?.status;
@@ -166,19 +170,27 @@ export default function PlayQuizPage() {
     if (phase !== 'playing' || !timeLimitSeconds || startedAtRef.current == null) {
       return;
     }
+    let handle: number | undefined;
     const tick = () => {
       const elapsedSec = Math.floor((Date.now() - (startedAtRef.current ?? Date.now())) / 1000);
       const remaining = Math.max(0, timeLimitSeconds - elapsedSec);
       setRemainingSeconds(remaining);
       if (remaining <= 0) {
-        setExpired(true);
-        // Auto-submit whatever has been answered so the server can finalize.
-        handleSubmit({ auto: true });
+        // Stop the ticker right away so it can't keep firing submit requests,
+        // then auto-submit whatever has been answered exactly once.
+        if (handle !== undefined) window.clearInterval(handle);
+        if (!expiredRef.current) {
+          expiredRef.current = true;
+          setExpired(true);
+          handleSubmit({ auto: true });
+        }
       }
     };
     tick();
-    const handle = window.setInterval(tick, 1000);
-    return () => window.clearInterval(handle);
+    handle = window.setInterval(tick, 1000);
+    return () => {
+      if (handle !== undefined) window.clearInterval(handle);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, timeLimitSeconds]);
 
@@ -189,12 +201,16 @@ export default function PlayQuizPage() {
       setError('সব প্রশ্নের উত্তর দিন');
       return;
     }
+    // Submit at most once — the countdown tick and the manual button must never
+    // fire overlapping or repeated submissions.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     setError(null);
     try {
       const duration = startedAtRef.current ? Date.now() - startedAtRef.current : undefined;
       // On auto-submit (timer expired), only send the questions that were
-      // actually answered. The server will treat all unanswered as wrong.
+      // actually answered. The server treats everything else as unanswered.
       const answeredQuestions = questions.filter((q) => answers[q.id] !== undefined);
       const payload = {
         answers: (isAuto ? answeredQuestions : questions).map((q) => ({
@@ -206,6 +222,10 @@ export default function PlayQuizPage() {
       const res = await api.quizzes.submit(attemptId, payload);
       if (!res?.success) {
         setError(res?.error || 'উত্তর জমা দেওয়া যায়নি');
+        // A timed-out attempt must still land on the result page; a manual
+        // submit can be retried.
+        if (isAuto) setPhase('result');
+        else submittingRef.current = false;
         return;
       }
       setResult(res.data);
@@ -221,18 +241,26 @@ export default function PlayQuizPage() {
       setPhase('result');
       await refreshBalance();
     } catch (err: any) {
-      // 408 = time limit blown server-side; finalize result anyway.
-      if (err?.status === 408) {
-        setExpired(true);
-        setExistingAttempt((prev) =>
-          prev
-            ? { ...prev, status: 'completed', score: 0, correct_answers: 0, kori_earned: 0 }
-            : prev
-        );
+      // 409 = the server already finalized this attempt (e.g. a duplicate
+      // submit); 408 = legacy hard timeout. In both cases load the stored
+      // result so the player still sees their graded answers.
+      if (err?.status === 409 || err?.status === 408) {
         try {
           const review = await api.quizzes.getAttempt(attemptId);
           if (review?.success) {
             setReviewFromHistory(review.data.review || []);
+            const a = review.data.attempt;
+            if (a) {
+              setExistingAttempt({
+                id: a.id,
+                status: 'completed',
+                score: a.score ?? 0,
+                correct_answers: a.correct_answers ?? 0,
+                kori_spent: Number(a.kori_spent ?? 0),
+                kori_earned: a.kori_earned ?? 0,
+                completed_at: a.completed_at,
+              });
+            }
           }
         } catch (_) {
           /* ignore */
@@ -241,6 +269,9 @@ export default function PlayQuizPage() {
         await refreshBalance();
       } else {
         setError(err?.response?.data?.error || err?.message || 'উত্তর জমা দেওয়া যায়নি');
+        // Don't strand the player mid-quiz on a timed-out auto-submit.
+        if (isAuto) setPhase('result');
+        else submittingRef.current = false;
       }
     } finally {
       setBusy(false);
@@ -472,7 +503,7 @@ export default function PlayQuizPage() {
       {/* Result */}
       {phase === 'result' && expired && (
         <div className="mt-6 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl px-5 py-4 bengali-text">
-          ⏱️ সময় শেষ হয়ে গিয়েছিল — তাই কোনো কড়ি পাওয়া যায়নি।
+          ⏱️ সময় শেষ হয়ে গিয়েছিল — আপনার দেওয়া উত্তরগুলো জমা নেওয়া হয়েছে।
         </div>
       )}
       {phase === 'result' && (

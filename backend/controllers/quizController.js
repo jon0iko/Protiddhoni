@@ -598,37 +598,26 @@ exports.submitAttempt = async (req, res) => {
             return res.status(409).json({ success: false, error: 'Attempt already submitted' });
         }
 
-        // ---- Time-limit enforcement ----
+        // ---- Time-limit awareness (non-destructive) ----
+        // We still grade whatever answers the player managed to submit before the
+        // clock ran out, so the answers they got right are always recorded and
+        // shown in the review. A submission that lands beyond the grace window is
+        // flagged `expired` and simply earns no Kori (anti-cheat) — it no longer
+        // wipes the result.
+        let expired = false;
+        let elapsedMs = null;
         const timeLimit = Number(attempt.quiz?.time_limit_seconds);
         if (Number.isFinite(timeLimit) && timeLimit > 0) {
             const startedMs = new Date(attempt.started_at).getTime();
             const elapsedSeconds = (Date.now() - startedMs) / 1000;
+            elapsedMs = Math.round(elapsedSeconds * 1000);
             if (elapsedSeconds > timeLimit + SUBMIT_GRACE_SECONDS) {
-                // Lock the attempt so the user can't keep retrying with stale answers
-                await QuizRepository.updateAttempt(attempt.id, {
-                    score: 0,
-                    correct_answers: 0,
-                    kori_earned: 0,
-                    duration_ms: Math.round(elapsedSeconds * 1000),
-                    status: 'completed',
-                    completed_at: new Date().toISOString()
-                });
-                return res.status(408).json({
-                    success: false,
-                    error: 'সময় শেষ — উত্তর গৃহীত হয়নি',
-                    data: {
-                        expired: true,
-                        time_limit_seconds: timeLimit,
-                        elapsed_seconds: Math.round(elapsedSeconds)
-                    }
-                });
+                expired = true;
             }
         }
 
         const { answers, duration_ms } = req.body;
-        if (!Array.isArray(answers) || !answers.length) {
-            return res.status(400).json({ success: false, error: 'Answers array is required' });
-        }
+        const submittedAnswers = Array.isArray(answers) ? answers : [];
 
         const questions = await QuizRepository.findQuestionsByQuizId(attempt.quiz_id, { includeAnswers: true });
         const questionMap = new Map(questions.map((q) => [q.id, q]));
@@ -639,7 +628,7 @@ exports.submitAttempt = async (req, res) => {
 
         const answerRows = [];
         let correctCount = 0;
-        for (const submitted of answers) {
+        for (const submitted of submittedAnswers) {
             const question = questionMap.get(submitted.question_id);
             if (!question) continue;
             const optionsLength = Array.isArray(question.options) ? question.options.length : 4;
@@ -664,14 +653,14 @@ exports.submitAttempt = async (req, res) => {
             });
         }
 
-        if (!answerRows.length) {
-            return res.status(400).json({ success: false, error: 'No valid answers submitted' });
+        if (answerRows.length) {
+            await QuizRepository.insertAnswers(answerRows);
         }
 
-        await QuizRepository.insertAnswers(answerRows);
-
+        // No Kori for a submission that arrived after the time limit; otherwise
+        // reward each correct answer as usual.
         const rewardPerCorrect = Number(attempt.quiz?.reward_per_correct || 0);
-        const totalReward = Math.round(correctCount * rewardPerCorrect * 100) / 100;
+        const totalReward = expired ? 0 : Math.round(correctCount * rewardPerCorrect * 100) / 100;
 
         let newBalance = null;
         if (totalReward > 0) {
@@ -681,11 +670,15 @@ exports.submitAttempt = async (req, res) => {
             newBalance = wallet ? Number(wallet.balance) : null;
         }
 
+        const resolvedDuration = Number.isFinite(Number(duration_ms))
+            ? Number(duration_ms)
+            : (elapsedMs != null ? elapsedMs : null);
+
         const completed = await QuizRepository.updateAttempt(attempt.id, {
             score: correctCount,
             correct_answers: correctCount,
             kori_earned: totalReward,
-            duration_ms: Number.isFinite(Number(duration_ms)) ? Number(duration_ms) : null,
+            duration_ms: resolvedDuration,
             status: 'completed',
             completed_at: new Date().toISOString()
         });
@@ -716,6 +709,7 @@ exports.submitAttempt = async (req, res) => {
                 total_questions: questions.length,
                 kori_earned: totalReward,
                 balance_after: newBalance,
+                expired,
                 review
             }
         });
