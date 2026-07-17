@@ -21,16 +21,14 @@ const mockDb = {
                     }))
                 };
             }
-            if (table === 'purchases') {
+            if (table === 'content_purchases') {
                 return {
                     select: jest.fn(() => ({
                         eq: jest.fn(() => ({
                             eq: jest.fn(() => ({
-                                eq: jest.fn(() => ({
-                                    single: jest.fn(() => Promise.resolve({
-                                        data: { id: 'purchase-123' },
-                                        error: null
-                                    }))
+                                single: jest.fn(() => Promise.resolve({
+                                    data: { id: 'purchase-123' },
+                                    error: null
                                 }))
                             }))
                         }))
@@ -131,16 +129,14 @@ describe('ContentAccessDecorator - Decorator Pattern', () => {
                                 }))
                             };
                         }
-                        if (table === 'purchases') {
+                        if (table === 'content_purchases') {
                             return {
                                 select: jest.fn(() => ({
                                     eq: jest.fn(() => ({
                                         eq: jest.fn(() => ({
-                                            eq: jest.fn(() => ({
-                                                single: jest.fn(() => Promise.resolve({
-                                                    data: null,
-                                                    error: null
-                                                }))
+                                            single: jest.fn(() => Promise.resolve({
+                                                data: null,
+                                                error: null
                                             }))
                                         }))
                                     }))
@@ -157,10 +153,10 @@ describe('ContentAccessDecorator - Decorator Pattern', () => {
             };
             
             const paywallDecorator = new PaywallDecorator(baseAccess, mockDbNoPurchase);
-            const result = await paywallDecorator.checkAccess('user-456', 'premium-content');
+            const result = await paywallDecorator.checkAccess({ id: 'user-456' }, 'premium-content');
 
             expect(result.granted).toBe(false);
-            expect(result.reason).toBe('premium_content');
+            expect(result.reason).toBe('premium_content_not_purchased');
             expect(result.message).toContain('requires purchase');
         });
 
@@ -169,7 +165,7 @@ describe('ContentAccessDecorator - Decorator Pattern', () => {
             const paywallDecorator = new PaywallDecorator(baseAccess, mockDb);
 
             // Mock shows purchase exists
-            const result = await paywallDecorator.checkAccess('user-123', 'premium-content');
+            const result = await paywallDecorator.checkAccess({ id: 'user-123' }, 'premium-content');
 
             expect(result.granted).toBe(true);
         });
@@ -283,11 +279,9 @@ describe('ContentAccessDecorator - Decorator Pattern', () => {
                             select: jest.fn(() => ({
                                 eq: jest.fn(() => ({
                                     eq: jest.fn(() => ({
-                                        eq: jest.fn(() => ({
-                                            single: jest.fn(() => Promise.resolve({
-                                                data: null,
-                                                error: null
-                                            }))
+                                        single: jest.fn(() => Promise.resolve({
+                                            data: null,
+                                            error: null
                                         }))
                                     }))
                                 }))
@@ -298,10 +292,10 @@ describe('ContentAccessDecorator - Decorator Pattern', () => {
             };
             
             const decorator = new PaywallDecorator(baseAccess, mockDbNoPurchase);
-            const result = await decorator.checkAccess('non-paying-user', 'premium-story');
+            const result = await decorator.checkAccess({ id: 'non-paying-user' }, 'premium-story');
 
             expect(result.granted).toBe(false);
-            expect(result.reason).toBe('premium_content');
+            expect(result.reason).toBe('premium_content_not_purchased');
             expect(result.message).toBeDefined();
         });
     });

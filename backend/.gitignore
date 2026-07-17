@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-pnpm-lock.yaml
+# pnpm-lock.yaml is committed on purpose (CI dependency caching needs it); keep npm/yarn lockfiles out
 package-lock.json
 yarn.lock
 

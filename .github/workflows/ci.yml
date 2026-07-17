@@ -1,0 +1,91 @@
+name: CI
+
+# Quality gate for pull requests into main. This does NOT deploy — deploy.yml
+# still owns deployment on push to main. To make this an enforced gate, enable
+# branch protection on `main` and mark the "Backend" and "Frontend" checks as
+# required (Settings → Branches → Branch protection rules).
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same PR cancels in-flight runs for that ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.8.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run tests
+        # The test suite mocks the database; these placeholders just stop the
+        # Supabase singleton (config/database.js) from throwing at import time.
+        env:
+          NODE_ENV: test
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_KEY: test-service-key
+          SUPABASE_ANON_KEY: test-anon-key
+          JWT_SECRET: test-jwt-secret
+        run: pnpm test
+
+  frontend:
+    name: Frontend (build + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend/protiddhoni
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.8.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.11.0'
+          cache: pnpm
+          cache-dependency-path: frontend/protiddhoni/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build
+        # `next build` runs the TypeScript typecheck and ESLint, so this step is
+        # the type/lint gate as well as the build gate. Mirrors deploy.yml.
+        env:
+          NEXT_PUBLIC_API_URL: https://protiddhoni.farefin.com
+        run: pnpm run build
