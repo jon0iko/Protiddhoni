@@ -191,7 +191,7 @@ export default function AdminActionHistoryPage() {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/admin/moderation"
+            href="/admin/review"
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors bengali-text"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -201,7 +201,7 @@ export default function AdminActionHistoryPage() {
             <div className="p-2 bg-indigo-100 rounded-lg">
               <FileText className="w-6 h-6 text-indigo-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 bengali-text">অ্যাডমিন অ্যাকশন ইতিহাস</h1>
+            <h1 className="text-3xl font-bold text-gray-900 bengali-text">অ্যাডমিন ইতিহাস</h1>
           </div>
           <p className="text-gray-600 bengali-text">
             সমস্ত প্রশাসনিক পদক্ষেপের ইতিহাস — মোট {pagination.total}টি রেকর্ড
