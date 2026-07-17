@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { Loader2, CheckCircle, XCircle, Eye, Calendar, User as UserIcon, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Eye, Calendar, User as UserIcon, AlertCircle, History } from 'lucide-react';
 import Link from 'next/link';
 
 interface PendingContent {
@@ -139,16 +139,25 @@ export default function AdminReviewPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <AlertCircle className="w-6 h-6 text-purple-600" />
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <AlertCircle className="w-6 h-6 text-purple-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 bengali-text">পর্যালোচনা প্যানেল</h1>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 bengali-text">পর্যালোচনা প্যানেল</h1>
+            <p className="text-gray-600 bengali-text">
+              অপেক্ষমান রচনা: <span className="font-bold text-purple-600">{pendingContent.length}টি</span>
+            </p>
           </div>
-          <p className="text-gray-600 bengali-text">
-            অপেক্ষমান রচনা: <span className="font-bold text-purple-600">{pendingContent.length}টি</span>
-          </p>
+          <Link
+            href="/admin/review/history"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors bengali-text text-sm shadow-sm"
+          >
+            <History className="w-4 h-4 text-purple-600" />
+            <span>অ্যাকশন ইতিহাস</span>
+          </Link>
         </div>
 
         {/* Content List */}

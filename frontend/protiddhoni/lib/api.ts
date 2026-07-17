@@ -208,6 +208,26 @@ export const api = {
                 method: 'POST',
                 body: JSON.stringify({ reason })
             });
+        },
+
+        unpublish: async (id: string, reason?: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}/unpublish`, {
+                method: 'POST',
+                body: JSON.stringify({ reason })
+            });
+        },
+
+        republish: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/${id}/republish`, {
+                method: 'POST'
+            });
+        },
+
+        getAdminActionHistory: async (page?: number, limit?: number) => {
+            const params = new URLSearchParams();
+            if (page) params.set('page', String(page));
+            if (limit) params.set('limit', String(limit));
+            return makeAuthRequest(`${API_URL}/api/content/admin/action-history?${params}`);
         }
     },
     

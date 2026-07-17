@@ -5,7 +5,7 @@
  */
 
 import Link from 'next/link';
-import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle, EyeOff } from 'lucide-react';
 
 interface ContentCardProps {
     content?: any;
@@ -31,6 +31,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         slug,
         is_premium,
         isPremium,
+        is_published,
         view_count,
         views,
         published_at,
@@ -48,10 +49,70 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
     const displayCategory = category?.name || category;
     const isPremiumContent = is_premium || isPremium || false;
     const isSeriesContent = isSeries || false;
+    // Detect admin-unpublished content: status is approved but is_published is explicitly false
+    const isUnpublished = is_published === false && status === 'approved';
     
     // Determine the link based on content type
     const linkHref = isSeriesContent ? `/series/${slug}` : `/read/${slug}`;
     
+    // Render muted card for unpublished content (e.g. in bookmarks)
+    if (isUnpublished) {
+        return (
+            <div className="block h-full cursor-not-allowed">
+                <article className="bg-gray-100 rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full opacity-60">
+                    {/* Unpublished Banner */}
+                    <div className="bg-orange-50 border-b border-orange-200 px-4 py-3 flex items-center gap-2">
+                        <EyeOff className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                        <p className="text-sm font-medium text-orange-800 bengali-text">
+                            এই রচনাটি অপ্রকাশিত হয়েছে
+                        </p>
+                    </div>
+
+                    {/* Image Section (muted) */}
+                    <div className="relative h-48 flex-shrink-0 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                        {displayCoverImage ? (
+                            <img 
+                                src={displayCoverImage} 
+                                alt={title}
+                                className="w-full h-full object-cover grayscale"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-6xl text-gray-400 opacity-50 bengali-text">
+                                    {(displayCategory && displayCategory.includes('কবিতা')) ? '🎭' : '📖'}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="p-6 flex flex-col flex-grow">
+                        <h3 className="text-xl font-bold text-gray-500 mb-3 bengali-text line-clamp-2">
+                            {title}
+                        </h3>
+                        
+                        {excerpt && (
+                            <p className="text-gray-400 text-sm mb-4 line-clamp-3 bengali-text leading-relaxed">
+                                {excerpt}
+                            </p>
+                        )}
+                        
+                        <div className="mt-auto">
+                            <div className="flex items-center mb-4">
+                                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+                                    {displayAuthor.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500 bengali-text">{displayAuthor}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        );
+    }
+
     return (
         <Link href={linkHref} className="group block h-full">
             <article className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
