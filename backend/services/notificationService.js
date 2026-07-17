@@ -129,6 +129,63 @@ class NotificationService {
         }
     }
 
+    // Notify author that their content has been unpublished by admin
+    async notifyContentUnpublished(content) {
+        try {
+            const reasonSuffix = content.unpublish_reason
+                ? ` কারণ: ${content.unpublish_reason}`
+                : '';
+
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: content.author_id,
+                    type: 'content_unpublished',
+                    title: 'লেখা অপ্রকাশিত হয়েছে',
+                    message: `আপনার লেখা "${content.title}" অপ্রকাশিত করা হয়েছে।${reasonSuffix}`,
+                    related_entity_type: 'content',
+                    related_entity_id: content.id
+                });
+
+            // Push notification to author
+            await pushService.sendToUser(content.author_id, {
+                title: 'লেখা অপ্রকাশিত হয়েছে',
+                body: `আপনার লেখা "${content.title}" অপ্রকাশিত করা হয়েছে`,
+                url: `/profile`,
+                icon: '/icons/icon-192.png'
+            });
+        } catch (error) {
+            console.error('Error notifying content unpublished:', error);
+        }
+    }
+
+    // Notify author that their content has been republished by admin
+    async notifyContentRepublished(content) {
+        try {
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: content.author_id,
+                    type: 'content_republished',
+                    title: 'লেখা পুনরায় প্রকাশিত হয়েছে',
+                    message: `আপনার লেখা "${content.title}" পুনরায় প্রকাশিত হয়েছে`,
+                    related_entity_type: 'content',
+                    related_entity_id: content.id
+                });
+
+            // Push notification to author
+            await pushService.sendToUser(content.author_id, {
+                title: 'লেখা পুনরায় প্রকাশিত',
+                body: `আপনার লেখা "${content.title}" পুনরায় প্রকাশিত হয়েছে`,
+                url: `/read/${content.slug || content.id}`,
+                icon: '/icons/icon-192.png'
+            });
+        } catch (error) {
+            console.error('Error notifying content republished:', error);
+        }
+    }
+
+
     // Notify user of new follower
     async notifyNewFollower(followedUserId, followerUser) {
         try {
