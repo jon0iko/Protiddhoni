@@ -31,6 +31,8 @@ Thumbs.db
 # Build
 dist/
 build/
+# Deploy artifact produced by CI (dist/ tarball shipped to the VPS)
+backend_dist.tar.gz
 
 # Testing
 coverage/
