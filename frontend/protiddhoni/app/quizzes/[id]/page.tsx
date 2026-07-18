@@ -109,6 +109,34 @@ export default function PlayQuizPage() {
   const expiredRef = useRef(false); // ensures the countdown auto-submits exactly once
   const submittingRef = useRef(false); // guards against duplicate/overlapping submits
 
+  // ---- Per-question countdown (anti-cheat) ----
+  // The round's total time is split evenly across its questions. Each question
+  // gets its own clock, the answer locks when that clock hits zero, and there is
+  // no way back — so a player cannot bank time on easy questions, look up the
+  // hard ones, or revise an earlier answer once they have seen what comes next.
+  const [perQuestionSecs, setPerQuestionSecs] = useState<number | null>(null);
+  const [questionRemaining, setQuestionRemaining] = useState<number | null>(null);
+  const questionDeadlineRef = useRef<number | null>(null);
+  const advancingRef = useRef(false); // one advance per deadline, never two
+
+  // Latest-value refs. The countdown fires from inside a memoised callback and
+  // an interval, neither of which re-reads render state — reading `answers` or
+  // `questions` from a closure there captures the values as they were when the
+  // round started (i.e. empty), which silently submits a blank answer sheet.
+  const answersRef = useRef<Record<string, number>>({});
+  const questionsRef = useRef<QuizQuestionPlayable[]>([]);
+  const currentIndexRef = useRef(0);
+  const submitRef = useRef<(opts?: { auto?: boolean }) => void>(() => {});
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
   // Single ticker for every round countdown on this page.
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
@@ -216,6 +244,13 @@ export default function PlayQuizPage() {
       const limit = Number(res.data?.quiz?.time_limit_seconds) || null;
       setTimeLimitSeconds(limit);
       setRemainingSeconds(limit);
+
+      const perQuestion = Number(res.data?.quiz?.seconds_per_question) || null;
+      setPerQuestionSecs(perQuestion);
+      setQuestionRemaining(perQuestion);
+      questionDeadlineRef.current = perQuestion ? Date.now() + perQuestion * 1000 : null;
+      advancingRef.current = false;
+
       setExpired(false);
       expiredRef.current = false;
       submittingRef.current = false;
@@ -230,6 +265,54 @@ export default function PlayQuizPage() {
   const handleSelect = (questionId: string, index: number) => {
     setAnswers((prev) => ({ ...prev, [questionId]: index }));
   };
+
+  /**
+   * Lock in the current question and move on — the only way forward, whether
+   * the player pressed Next or their clock ran out. On the last question this
+   * submits instead. Guarded so a Next click racing the timer cannot advance
+   * two questions or fire two submits.
+   */
+  const advanceQuestion = useCallback(() => {
+    if (advancingRef.current) return;
+    advancingRef.current = true;
+
+    // Read position from a ref, not from render state: this runs from an
+    // interval callback that would otherwise see a stale index.
+    const idx = currentIndexRef.current;
+
+    if (idx >= questionsRef.current.length - 1) {
+      // Submit whatever was answered; skipped questions simply score 0.
+      // submitRef always points at the current render's handleSubmit, so the
+      // answer sheet it reads is the one the player actually filled in.
+      submitRef.current({ auto: true });
+      return;
+    }
+
+    // Fresh clock for the next question.
+    questionDeadlineRef.current = perQuestionSecs ? Date.now() + perQuestionSecs * 1000 : null;
+    setQuestionRemaining(perQuestionSecs);
+    currentIndexRef.current = idx + 1;
+    setCurrentIndex(idx + 1);
+    advancingRef.current = false;
+  }, [perQuestionSecs]);
+
+  // Per-question ticker. Separate from the whole-round ticker below, which
+  // stays as the backstop for rounds whose questions were added after start.
+  useEffect(() => {
+    if (phase !== 'playing' || !perQuestionSecs || questionDeadlineRef.current == null) return;
+
+    const tick = () => {
+      const deadline = questionDeadlineRef.current;
+      if (deadline == null) return;
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setQuestionRemaining(remaining);
+      if (remaining <= 0) advanceQuestion();
+    };
+
+    tick();
+    const handle = window.setInterval(tick, 250);
+    return () => window.clearInterval(handle);
+  }, [phase, perQuestionSecs, currentIndex, advanceQuestion]);
 
   // Countdown ticker — only runs while playing with a configured limit.
   useEffect(() => {
@@ -263,7 +346,9 @@ export default function PlayQuizPage() {
   const handleSubmit = async (opts?: { auto?: boolean }) => {
     if (!attemptId) return;
     const isAuto = Boolean(opts?.auto);
-    if (!isAuto && Object.keys(answers).length !== questions.length) {
+    const liveAnswers = answersRef.current;
+    const liveQuestions = questionsRef.current;
+    if (!isAuto && Object.keys(liveAnswers).length !== liveQuestions.length) {
       setError('সব প্রশ্নের উত্তর দিন');
       return;
     }
@@ -277,11 +362,11 @@ export default function PlayQuizPage() {
       const duration = startedAtRef.current ? Date.now() - startedAtRef.current : undefined;
       // On auto-submit (timer expired), only send the questions that were
       // actually answered. The server treats everything else as unanswered.
-      const answeredQuestions = questions.filter((q) => answers[q.id] !== undefined);
+      const answeredQuestions = liveQuestions.filter((q) => liveAnswers[q.id] !== undefined);
       const payload = {
-        answers: (isAuto ? answeredQuestions : questions).map((q) => ({
+        answers: (isAuto ? answeredQuestions : liveQuestions).map((q) => ({
           question_id: q.id,
-          selected_index: answers[q.id],
+          selected_index: liveAnswers[q.id],
         })),
         duration_ms: duration,
       };
@@ -291,7 +376,10 @@ export default function PlayQuizPage() {
         // A timed-out attempt must still land on the result page; a manual
         // submit can be retried.
         if (isAuto) setPhase('result');
-        else submittingRef.current = false;
+        else {
+          submittingRef.current = false;
+          advancingRef.current = false;
+        }
         return;
       }
       setResult(res.data);
@@ -337,12 +425,21 @@ export default function PlayQuizPage() {
         setError(err?.response?.data?.error || err?.message || 'উত্তর জমা দেওয়া যায়নি');
         // Don't strand the player mid-quiz on a timed-out auto-submit.
         if (isAuto) setPhase('result');
-        else submittingRef.current = false;
+        else {
+          submittingRef.current = false;
+          advancingRef.current = false;
+        }
       }
     } finally {
       setBusy(false);
     }
   };
+
+  // advanceQuestion fires from an interval and must not close over a stale
+  // handleSubmit — refresh the pointer on every render.
+  useEffect(() => {
+    submitRef.current = handleSubmit;
+  });
 
   const reviewItems = result?.review ?? reviewFromHistory ?? [];
 
@@ -481,26 +578,42 @@ export default function PlayQuizPage() {
                 প্রশ্ন {toBengaliNumber(currentIndex + 1)} / {toBengaliNumber(questions.length)}
               </span>
               <div className="flex items-center gap-3">
-                {timeLimitSeconds != null && remainingSeconds != null && (
+                {questionRemaining != null && perQuestionSecs != null && (
                   <span
-                    className={`px-2 py-0.5 rounded-md font-semibold bengali-text ${
-                      remainingSeconds <= 15
+                    className={`px-2 py-0.5 rounded-md font-semibold bengali-text tabular-nums ${
+                      questionRemaining <= 5
                         ? 'bg-rose-100 text-rose-700 animate-pulse'
-                        : remainingSeconds <= 60
+                        : questionRemaining <= 10
                         ? 'bg-amber-100 text-amber-700'
                         : 'bg-gray-100 text-gray-700'
                     }`}
                   >
-                    ⏱️ {formatClock(remainingSeconds)}
+                    ⏱️ {formatClock(questionRemaining)}
                   </span>
                 )}
-                <span>{toBengaliNumber(progress)}% সম্পন্ন</span>
+                {timeLimitSeconds != null && remainingSeconds != null && (
+                  <span className="text-xs text-gray-500 bengali-text">
+                    মোট {formatClock(remainingSeconds)}
+                  </span>
+                )}
               </div>
             </div>
+
+            {/* The bar drains the CURRENT question's clock, not overall
+                progress — with no way back, time left is what matters. */}
             <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary-500 transition-all"
-                style={{ width: `${progress}%` }}
+                className={`h-full transition-all ease-linear ${
+                  questionRemaining != null && questionRemaining <= 5
+                    ? 'bg-rose-500'
+                    : 'bg-primary-500'
+                }`}
+                style={{
+                  width:
+                    perQuestionSecs && questionRemaining != null
+                      ? `${Math.max(0, (questionRemaining / perQuestionSecs) * 100)}%`
+                      : `${progress}%`,
+                }}
               />
             </div>
           </div>
@@ -511,55 +624,30 @@ export default function PlayQuizPage() {
             onSelect={(idx) => handleSelect(questions[currentIndex].id, idx)}
           />
 
+          {/* No "previous" control and no pager: once a question is left behind
+              it is locked, which is the whole point of the per-question clock. */}
           <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between gap-3">
-            <button
-              onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-              disabled={currentIndex === 0}
-              className="text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1 bengali-text"
-            >
-              <ArrowLeft className="w-4 h-4" /> পূর্ববর্তী
-            </button>
+            <span className="text-xs text-gray-500 bengali-text">
+              উত্তর বদলাতে পারবেন সময় শেষ হওয়ার আগ পর্যন্ত — পরের প্রশ্নে গেলে আর ফেরা যাবে না।
+            </span>
 
             {currentIndex < questions.length - 1 ? (
               <button
-                onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}
-                disabled={answers[questions[currentIndex].id] === undefined}
-                className="bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg font-medium bengali-text inline-flex items-center gap-1"
+                onClick={advanceQuestion}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium bengali-text inline-flex items-center gap-1 shrink-0"
               >
                 পরবর্তী <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <button
-                onClick={() => handleSubmit()}
-                disabled={busy || Object.keys(answers).length !== questions.length}
-                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg font-medium bengali-text inline-flex items-center gap-2"
+                onClick={advanceQuestion}
+                disabled={busy}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg font-medium bengali-text inline-flex items-center gap-2 shrink-0"
               >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
                 ফলাফল জমা দিন
               </button>
             )}
-          </div>
-
-          {/* Question pager */}
-          <div className="px-6 pb-5 flex flex-wrap gap-2">
-            {questions.map((q, idx) => {
-              const answered = answers[q.id] !== undefined;
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`w-8 h-8 rounded-md text-xs font-semibold bengali-text border ${
-                    idx === currentIndex
-                      ? 'bg-primary-600 border-primary-700 text-white'
-                      : answered
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
-                  {toBengaliNumber(idx + 1)}
-                </button>
-              );
-            })}
           </div>
         </div>
       )}

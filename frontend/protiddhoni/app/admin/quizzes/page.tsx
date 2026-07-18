@@ -118,7 +118,7 @@ export default function AdminQuizListPage() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 bengali-text mt-1">রাউন্ড ব্যবস্থাপনা</h1>
           <p className="text-gray-600 bengali-text mt-1 max-w-2xl">
-            ধরন, বিষয় ও সময়সূচি ঠিক করুন — Gemini প্রশ্ন লিখবে, আপনি সম্পাদনা করবেন। প্রকাশের পর
+            ধরন, বিষয় ও সময়সূচি ঠিক করুন — AI প্রশ্ন লিখবে, আপনি সম্পাদনা করবেন। প্রকাশের পর
             প্রবেশ ফি পুরস্কার তহবিলে জমা হয় এবং রাউন্ড শেষে সেরা ৩ জন স্বয়ংক্রিয়ভাবে কড়ি পান।
           </p>
         </div>

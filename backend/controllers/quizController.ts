@@ -3,10 +3,11 @@ import type { Request, Response, NextFunction } from 'express';
  * Quiz Controller
  *
  * Quizzes are SCHEDULED COMPETITIVE ROUNDS:
- *   admin schedules a round (type + topic + window + entry cost)
- *   -> Gemini writes the questions, admin curates them
+ *   admin schedules a round (type + topic + window + entry cost + base pool)
+ *   -> the AI writes the questions, admin curates them
  *   -> players pay Kori to ENTER, which grows the round's prize pool
- *   -> players START and play inside the window
+ *   -> players START and play inside the window, one question at a time
+ *      against a per-question countdown, with no going back
  *   -> when the window closes the round is settled once and the top 3
  *      split the pool 50/30/20.
  *
@@ -14,7 +15,7 @@ import type { Request, Response, NextFunction } from 'express';
  */
 
 import QuizRepository from '../repositories/QuizRepository';
-import geminiService from '../services/geminiService';
+import aiQuizService from '../services/aiQuizService';
 import notificationService from '../services/notificationService';
 import WalletService from '../services/walletService';
 import logger from '../config/logger';
@@ -30,7 +31,100 @@ const DEFAULT_QUESTION_COUNT = 5;
 const QUIZ_TYPES = ['general', 'exam'] as const;
 const LANGUAGES = ['bn', 'en', 'mixed'] as const;
 
+// Prize weights for 1st/2nd/3rd. Mirrors settle_quiz_round(); kept here so the
+// base-pool floor is derived from the same split the DB actually pays out.
+const PRIZE_WEIGHTS = [0.5, 0.3, 0.2] as const;
+
+// Floor on a per-question countdown. Below this the round stops being a quiz
+// and starts being a reflex test.
+const MIN_SECONDS_PER_QUESTION = 5;
+
 // ---- Round helpers ---------------------------------------------------------
+
+/**
+ * Smallest base pool that still leaves 3rd place with more Kori than they paid
+ * to enter — the whole reason base_pool exists.
+ *
+ * The worst case is exactly three entrants who all finish: that is the smallest
+ * pool that still has to be split three ways. With E = entry cost, r = rake
+ * rate and B = base, 3rd place receives
+ *
+ *     0.2 * (B + 3E(1 - r))        [rake applies to entry money only]
+ *
+ * and we need that strictly greater than E. More entrants only grow the pool,
+ * and fewer than three finishers renormalises the weights upward, so both cases
+ * pay strictly better than this bound.
+ */
+function minimumBasePool(entryCost: number, rakeBps: number): number {
+    const E = Math.max(0, Number(entryCost) || 0);
+    if (E <= 0) return 0; // a free round cannot leave anyone out of pocket
+
+    const r = Math.min(Math.max(Number(rakeBps) || 0, 0), 10000) / 10000;
+    const thirdWeight = PRIZE_WEIGHTS[2];
+
+    // Solve 0.2 * (B + 3E(1-r)) > E  ->  B > E/0.2 - 3E(1-r)
+    const exact = E / thirdWeight - 3 * E * (1 - r);
+
+    // Strictly greater: when `exact` lands on a whole number, that value pays
+    // 3rd place exactly their entry fee, which is break-even, not a win.
+    return Math.floor(exact) + 1;
+}
+
+/**
+ * Build the review payload for a finished attempt.
+ *
+ * Options are presented in the SAME shuffled order the player saw while
+ * playing, with `correct_index` and `selected_index` mapped into that shuffled
+ * space. Showing the canonical order instead makes the review impossible to
+ * check against memory — the player sees their pick sitting in a different slot
+ * and reasonably concludes the grading is broken.
+ *
+ * `answers.selected_index` is stored in ORIGINAL space, so it is mapped forward
+ * here. Attempts predating the shuffle (seed null) fall back to original order.
+ */
+function buildReview(questions: any[], answersById: Map<any, any>, shuffleSeed: any) {
+    const seed = shuffleSeed != null ? Number(shuffleSeed) : null;
+
+    return questions.map((q) => {
+        const submitted = answersById.get(q.id);
+        const selectedOriginal = submitted ? submitted.selected_index : null;
+        const optionsLength = Array.isArray(q.options) ? q.options.length : 0;
+
+        let options = q.options;
+        let correctIndex = q.correct_index;
+        let selectedIndex = selectedOriginal;
+
+        if (seed != null && optionsLength > 0) {
+            // shuffled[i] === original[perm[i]], so perm.indexOf(orig) maps the
+            // other way: original index -> the slot the player actually saw.
+            const perm = seededIndexPermutation(optionsLength, deriveSeed(seed, q.id));
+            options = perm.map((origIdx: number) => q.options[origIdx]);
+            correctIndex = perm.indexOf(q.correct_index);
+            selectedIndex = selectedOriginal == null ? null : perm.indexOf(selectedOriginal);
+        }
+
+        return {
+            id: q.id,
+            position: q.position,
+            question_text: q.question_text,
+            language: q.language || null,
+            options,
+            correct_index: correctIndex,
+            explanation: q.explanation,
+            selected_index: selectedIndex,
+            is_correct: submitted ? submitted.is_correct : false
+        };
+    });
+}
+
+/** Per-question countdown: the round's total time split evenly, or null. */
+function perQuestionSeconds(quiz: any): number | null {
+    const limit = Number(quiz?.time_limit_seconds);
+    const total = Number(quiz?.total_questions);
+    if (!Number.isFinite(limit) || limit <= 0) return null;
+    if (!Number.isFinite(total) || total <= 0) return null;
+    return Math.max(MIN_SECONDS_PER_QUESTION, Math.floor(limit / total));
+}
 
 /** Public shape of a round: raw columns + the derived phase and countdowns. */
 function decorateRound(quiz: any, extras: Record<string, any> = {}) {
@@ -39,8 +133,11 @@ function decorateRound(quiz: any, extras: Record<string, any> = {}) {
         ...quiz,
         entry_cost: Number(quiz.entry_cost ?? 0),
         prize_pool: Number(quiz.prize_pool ?? 0),
+        base_pool: Number(quiz.base_pool ?? 0),
         rake_bps: Number(quiz.rake_bps ?? 0),
         phase,
+        seconds_per_question: perQuestionSeconds(quiz),
+        min_base_pool: minimumBasePool(quiz.entry_cost, quiz.rake_bps),
         seconds_to_open: secondsUntil(quiz.opens_at),
         seconds_to_close: secondsUntil(quiz.closes_at),
         ...extras
@@ -139,6 +236,8 @@ export const createQuiz = async (req: Request, res: Response) => {
             difficulty = 'medium',
             entry_cost = 5,
             rake_bps = 0,
+            base_pool,
+            generation_instructions = null,
             question_count = DEFAULT_QUESTION_COUNT,
             language = 'bn',
             opens_at,
@@ -164,10 +263,29 @@ export const createQuiz = async (req: Request, res: Response) => {
         if (!LANGUAGES.includes(language)) {
             return res.status(400).json({ success: false, error: 'Invalid language' });
         }
-        if (!geminiService.isConfigured()) {
+        if (!aiQuizService.isConfigured()) {
             return res.status(503).json({
                 success: false,
-                error: 'AI question generation is not configured. Set GEMINI_API_KEY on the backend.'
+                error: 'AI question generation is not configured. Set WANDB_API_KEY on the backend.'
+            });
+        }
+
+        const entryCost = Math.max(0, Number(entry_cost) || 0);
+        const rakeBps = Math.max(0, Math.min(10000, Math.round(Number(rake_bps) || 0)));
+
+        // The base pool is what makes winning worth entering. Default it to the
+        // guaranteeing minimum rather than 0, so an admin who ignores the field
+        // still schedules a round nobody loses money by winning.
+        const minBase = minimumBasePool(entryCost, rakeBps);
+        const basePool = base_pool === undefined || base_pool === null || base_pool === ''
+            ? minBase
+            : Math.max(0, Number(base_pool) || 0);
+
+        if (basePool < minBase) {
+            return res.status(400).json({
+                success: false,
+                error: `Base pool must be at least ${minBase} Kori so third place still profits at an entry cost of ${entryCost}`,
+                min_base_pool: minBase
             });
         }
 
@@ -183,14 +301,15 @@ export const createQuiz = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: 'closes_at must be after opens_at' });
         }
 
-        const aiResult = await geminiService.generateQuizQuestions({
+        const aiResult = await aiQuizService.generateQuizQuestions({
             title,
             topic,
             quizType: quiz_type,
             examCategory: exam_category,
             questionCount: question_count,
             difficulty,
-            language
+            language,
+            instructions: generation_instructions
         });
 
         const quiz = await QuizRepository.createQuiz({
@@ -200,9 +319,17 @@ export const createQuiz = async (req: Request, res: Response) => {
             quiz_type,
             exam_category: quiz_type === 'exam' ? exam_category : null,
             topic: String(topic).trim(),
+            language,
+            generation_instructions: generation_instructions
+                ? String(generation_instructions).trim() || null
+                : null,
             difficulty,
-            entry_cost: Math.max(0, Number(entry_cost) || 0),
-            rake_bps: Math.max(0, Math.min(10000, Math.round(Number(rake_bps) || 0))),
+            entry_cost: entryCost,
+            rake_bps: rakeBps,
+            base_pool: basePool,
+            // Seed the pool with the house money up front; entry fees land on top
+            // of it as players join.
+            prize_pool: basePool,
             total_questions: aiResult.questions.length,
             status: 'draft',
             ai_model: aiResult.model,
@@ -239,7 +366,7 @@ export const regenerateQuestions = async (req: Request, res: Response) => {
         if (!quiz) {
             return res.status(404).json({ success: false, error: 'Quiz not found' });
         }
-        if (!geminiService.isConfigured()) {
+        if (!aiQuizService.isConfigured()) {
             return res.status(503).json({
                 success: false,
                 error: 'AI question generation is not configured'
@@ -268,16 +395,27 @@ export const regenerateQuestions = async (req: Request, res: Response) => {
         }
 
         const questionCount = Math.max(1, Number(req.body?.question_count) || DEFAULT_QUESTION_COUNT);
-        const language = LANGUAGES.includes(req.body?.language) ? req.body.language : 'bn';
+        // Fall back to the round's own language, not a hardcoded 'bn' — a round
+        // authored in English must keep generating English.
+        const language = LANGUAGES.includes(req.body?.language)
+            ? req.body.language
+            : (LANGUAGES.includes(quiz.language) ? quiz.language : 'bn');
 
-        const aiResult = await geminiService.generateQuizQuestions({
+        // Fall back to the round's saved instructions so a plain "generate more"
+        // keeps the editorial intent the admin set when scheduling the round.
+        const instructions = req.body?.generation_instructions !== undefined
+            ? req.body.generation_instructions
+            : quiz.generation_instructions;
+
+        const aiResult = await aiQuizService.generateQuizQuestions({
             title: quiz.title,
             topic: quiz.topic,
             quizType: quiz.quiz_type || 'general',
             examCategory: quiz.exam_category,
             questionCount,
             difficulty: quiz.difficulty,
-            language
+            language,
+            instructions
         });
 
         if (replace) {
@@ -316,8 +454,8 @@ export const updateQuizSettings = async (req: Request, res: Response) => {
 
         const allowed = [
             'title', 'description', 'difficulty', 'status', 'time_limit_seconds',
-            'quiz_type', 'exam_category', 'topic',
-            'entry_cost', 'opens_at', 'closes_at', 'rake_bps'
+            'quiz_type', 'exam_category', 'topic', 'generation_instructions', 'language',
+            'entry_cost', 'opens_at', 'closes_at', 'rake_bps', 'base_pool'
         ];
         const updates: Record<string, any> = {};
         for (const key of allowed) {
@@ -327,7 +465,7 @@ export const updateQuizSettings = async (req: Request, res: Response) => {
         // Once the round has left 'scheduled' the economics are frozen — players
         // have already committed real Kori against the advertised terms.
         const phase = deriveRoundPhase(quiz);
-        const economicKeys = ['entry_cost', 'opens_at', 'closes_at', 'rake_bps'];
+        const economicKeys = ['entry_cost', 'opens_at', 'closes_at', 'rake_bps', 'base_pool'];
         const touchedEconomics = economicKeys.filter((key) => updates[key] !== undefined);
         if (touchedEconomics.length && !['draft', 'scheduled'].includes(phase)) {
             return res.status(409).json({
@@ -341,6 +479,36 @@ export const updateQuizSettings = async (req: Request, res: Response) => {
         }
         if (updates.rake_bps !== undefined) {
             updates.rake_bps = Math.max(0, Math.min(10000, Math.round(Number(updates.rake_bps) || 0)));
+        }
+        if (updates.base_pool !== undefined) {
+            updates.base_pool = Math.max(0, Number(updates.base_pool) || 0);
+        }
+        if (updates.generation_instructions !== undefined) {
+            updates.generation_instructions = updates.generation_instructions === null
+                ? null
+                : String(updates.generation_instructions).trim() || null;
+        }
+
+        // Re-check the profitability floor against the POST-update economics —
+        // lowering the base, raising the entry cost, or raising the rake can each
+        // break the guarantee on their own.
+        const nextEntryCost = updates.entry_cost !== undefined ? updates.entry_cost : Number(quiz.entry_cost ?? 0);
+        const nextRakeBps = updates.rake_bps !== undefined ? updates.rake_bps : Number(quiz.rake_bps ?? 0);
+        const nextBasePool = updates.base_pool !== undefined ? updates.base_pool : Number(quiz.base_pool ?? 0);
+        const minBase = minimumBasePool(nextEntryCost, nextRakeBps);
+
+        if (touchedEconomics.length && nextBasePool < minBase) {
+            return res.status(400).json({
+                success: false,
+                error: `Base pool must be at least ${minBase} Kori so third place still profits at an entry cost of ${nextEntryCost}`,
+                min_base_pool: minBase
+            });
+        }
+
+        // No entries can exist yet (economics are frozen after 'scheduled'), so
+        // the whole pool is house money and can be re-seeded outright.
+        if (updates.base_pool !== undefined) {
+            updates.prize_pool = updates.base_pool;
         }
         for (const key of ['opens_at', 'closes_at']) {
             if (updates[key] === undefined) continue;
@@ -383,6 +551,9 @@ export const updateQuizSettings = async (req: Request, res: Response) => {
         if (updates.difficulty !== undefined && !['easy', 'medium', 'hard'].includes(updates.difficulty)) {
             return res.status(400).json({ success: false, error: 'Invalid difficulty' });
         }
+        if (updates.language !== undefined && !LANGUAGES.includes(updates.language)) {
+            return res.status(400).json({ success: false, error: 'Invalid language' });
+        }
         if (updates.status !== undefined) {
             if (!['draft', 'published', 'archived'].includes(updates.status)) {
                 return res.status(400).json({ success: false, error: 'Invalid status' });
@@ -398,6 +569,15 @@ export const updateQuizSettings = async (req: Request, res: Response) => {
                     return res.status(400).json({
                         success: false,
                         error: 'Set a closing time before publishing — a round with no deadline can never be settled'
+                    });
+                }
+                // Last gate before real Kori is committed: a round published
+                // under the floor would pay its 3rd-place winner a net loss.
+                if (nextBasePool < minBase) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Raise the base pool to at least ${minBase} Kori before publishing — third place would otherwise win less than the ${nextEntryCost} Kori entry cost`,
+                        min_base_pool: minBase
                     });
                 }
                 updates.published_at = new Date().toISOString();
@@ -746,6 +926,7 @@ export const getQuizPreview = async (req: Request, res: Response) => {
                     opens_at: quiz.opens_at,
                     closes_at: quiz.closes_at,
                     prize_pool: quiz.prize_pool,
+                    base_pool: quiz.base_pool,
                     rake_bps: quiz.rake_bps,
                     settled_at: quiz.settled_at,
                     settlement: quiz.settlement,
@@ -898,6 +1079,9 @@ export const startAttempt = async (req: Request, res: Response) => {
                     difficulty: quiz.difficulty,
                     total_questions: quiz.total_questions,
                     time_limit_seconds: quiz.time_limit_seconds || null,
+                    // The round's total time split evenly across its questions.
+                    // The player gets this long on each one and cannot go back.
+                    seconds_per_question: perQuestionSeconds(quiz),
                     closes_at: quiz.closes_at
                 },
                 questions: shuffledQuestions
@@ -1001,24 +1185,10 @@ export const submitAttempt = async (req: Request, res: Response) => {
             completed_at: new Date().toISOString()
         });
 
-        // Build review payload exposing correct answers + user's selections.
-        // Review always shows options in the ORIGINAL order so the user can
-        // verify against the canonical question content.
+        // Review reuses the attempt's shuffle so the options appear exactly as
+        // the player saw them.
         const answersById = new Map(answerRows.map((a) => [a.question_id, a]));
-        const review = questions.map((q) => {
-            const submitted = answersById.get(q.id);
-            return {
-                id: q.id,
-                position: q.position,
-                question_text: q.question_text,
-                language: q.language || null,
-                options: q.options,
-                correct_index: q.correct_index,
-                explanation: q.explanation,
-                selected_index: submitted ? submitted.selected_index : null,
-                is_correct: submitted ? submitted.is_correct : false
-            };
-        });
+        const review = buildReview(questions, answersById, attempt.shuffle_seed);
 
         res.json({
             success: true,
@@ -1054,20 +1224,7 @@ export const getAttempt = async (req: Request, res: Response) => {
         const answers = await QuizRepository.findAnswersByAttempt(attempt.id);
         const answersById = new Map(answers.map((a) => [a.question_id, a]));
 
-        const review = questions.map((q) => {
-            const submitted = answersById.get(q.id);
-            return {
-                id: q.id,
-                position: q.position,
-                question_text: q.question_text,
-                language: q.language || null,
-                options: q.options,
-                correct_index: q.correct_index,
-                explanation: q.explanation,
-                selected_index: submitted ? submitted.selected_index : null,
-                is_correct: submitted ? submitted.is_correct : false
-            };
-        });
+        const review = buildReview(questions, answersById, attempt.shuffle_seed);
 
         res.json({ success: true, data: { attempt, review } });
     } catch (error) {

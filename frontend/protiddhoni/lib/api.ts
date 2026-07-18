@@ -756,6 +756,8 @@ export const api = {
                 difficulty?: 'easy' | 'medium' | 'hard';
                 entry_cost?: number;
                 rake_bps?: number;
+                base_pool?: number;
+                generation_instructions?: string | null;
                 question_count?: number;
                 language?: 'bn' | 'en' | 'mixed';
                 opens_at?: string | null;
@@ -813,7 +815,13 @@ export const api = {
             // on a round nobody has entered yet.
             regenerate: async (
                 id: string,
-                data?: { question_count?: number; language?: 'bn' | 'en' | 'mixed'; replace?: boolean }
+                data?: {
+                    question_count?: number;
+                    language?: 'bn' | 'en' | 'mixed';
+                    replace?: boolean;
+                    /** Omit to reuse the round's saved instructions. */
+                    generation_instructions?: string | null;
+                }
             ) => {
                 return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}/regenerate`, {
                     method: 'POST',

@@ -121,3 +121,43 @@ export function fromDatetimeLocal(value: string): string | null {
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 }
+
+// ---- Prize pool economics --------------------------------------------------
+// These mirror minimumBasePool() / perQuestionSeconds() in the backend's
+// quizController so the admin form can show the floor before submitting. The
+// server re-validates; this is a preview, never the source of truth.
+
+/** Prize split for 1st / 2nd / 3rd, matching settle_quiz_round(). */
+export const PRIZE_WEIGHTS = [0.5, 0.3, 0.2] as const;
+
+/**
+ * Smallest base pool that still leaves 3rd place ahead of their entry fee.
+ * Worst case is three entrants who all finish — the smallest pool that must
+ * still be split three ways.
+ */
+export function minimumBasePool(entryCost: number, rakeBps: number): number {
+  const E = Math.max(0, Number(entryCost) || 0);
+  if (E <= 0) return 0;
+  const r = Math.min(Math.max(Number(rakeBps) || 0, 0), 10000) / 10000;
+  return Math.floor(E / PRIZE_WEIGHTS[2] - 3 * E * (1 - r)) + 1;
+}
+
+/** What 3rd place takes home in that same worst case, given a base pool. */
+export function worstCaseThirdPrize(basePool: number, entryCost: number, rakeBps: number): number {
+  const E = Math.max(0, Number(entryCost) || 0);
+  const B = Math.max(0, Number(basePool) || 0);
+  const r = Math.min(Math.max(Number(rakeBps) || 0, 0), 10000) / 10000;
+  return PRIZE_WEIGHTS[2] * (B + 3 * E * (1 - r));
+}
+
+/** Per-question countdown: the round's total time split evenly. */
+export function perQuestionSeconds(
+  timeLimitSeconds: number | null | undefined,
+  totalQuestions: number | null | undefined
+): number | null {
+  const limit = Number(timeLimitSeconds);
+  const total = Number(totalQuestions);
+  if (!Number.isFinite(limit) || limit <= 0) return null;
+  if (!Number.isFinite(total) || total <= 0) return null;
+  return Math.max(5, Math.floor(limit / total));
+}

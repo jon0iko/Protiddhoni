@@ -177,6 +177,10 @@ export interface QuizSettlementWinner {
 
 export interface QuizSettlement {
     pool: number;
+    /** House seed money included in `pool`; excluded from the rake basis. */
+    base_pool?: number;
+    /** Entry fees collected, i.e. `pool - base_pool`. */
+    entries?: number;
     rake: number;
     paid: number;
     winners: QuizSettlementWinner[];
@@ -194,13 +198,22 @@ export interface QuizSummary {
     quiz_type: QuizType;
     exam_category?: string | null;
     topic?: string | null;
+    /** Language the AI is instructed to generate in. */
+    language?: 'bn' | 'en' | 'mixed';
     opens_at?: string | null;
     closes_at?: string | null;
     prize_pool: number;
+    /** Kori the house seeded the round with, before any entry fee. */
+    base_pool: number;
+    /** Smallest base_pool that still leaves 3rd place in profit. */
+    min_base_pool?: number;
     rake_bps: number;
     settled_at?: string | null;
     settlement?: QuizSettlement | null;
     phase: RoundPhase;
+    /** Total time split evenly per question; null when the round is untimed. */
+    seconds_per_question?: number | null;
+    generation_instructions?: string | null;
     seconds_to_open?: number | null;
     seconds_to_close?: number | null;
     players_joined?: number;

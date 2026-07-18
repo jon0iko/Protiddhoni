@@ -8,8 +8,8 @@ import db from '../config/database';
 // Columns shared by the player-facing and admin-facing quiz listings.
 const ROUND_COLUMNS = `
     id, title, description, difficulty, entry_cost,
-    total_questions, status, quiz_type, exam_category, topic,
-    opens_at, closes_at, prize_pool, rake_bps, settled_at, settlement,
+    total_questions, status, quiz_type, exam_category, topic, language,
+    opens_at, closes_at, prize_pool, base_pool, rake_bps, settled_at, settlement,
     time_limit_seconds, published_at, created_at
 `;
 

@@ -102,11 +102,10 @@ export default function QuizzesPage() {
               <Sparkles className="w-4 h-4" /> নির্ধারিত সময়ের প্রতিযোগিতামূলক রাউন্ড
             </div>
             <h1 className="mt-4 text-3xl sm:text-4xl font-bold bengali-text leading-snug">
-              কড়ি বাজি, জ্ঞান যাচাই
+              কড়ি বাজি
             </h1>
             <p className="mt-3 text-white/90 bengali-text">
-              প্রতিটি রাউন্ডে প্রবেশ ফি জমা হয় একটাই পুরস্কার তহবিলে। রাউন্ড শেষ হলে সেরা তিনজন
-              তহবিলের ৫০/৩০/২০ ভাগ পেয়ে যান — স্বয়ংক্রিয়ভাবে, সরাসরি ওয়ালেটে।
+              প্রতি রাউন্ড শেষে সর্বোচ্চ স্কোরপ্রাপ্ত ৩ জন পাবেন কড়ি।
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">

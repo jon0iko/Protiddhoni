@@ -29,7 +29,10 @@ import {
   PHASE_STYLES,
   formatDateTime,
   fromDatetimeLocal,
+  minimumBasePool,
+  perQuestionSeconds,
   toDatetimeLocal,
+  worstCaseThirdPrize,
 } from '@/app/quizzes/_lib/round';
 
 type AdminQuizQuestion = {
@@ -53,9 +56,12 @@ type AdminQuiz = {
   quiz_type: 'general' | 'exam';
   exam_category?: string | null;
   topic?: string | null;
+  language?: 'bn' | 'en' | 'mixed';
   opens_at?: string | null;
   closes_at?: string | null;
   prize_pool: number;
+  base_pool: number;
+  generation_instructions?: string | null;
   rake_bps: number;
   settled_at?: string | null;
   settlement?: QuizSettlement | null;
@@ -95,8 +101,11 @@ export default function AdminQuizEditPage() {
     quiz_type: 'general' as 'general' | 'exam',
     exam_category: EXAM_CATEGORY_OPTIONS[0],
     topic: '',
+    language: 'bn' as 'bn' | 'en' | 'mixed',
     entry_cost: 0,
     rake_bps: 0,
+    base_pool: 0,
+    generation_instructions: '',
     status: 'draft' as 'draft' | 'published' | 'archived',
     time_limit_seconds: 0, // 0 = no limit
     opens_at: '',
@@ -144,14 +153,18 @@ export default function AdminQuizEditPage() {
           quiz_type: q.quiz_type || 'general',
           exam_category: q.exam_category || EXAM_CATEGORY_OPTIONS[0],
           topic: q.topic || '',
+          language: q.language || 'bn',
           entry_cost: Number(q.entry_cost),
           rake_bps: Number(q.rake_bps || 0),
+          base_pool: Number(q.base_pool || 0),
+          generation_instructions: q.generation_instructions || '',
           status: q.status,
           time_limit_seconds: q.time_limit_seconds ? Number(q.time_limit_seconds) : 0,
           opens_at: toDatetimeLocal(q.opens_at),
           closes_at: toDatetimeLocal(q.closes_at),
         });
         setGenCount(5);
+        setGenLanguage(q.language || 'bn');
       } else {
         setFeedback({ type: 'error', message: res?.error || 'রাউন্ড লোড করা যায়নি' });
       }
@@ -163,6 +176,8 @@ export default function AdminQuizEditPage() {
   };
 
   const economicsLocked = quiz ? !['draft', 'scheduled'].includes(quiz.phase) : false;
+  const editMinBase = minimumBasePool(form.entry_cost, form.rake_bps);
+  const editPerQuestion = perQuestionSeconds(form.time_limit_seconds, questions.length);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +192,8 @@ export default function AdminQuizEditPage() {
         quiz_type: form.quiz_type,
         exam_category: form.quiz_type === 'exam' ? form.exam_category : null,
         topic: form.topic.trim() || null,
+        language: form.language,
+        generation_instructions: form.generation_instructions.trim() || null,
         status: form.status,
         time_limit_seconds: form.time_limit_seconds > 0 ? Number(form.time_limit_seconds) : null,
       };
@@ -185,6 +202,7 @@ export default function AdminQuizEditPage() {
       if (!economicsLocked) {
         payload.entry_cost = Number(form.entry_cost);
         payload.rake_bps = Number(form.rake_bps);
+        payload.base_pool = Number(form.base_pool);
         payload.opens_at = fromDatetimeLocal(form.opens_at);
         payload.closes_at = fromDatetimeLocal(form.closes_at);
       }
@@ -514,6 +532,22 @@ export default function AdminQuizEditPage() {
                 <option value="hard">কঠিন</option>
               </select>
             </Field>
+            <Field label="ভাষা — AI এই ভাষায় প্রশ্ন লিখবে">
+              <select
+                value={form.language}
+                onChange={(e) => {
+                  const language = e.target.value as 'bn' | 'en' | 'mixed';
+                  // Keep the generate toolbar in step with the round setting.
+                  setForm({ ...form, language });
+                  setGenLanguage(language);
+                }}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 bengali-text"
+              >
+                <option value="bn">বাংলা</option>
+                <option value="en">English</option>
+                <option value="mixed">মিশ্র (বাংলা + English)</option>
+              </select>
+            </Field>
           </div>
 
           <Field label="বিষয় (topic)">
@@ -525,9 +559,22 @@ export default function AdminQuizEditPage() {
             />
           </Field>
 
+          <Field label="অতিরিক্ত নির্দেশনা — AI প্রশ্ন তৈরির সময় মানবে">
+            <textarea
+              value={form.generation_instructions}
+              onChange={(e) => setForm({ ...form, generation_instructions: e.target.value })}
+              rows={4}
+              placeholder="যেমন: শুধু ১৯৪৭-পরবর্তী কবিতা থেকে প্রশ্ন করুন। নজরুলের গান বাদ দিন।"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 bengali-text"
+            />
+            <p className="text-xs text-gray-500 bengali-text mt-1">
+              নিচের &ldquo;আরও প্রশ্ন তৈরি&rdquo; এই নির্দেশনা অনুসরণ করবে।
+            </p>
+          </Field>
+
           {economicsLocked && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 bengali-text">
-              রাউন্ড চালু হয়ে গেছে — প্রবেশ ফি, হাউস কাট ও সময়সূচি আর পরিবর্তন করা যাবে না।
+              রাউন্ড চালু হয়ে গেছে — প্রবেশ ফি, হাউস কাট, বেস পুল ও সময়সূচি আর পরিবর্তন করা যাবে না।
             </p>
           )}
 
@@ -570,6 +617,52 @@ export default function AdminQuizEditPage() {
               />
             </Field>
           </div>
+
+          <Field label="বেস পুল (কড়ি) — হাউস থেকে দেওয়া প্রাথমিক পুরস্কার">
+            <div className="relative">
+              <Coins className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-yellow-700" />
+              <input
+                type="number"
+                min={0}
+                step={1}
+                disabled={economicsLocked}
+                value={form.base_pool}
+                onChange={(e) => setForm({ ...form, base_pool: Number(e.target.value) })}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-primary-500 bengali-text disabled:bg-gray-50 disabled:text-gray-400 ${
+                  !economicsLocked && form.base_pool < editMinBase ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+            </div>
+          </Field>
+
+          {!economicsLocked && (
+            <div
+              className={`rounded-xl border px-4 py-3 text-sm bengali-text ${
+                form.base_pool < editMinBase
+                  ? 'bg-red-50 border-red-200 text-red-800'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}
+            >
+              <div className="flex flex-wrap gap-x-6 gap-y-1">
+                <span>
+                  সর্বনিম্ন বেস পুল: <strong>{editMinBase}</strong> কড়ি
+                </span>
+                <span>
+                  ৩ জন অংশগ্রহণকারী হলে তৃতীয় স্থান পাবে:{' '}
+                  <strong>
+                    {worstCaseThirdPrize(form.base_pool, form.entry_cost, form.rake_bps).toFixed(2)}
+                  </strong>{' '}
+                  কড়ি
+                </span>
+              </div>
+              {editPerQuestion !== null && (
+                <p className="mt-1 text-xs">
+                  প্রশ্নপ্রতি সময় প্রায় <strong>{editPerQuestion}</strong> সেকেন্ড
+                  ({questions.length} প্রশ্ন) — সময় শেষে উত্তর লক হয়ে যাবে, পিছনে ফেরা যাবে না।
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="শুরুর সময়">
@@ -629,7 +722,7 @@ export default function AdminQuizEditPage() {
             <input
               type="number"
               min={1}
-              max={15}
+
               value={genCount}
               onChange={(e) => setGenCount(Number(e.target.value))}
               className="w-20 px-3 py-2 rounded-lg border border-gray-300 bengali-text"

@@ -7,7 +7,13 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Brain, Coins, GraduationCap, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { EXAM_CATEGORY_OPTIONS, fromDatetimeLocal } from '@/app/quizzes/_lib/round';
+import {
+  EXAM_CATEGORY_OPTIONS,
+  fromDatetimeLocal,
+  minimumBasePool,
+  perQuestionSeconds,
+  worstCaseThirdPrize,
+} from '@/app/quizzes/_lib/round';
 
 export default function CreateQuizPage() {
   const router = useRouter();
@@ -23,12 +29,18 @@ export default function CreateQuizPage() {
     language: 'bn' as 'bn' | 'en' | 'mixed',
     entry_cost: 5,
     rake_bps: 0,
+    base_pool: minimumBasePool(5, 0),
+    generation_instructions: '',
     time_limit_seconds: 300,
     opens_at: '',
     closes_at: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const minBase = minimumBasePool(form.entry_cost, form.rake_bps);
+  const thirdPrize = worstCaseThirdPrize(form.base_pool, form.entry_cost, form.rake_bps);
+  const perQuestion = perQuestionSeconds(form.time_limit_seconds, form.question_count);
 
   useEffect(() => {
     if (!isLoading && (!isLoggedIn || !user?.is_admin)) {
@@ -52,6 +64,10 @@ export default function CreateQuizPage() {
       setError('শেষ সময় অবশ্যই শুরুর সময়ের পরে হতে হবে');
       return;
     }
+    if (Number(form.base_pool) < minBase) {
+      setError(`বেস পুল কমপক্ষে ${minBase} কড়ি হতে হবে — নাহলে তৃতীয় স্থানের বিজয়ী প্রবেশ ফি-র চেয়ে কম পাবেন`);
+      return;
+    }
 
     setBusy(true);
     try {
@@ -64,6 +80,8 @@ export default function CreateQuizPage() {
         difficulty: form.difficulty,
         entry_cost: Number(form.entry_cost),
         rake_bps: Number(form.rake_bps),
+        base_pool: Number(form.base_pool),
+        generation_instructions: form.generation_instructions.trim() || null,
         question_count: Number(form.question_count),
         language: form.language,
         opens_at: fromDatetimeLocal(form.opens_at),
@@ -108,7 +126,7 @@ export default function CreateQuizPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 bengali-text">নতুন রাউন্ড</h1>
             <p className="text-sm text-gray-600 bengali-text">
-              ধরন ও বিষয় দিন — Gemini সেই অনুযায়ী প্রশ্ন লিখবে। পরে হাতে সম্পাদনা করা যাবে।
+              ধরন ও বিষয় দিন — AI সেই অনুযায়ী প্রশ্ন লিখবে। পরে হাতে সম্পাদনা করা যাবে।
             </p>
           </div>
         </div>
@@ -182,6 +200,22 @@ export default function CreateQuizPage() {
             />
           </Field>
 
+          <Field label="অতিরিক্ত নির্দেশনা (ঐচ্ছিক) — কী রাখতে হবে, কী বাদ দিতে হবে">
+            <textarea
+              value={form.generation_instructions}
+              onChange={(e) => setForm({ ...form, generation_instructions: e.target.value })}
+              rows={4}
+              placeholder={
+                'যেমন: শুধু ১৯৪৭-পরবর্তী কবিতা থেকে প্রশ্ন করুন। ' +
+                'নজরুলের গান বাদ দিন। প্রতিটি প্রশ্নে প্রকাশের সাল উল্লেখ করুন।'
+              }
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+            />
+            <p className="text-xs text-gray-500 bengali-text mt-1">
+              এই নির্দেশনা সংরক্ষিত থাকবে — পরে &ldquo;আরও প্রশ্ন তৈরি&rdquo; করলেও একই নিয়ম মানা হবে।
+            </p>
+          </Field>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="কঠিনতা">
               <select
@@ -198,7 +232,6 @@ export default function CreateQuizPage() {
               <input
                 type="number"
                 min={1}
-                max={15}
                 value={form.question_count}
                 onChange={(e) => setForm({ ...form, question_count: Number(e.target.value) })}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
@@ -226,7 +259,14 @@ export default function CreateQuizPage() {
                   min={0}
                   step={0.5}
                   value={form.entry_cost}
-                  onChange={(e) => setForm({ ...form, entry_cost: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const entry_cost = Number(e.target.value);
+                    setForm((f) => ({
+                      ...f,
+                      entry_cost,
+                      base_pool: Math.max(f.base_pool, minimumBasePool(entry_cost, f.rake_bps)),
+                    }));
+                  }}
                   className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
                 />
               </div>
@@ -238,7 +278,14 @@ export default function CreateQuizPage() {
                 max={10000}
                 step={50}
                 value={form.rake_bps}
-                onChange={(e) => setForm({ ...form, rake_bps: Number(e.target.value) })}
+                onChange={(e) => {
+                  const rake_bps = Number(e.target.value);
+                  setForm((f) => ({
+                    ...f,
+                    rake_bps,
+                    base_pool: Math.max(f.base_pool, minimumBasePool(f.entry_cost, rake_bps)),
+                  }));
+                }}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
               />
             </Field>
@@ -254,6 +301,54 @@ export default function CreateQuizPage() {
               />
             </Field>
           </div>
+
+          <Field label="বেস পুল (কড়ি) — হাউস থেকে দেওয়া প্রাথমিক পুরস্কার">
+            <div className="relative">
+              <Coins className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-yellow-700" />
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={form.base_pool}
+                onChange={(e) => setForm({ ...form, base_pool: Number(e.target.value) })}
+                className={`w-full pl-9 pr-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text ${
+                  form.base_pool < minBase ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+            </div>
+          </Field>
+
+          {/* Economics preview — the worst case is exactly three entrants who
+              all finish, i.e. the smallest pool that still splits three ways. */}
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm bengali-text ${
+              form.base_pool < minBase
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            }`}
+          >
+            <div className="flex flex-wrap gap-x-6 gap-y-1">
+              <span>
+                সর্বনিম্ন বেস পুল: <strong>{minBase}</strong> কড়ি
+              </span>
+              <span>
+                সবচেয়ে খারাপ ক্ষেত্রে (৩ জন অংশগ্রহণকারী) তৃতীয় স্থান পাবে:{' '}
+                <strong>{thirdPrize.toFixed(2)}</strong> কড়ি
+              </span>
+            </div>
+            <p className="mt-1 text-xs">
+              {form.base_pool < minBase
+                ? 'এই বেস পুলে তৃতীয় স্থানের বিজয়ী প্রবেশ ফি-র চেয়ে কম পাবেন — রাউন্ড প্রকাশ করা যাবে না।'
+                : `প্রবেশ ফি ${form.entry_cost} কড়ির বিপরীতে তৃতীয় স্থানও লাভে থাকবে। হাউস কাট শুধু প্রবেশ ফি-র উপর বসে, বেস পুলে নয়।`}
+            </p>
+          </div>
+
+          {perQuestion !== null && (
+            <p className="text-xs text-gray-600 bengali-text -mt-2">
+              মোট সময় প্রতিটি প্রশ্নে ভাগ হবে — প্রশ্নপ্রতি প্রায় <strong>{perQuestion}</strong> সেকেন্ড।
+              সময় শেষ হলে উত্তর লক হয়ে পরের প্রশ্নে চলে যাবে, আগের প্রশ্নে ফেরা যাবে না।
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="রাউন্ড শুরুর সময়">
