@@ -17,7 +17,8 @@ import {
   MessageCircle,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -45,6 +46,9 @@ export default function ReadContentPage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [showUnpublishModal, setShowUnpublishModal] = useState(false);
+  const [unpublishReason, setUnpublishReason] = useState('');
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -332,6 +336,25 @@ export default function ReadContentPage() {
     }
   };
 
+  const handleUnpublishSubmit = async () => {
+    if (!content?.id) return;
+    setIsUnpublishing(true);
+    try {
+      const res = await api.content.unpublish(content.id, unpublishReason || undefined);
+      if (res.success) {
+        alert('রচনাটি অপ্রকাশিত করা হয়েছে।');
+        setShowUnpublishModal(false);
+        setUnpublishReason('');
+        setContent((prev: any) => ({ ...prev, is_published: false }));
+      }
+    } catch (error: any) {
+      console.error('Error unpublishing content:', error);
+      alert(error?.message || 'অপ্রকাশিত করতে সমস্যা হয়েছে।');
+    } finally {
+      setIsUnpublishing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -382,6 +405,16 @@ export default function ReadContentPage() {
             </button>
             
             <div className="flex items-center gap-2">
+              {user?.is_admin && content.status === 'approved' && content.is_published !== false && (
+                <button
+                  onClick={() => setShowUnpublishModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors text-sm font-medium bengali-text mr-1 shadow-sm"
+                  title="অপ্রকাশিত করুন"
+                >
+                  <EyeOff className="w-4 h-4" />
+                  <span>অপ্রকাশিত করুন</span>
+                </button>
+              )}
               <button
                 onClick={handleShare}
                 className="p-2 rounded-lg transition-colors"
@@ -601,6 +634,50 @@ export default function ReadContentPage() {
           <CommentList contentId={content.id} />
         </div>
       </article>
+
+      {/* Admin Unpublish Modal */}
+      {showUnpublishModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-gray-900">
+            <div className="flex items-center gap-3 mb-4">
+              <EyeOff className="w-6 h-6 text-orange-600" />
+              <h3 className="text-xl font-bold bengali-text">রচনা অপ্রকাশিত করুন</h3>
+            </div>
+            <p className="text-gray-600 mb-2 bengali-text">
+              &quot;{content.title}&quot; অপ্রকাশিত করতে চান?
+            </p>
+            <p className="text-sm text-gray-500 mb-4 bengali-text">
+              এই রচনাটি সবার কাছ থেকে লুকানো হবে। শুধুমাত্র অ্যাডমিন ইতিহাস থেকে পুনরায় প্রকাশ করা যাবে।
+            </p>
+            <textarea
+              value={unpublishReason}
+              onChange={(e) => setUnpublishReason(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 mb-4 bengali-text text-gray-900"
+              rows={3}
+              placeholder="অপ্রকাশিত করার কারণ (ঐচ্ছিক)"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={handleUnpublishSubmit}
+                disabled={isUnpublishing}
+                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 bengali-text"
+              >
+                {isUnpublishing ? 'প্রক্রিয়াকরণ...' : 'অপ্রকাশিত করুন'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowUnpublishModal(false);
+                  setUnpublishReason('');
+                }}
+                disabled={isUnpublishing}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 bengali-text"
+              >
+                বাতিল
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

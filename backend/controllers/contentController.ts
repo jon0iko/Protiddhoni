@@ -6,6 +6,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 import ContentRepository from '../repositories/ContentRepository';
 import UserRepository from '../repositories/UserRepository';
+import AdminActionLogRepository from '../repositories/AdminActionLogRepository';
 import NotificationService from '../services/notificationService';
 import slugify from '../utils/slugify';
 import { updateSlugFromTitle } from '../utils/slugify';
@@ -428,6 +429,18 @@ export const approve = async (req: Request, res: Response) => {
 
         // Freshly published content must appear in list endpoints immediately.
         invalidateContentLists();
+        // Log admin action
+        await AdminActionLogRepository.create({
+            admin_id: req.user.id,
+            action_type: 'approve',
+            content_id: req.params.id,
+            metadata: {
+                title: content.title,
+                slug: content.slug,
+                author_id: content.author_id,
+                previous_status: content.status
+            }
+        });
 
         // Notify author and followers (Observer pattern)
         await NotificationService.notifyContentApproved(updated);
@@ -477,6 +490,19 @@ export const reject = async (req: Request, res: Response) => {
 
         // A rejected piece is no longer published — flush any cached lists.
         invalidateContentLists();
+        // Log admin action
+        await AdminActionLogRepository.create({
+            admin_id: req.user.id,
+            action_type: 'reject',
+            content_id: req.params.id,
+            reason: reason,
+            metadata: {
+                title: content.title,
+                slug: content.slug,
+                author_id: content.author_id,
+                previous_status: content.status
+            }
+        });
 
         // Notify author (Observer pattern)
         await NotificationService.notifyContentRejected(updated);
@@ -488,6 +514,148 @@ export const reject = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Reject content error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const unpublish = async (req: Request, res: Response) => {
+    try {
+        const { reason } = req.body;
+
+        const content = await ContentRepository.findById(req.params.id);
+
+        if (!content) {
+            return res.status(404).json({ success: false, error: 'Content not found' });
+        }
+
+        if (!content.is_published || content.status !== 'approved') {
+            return res.status(400).json({
+                success: false,
+                error: 'Only published and approved content can be unpublished'
+            });
+        }
+
+        const updated = await ContentRepository.update(req.params.id, {
+            is_published: false,
+            reviewed_by: req.user.id,
+            reviewed_at: new Date().toISOString()
+        });
+
+        // Unpublished content must disappear from list endpoints immediately.
+        invalidateContentLists();
+
+        // Log admin action
+        await AdminActionLogRepository.create({
+            admin_id: req.user.id,
+            action_type: 'unpublish',
+            content_id: req.params.id,
+            reason: reason || null,
+            metadata: {
+                title: content.title,
+                slug: content.slug,
+                author_id: content.author_id,
+                previous_status: content.status,
+                was_published: content.is_published,
+                published_at: content.published_at
+            }
+        });
+
+        // Notify author
+        await NotificationService.notifyContentUnpublished({
+            ...updated,
+            title: content.title,
+            author_id: content.author_id,
+            unpublish_reason: reason || null
+        });
+
+        res.json({
+            success: true,
+            data: updated,
+            message: 'লেখা অপ্রকাশিত করা হয়েছে'
+        });
+    } catch (error) {
+        console.error('Unpublish content error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const republish = async (req: Request, res: Response) => {
+    try {
+        const content = await ContentRepository.findById(req.params.id);
+
+        if (!content) {
+            return res.status(404).json({ success: false, error: 'Content not found' });
+        }
+
+        // Only allow republishing content that was unpublished (status=approved, is_published=false)
+        if (content.status !== 'approved' || content.is_published) {
+            return res.status(400).json({
+                success: false,
+                error: 'Only unpublished content (with approved status) can be republished'
+            });
+        }
+
+        // Find and mark the active unpublish log entry as reverted
+        const unpublishLog = await AdminActionLogRepository.findActiveUnpublish(req.params.id);
+        if (unpublishLog) {
+            await AdminActionLogRepository.markReverted(unpublishLog.id, req.user.id);
+        }
+
+        const updated = await ContentRepository.update(req.params.id, {
+            is_published: true,
+            published_at: new Date().toISOString(),
+            reviewed_by: req.user.id,
+            reviewed_at: new Date().toISOString()
+        });
+
+        // Republished content must reappear in list endpoints immediately.
+        invalidateContentLists();
+
+        // Log admin action
+        await AdminActionLogRepository.create({
+            admin_id: req.user.id,
+            action_type: 'republish',
+            content_id: req.params.id,
+            metadata: {
+                title: content.title,
+                slug: content.slug,
+                author_id: content.author_id,
+                previous_status: content.status,
+                was_published: content.is_published,
+                reverted_unpublish_log_id: unpublishLog?.id || null
+            }
+        });
+
+        // Notify author
+        await NotificationService.notifyContentRepublished({
+            ...updated,
+            title: content.title,
+            author_id: content.author_id
+        });
+
+        res.json({
+            success: true,
+            data: updated,
+            message: 'লেখা পুনরায় প্রকাশিত হয়েছে'
+        });
+    } catch (error) {
+        console.error('Republish content error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const getAdminActionHistory = async (req: Request, res: Response) => {
+    try {
+        const { page, limit } = req.query;
+        const result = await AdminActionLogRepository.findAll({ page, limit });
+
+        res.json({
+            success: true,
+            data: result.data,
+            pagination: result.pagination
+        });
+    } catch (error) {
+        console.error('Get admin action history error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

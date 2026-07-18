@@ -61,8 +61,19 @@ jobs:
             
             cd backend
             pnpm install
-            pm2 restart protiddhoni-api
-            
+            # The backend is TypeScript: compile to dist/ before restarting.
+            # dist/ is git-ignored, so it must be built here on every deploy.
+            pnpm build
+
+            # The pm2 process was originally registered against backend/server.js,
+            # which no longer exists. Re-register it at the compiled entry point.
+            # `pm2 restart` alone would keep pointing at the old, missing path.
+            pm2 delete protiddhoni-api 2>/dev/null || true
+            # --cwd is explicit so dotenv resolves backend/.env regardless of
+            # where pm2 considers itself to be running from.
+            pm2 start dist/server.js --name protiddhoni-api \
+              --cwd /home/azureuser/Protiddhoni/backend
+
             cd ../frontend/protiddhoni
             pnpm install
             tar -xzf next_build.tar.gz

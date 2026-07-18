@@ -30,6 +30,8 @@ class BookmarkRepository {
                     cover_image_url,
                     content_type,
                     view_count,
+                    is_published,
+                    status,
                     author:author_id (
                         id,
                         username,
