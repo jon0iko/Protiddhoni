@@ -163,7 +163,7 @@ export default function FAQPage() {
               placeholder="প্রশ্ন খুঁজুন..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
             />
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function FAQPage() {
         </div>
 
         {/* Contact Support */}
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white text-center">
+        <div className="mt-12 bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 rounded-xl p-8 text-white text-center">
           <h3 className="text-2xl font-bold mb-4 bengali-text">
             আপনার প্রশ্নের উত্তর পাননি?
           </h3>
@@ -246,13 +246,13 @@ export default function FAQPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a 
               href="/contact" 
-              className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
+              className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
             >
               যোগাযোগ করুন
             </a>
             <a 
               href="/guidelines" 
-              className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors bengali-text"
+              className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors bengali-text"
             >
               নিয়মাবলী দেখুন
             </a>

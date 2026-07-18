@@ -153,7 +153,7 @@ export default function WritingHubPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
           <button
             onClick={() => router.push('/write/editor')}
-            className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            className="bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <PlusCircle className="w-8 h-8 mb-3 mx-auto" />
             <h3 className="text-lg font-bold mb-2 bengali-text">নতুন লেখা</h3>
@@ -171,7 +171,7 @@ export default function WritingHubPage() {
 
           <button
             onClick={() => router.push('/drafts')}
-            className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            className="bg-gradient-to-br from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
           >
             <FileText className="w-8 h-8 mb-3 mx-auto" />
             <h3 className="text-lg font-bold mb-2 bengali-text">খসড়া</h3>
@@ -199,8 +199,8 @@ export default function WritingHubPage() {
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
-                  <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <BookOpen className="w-6 h-6 text-blue-600" />
+                  <div className="bg-primary-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <BookOpen className="w-6 h-6 text-primary-600" />
                   </div>
                   <div className="text-2xl font-bold text-gray-900">{userStats.totalStories.toLocaleString()}</div>
                   <div className="text-sm text-gray-600 bengali-text">মোট গল্প</div>
@@ -215,7 +215,7 @@ export default function WritingHubPage() {
                 </div>
                 
                 <div className="text-center">
-                  <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
+                  <div className="bg-accent-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <Users className="w-6 h-6 text-accent-600" />
                   </div>
                   <div className="text-2xl font-bold text-gray-900">{userStats.totalViews.toLocaleString()}</div>
@@ -245,7 +245,7 @@ export default function WritingHubPage() {
               
               <div className="bg-gray-200 rounded-full h-3 mb-2">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-primary-500 to-accent-500 h-3 rounded-full transition-all duration-300"
                   style={{ width: `${Math.min(progressPercentage, 100)}%` }}
                 ></div>
               </div>
@@ -259,9 +259,9 @@ export default function WritingHubPage() {
             </div> */}
 
             {/* Writing Inspiration */}
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
+            <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl border border-primary-200 p-6">
               <div className="flex items-center space-x-3 mb-4">
-                <Feather className="w-6 h-6 text-indigo-600" />
+                <Feather className="w-6 h-6 text-primary-600" />
                 <h2 className="text-xl font-bold text-gray-900 bengali-text">
                   আজকের অনুপ্রেরণা
                 </h2>
@@ -288,7 +288,7 @@ export default function WritingHubPage() {
                   <div key={activity.id} className="flex items-start space-x-3">
                     <div className={`w-2 h-2 rounded-full mt-2 ${
                       activity.action === 'published' ? 'bg-green-500' :
-                      activity.action === 'edited' ? 'bg-blue-500' : 'bg-purple-500'
+                      activity.action === 'edited' ? 'bg-primary-500' : 'bg-accent-500'
                     }`}></div>
                     <div className="flex-1">
                       <p className="text-sm text-gray-900 bengali-text">

@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-primary-50 p-4">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             {/* Success Icon */}
@@ -63,9 +63,9 @@ export default function ForgotPasswordPage() {
             </div>
 
             {/* Instructions */}
-            <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
-              <h3 className="font-semibold text-blue-900 mb-2">পরবর্তী ধাপ:</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="bg-primary-50 rounded-lg p-4 mb-6 text-left">
+              <h3 className="font-semibold text-primary-900 mb-2">পরবর্তী ধাপ:</h3>
+              <ul className="text-sm text-primary-800 space-y-1">
                 <li>• আপনার ইমেইল ইনবক্স চেক করুন</li>
                 <li>• স্প্যাম ফোল্ডারও দেখুন</li>
                 <li>• "পাসওয়ার্ড রিসেট" লিংকে ক্লিক করুন</li>
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
             <div className="space-y-3">
               <Link 
                 href="/login"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 inline-block text-center"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:from-primary-700 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 inline-block text-center"
               >
                 লগইন পেজে ফিরে যান
               </Link>
@@ -99,13 +99,13 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-primary-50 p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <BookOpen className="h-10 w-10 text-blue-600 mr-2" />
+              <BookOpen className="h-10 w-10 text-primary-600 mr-2" />
               <h1 className="text-2xl font-bold text-gray-900">প্রতিধ্বনি</h1>
             </div>
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">পাসওয়ার্ড ভুলে গেছেন?</h2>
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
                     setEmail(e.target.value);
                     if (error) setError('');
                   }}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
                   placeholder="আপনার ইমেইল লিখুন"
                   required
                 />
@@ -142,7 +142,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:from-primary-700 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
@@ -162,7 +162,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-6 text-center">
             <Link 
               href="/login"
-              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 hover:underline"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               লগইন পেজে ফিরে যান

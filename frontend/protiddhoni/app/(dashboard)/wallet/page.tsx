@@ -89,15 +89,15 @@ export default function WalletPage() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg col-span-1 md:col-span-2 relative overflow-hidden flex flex-col justify-between">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-6 text-white shadow-lg col-span-1 md:col-span-2 relative overflow-hidden flex flex-col justify-between">
           <div className="absolute top-0 right-0 p-4 opacity-20">
             <Wallet className="w-32 h-32" />
           </div>
           <div>
-            <p className="text-blue-100 mb-1 bengali-text font-medium border-b border-blue-400/30 pb-2 inline-block">বর্তমান ব্যালেন্স</p>
+            <p className="text-primary-100 mb-1 bengali-text font-medium border-b border-primary-400/30 pb-2 inline-block">বর্তমান ব্যালেন্স</p>
             <div className="flex items-baseline mt-4">
               <span className="text-5xl font-black">{user?.kori_balance || 0}</span>
-              <span className="ml-2 text-xl text-blue-200 bengali-text">কড়ি</span>
+              <span className="ml-2 text-xl text-primary-200 bengali-text">কড়ি</span>
             </div>
           </div>
           <div className="mt-8 flex gap-3 z-10">
@@ -157,7 +157,7 @@ export default function WalletPage() {
           <p className="text-sm text-gray-500 bengali-text">সিমুলেটেড পেমেন্ট গেটওয়ে — কোনো প্রকৃত প্রদানকারী ছাড়াই কড়ি যোগ হবে।</p>
           <div className="flex gap-2 mt-3">
              <span className="text-xs font-bold bg-pink-100 text-pink-600 px-2 py-1 rounded">bKash</span>
-             <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded">Card</span>
+             <span className="text-xs font-bold bg-primary-100 text-primary-600 px-2 py-1 rounded">Card</span>
              <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded">Sim</span>
           </div>
         </div>

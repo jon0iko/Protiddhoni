@@ -46,7 +46,7 @@ const statusNames: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   'draft': 'bg-yellow-100 text-yellow-800',
-  'pending': 'bg-blue-100 text-blue-800',
+  'pending': 'bg-primary-100 text-primary-800',
   'approved': 'bg-green-100 text-green-800',
   'rejected': 'bg-red-100 text-red-800',
   'published': 'bg-green-100 text-green-800'
@@ -161,7 +161,7 @@ export default function ContinueWritingPage() {
                   placeholder="গল্প খুঁজুন..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
                 />
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function ContinueWritingPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
             >
               <option value="all">সব অবস্থা</option>
               <option value="draft">খসড়া</option>
@@ -184,7 +184,7 @@ export default function ContinueWritingPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
             >
               <option value="all">সব ধরন</option>
               <option value="story">গল্প</option>
@@ -209,7 +209,7 @@ export default function ContinueWritingPage() {
             </p>
             <button
               onClick={() => router.push('/write/editor')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors bengali-text"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-medium transition-colors bengali-text"
             >
               নতুন গল্প লিখুন
             </button>
@@ -219,7 +219,7 @@ export default function ContinueWritingPage() {
             {filteredStories.map((story) => (
               <div key={story.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                 {/* Cover Image or Placeholder */}
-                <div className="h-32 bg-gradient-to-br from-blue-100 to-purple-100 relative">
+                <div className="h-32 bg-gradient-to-br from-primary-100 to-accent-100 relative">
                   {story.cover_image_url ? (
                     <Image 
                       src={story.cover_image_url} 
@@ -281,7 +281,7 @@ export default function ContinueWritingPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEditStory(story.id)}
-                      className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors bengali-text"
+                      className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors bengali-text"
                     >
                       <Edit className="w-4 h-4" />
                       <span>সম্পাদনা</span>
@@ -307,23 +307,23 @@ export default function ContinueWritingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={() => router.push('/write/editor')}
-              className="flex items-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left"
+              className="flex items-center space-x-3 p-4 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors text-left"
             >
-              <Plus className="w-5 h-5 text-blue-600" />
+              <Plus className="w-5 h-5 text-primary-600" />
               <div>
-                <div className="font-medium text-blue-900 bengali-text">নতুন গল্প শুরু করুন</div>
-                <div className="text-sm text-blue-600 bengali-text">একটি নতুন গল্প লিখতে শুরু করুন</div>
+                <div className="font-medium text-primary-900 bengali-text">নতুন গল্প শুরু করুন</div>
+                <div className="text-sm text-primary-600 bengali-text">একটি নতুন গল্প লিখতে শুরু করুন</div>
               </div>
             </button>
             
             <button
               onClick={() => router.push('/drafts')}
-              className="flex items-center space-x-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left"
+              className="flex items-center space-x-3 p-4 bg-accent-50 hover:bg-accent-100 rounded-lg transition-colors text-left"
             >
-              <BookOpen className="w-5 h-5 text-purple-600" />
+              <BookOpen className="w-5 h-5 text-accent-600" />
               <div>
-                <div className="font-medium text-purple-900 bengali-text">সব খসড়া দেখুন</div>
-                <div className="text-sm text-purple-600 bengali-text">অসম্পূর্ণ লেখাগুলি দেখুন</div>
+                <div className="font-medium text-accent-900 bengali-text">সব খসড়া দেখুন</div>
+                <div className="text-sm text-accent-600 bengali-text">অসম্পূর্ণ লেখাগুলি দেখুন</div>
               </div>
             </button>
           </div>

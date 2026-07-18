@@ -132,16 +132,16 @@ export default function ReadingControls({ onThemeChange, onFontSizeChange }: Rea
     };
 
     return (
-        <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3 p-2 bg-[var(--reader-card-bg)] rounded-xl shadow-sm border border-[var(--reader-border)]">
             {/* Theme Controls */}
-            <div className="flex items-center gap-1 border-r border-gray-300 dark:border-gray-600 pr-3">
-                <span className="text-sm text-gray-600 dark:text-gray-300 mr-2 bengali-text">থিম:</span>
+            <div className="flex items-center gap-1 border-r border-[var(--reader-border)] pr-3">
+                <span className="text-sm text-[var(--reader-secondary-text)] mr-2 bengali-text">থিম:</span>
                 <button
                     onClick={() => handleThemeChange('light')}
                     className={`p-2 rounded transition-colors ${
                         theme === 'light' 
-                            ? 'bg-blue-100 text-blue-600' 
-                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                            ? 'bg-primary-100 text-primary-700' 
+                            : 'text-[var(--reader-secondary-text)] hover:bg-[var(--reader-hover)]'
                     }`}
                     title="হালকা মোড"
                     disabled={loading}
@@ -152,8 +152,8 @@ export default function ReadingControls({ onThemeChange, onFontSizeChange }: Rea
                     onClick={() => handleThemeChange('dark')}
                     className={`p-2 rounded transition-colors ${
                         theme === 'dark' 
-                            ? 'bg-blue-100 text-blue-600' 
-                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                            ? 'bg-primary-100 text-primary-700' 
+                            : 'text-[var(--reader-secondary-text)] hover:bg-[var(--reader-hover)]'
                     }`}
                     title="গাঢ় মোড"
                     disabled={loading}
@@ -164,8 +164,8 @@ export default function ReadingControls({ onThemeChange, onFontSizeChange }: Rea
                     onClick={() => handleThemeChange('sepia')}
                     className={`p-2 rounded transition-colors ${
                         theme === 'sepia' 
-                            ? 'bg-amber-100 text-amber-700' 
-                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                            ? 'bg-primary-100 text-primary-700' 
+                            : 'text-[var(--reader-secondary-text)] hover:bg-[var(--reader-hover)]'
                     }`}
                     title="সেপিয়া মোড"
                     disabled={loading}
@@ -176,16 +176,16 @@ export default function ReadingControls({ onThemeChange, onFontSizeChange }: Rea
 
             {/* Font Size Controls */}
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-300 mr-1 bengali-text">ফন্ট:</span>
+                <span className="text-sm text-[var(--reader-secondary-text)] mr-1 bengali-text">ফন্ট:</span>
                 <button
                     onClick={decreaseFontSize}
-                    className="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 text-[var(--reader-secondary-text)] hover:bg-[var(--reader-hover)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="ছোট করুন"
                     disabled={fontSize === 'small' || loading}
                 >
                     <Minus className="w-4 h-4" />
                 </button>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[50px] text-center">
+                <span className="text-sm font-medium text-[var(--reader-text)] min-w-[50px] text-center bengali-text">
                     {fontSize === 'small' && 'ছোট'}
                     {fontSize === 'medium' && 'মাঝারি'}
                     {fontSize === 'large' && 'বড়'}
@@ -193,7 +193,7 @@ export default function ReadingControls({ onThemeChange, onFontSizeChange }: Rea
                 </span>
                 <button
                     onClick={increaseFontSize}
-                    className="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 text-[var(--reader-secondary-text)] hover:bg-[var(--reader-hover)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="বড় করুন"
                     disabled={fontSize === 'xlarge' || loading}
                 >

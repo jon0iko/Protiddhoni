@@ -88,7 +88,7 @@ export default function ContactPage() {
                 type: 'general'
               });
             }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors bengali-text"
+            className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors bengali-text"
           >
             আরেকটি বার্তা পাঠান
           </button>
@@ -120,7 +120,7 @@ export default function ContactPage() {
               
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
-                  <Mail className="w-5 h-5 text-blue-600 mt-1" />
+                  <Mail className="w-5 h-5 text-primary-600 mt-1" />
                   <div>
                     <p className="font-medium text-gray-900">ইমেইল</p>
                     <p className="text-gray-600">support@protiddhoni.com</p>
@@ -150,7 +150,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start space-x-3">
-                  <Clock className="w-5 h-5 text-purple-600 mt-1" />
+                  <Clock className="w-5 h-5 text-accent-600 mt-1" />
                   <div>
                     <p className="font-medium text-gray-900 bengali-text">কার্যসময়</p>
                     <p className="text-gray-600 bengali-text">রবিবার - বৃহস্পতিবার</p>
@@ -195,7 +195,7 @@ export default function ContactPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <MessageCircle className="w-6 h-6 text-blue-600" />
+                <MessageCircle className="w-6 h-6 text-primary-600" />
                 <h3 className="text-xl font-bold text-gray-900 bengali-text">
                   আমাদের বার্তা পাঠান
                 </h3>
@@ -213,7 +213,7 @@ export default function ContactPage() {
                       value={form.name}
                       onChange={handleInputChange}
                       required
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
                       placeholder="আপনার নাম লিখুন"
                     />
                   </div>
@@ -228,7 +228,7 @@ export default function ContactPage() {
                       value={form.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       placeholder="your@email.com"
                     />
                   </div>
@@ -242,7 +242,7 @@ export default function ContactPage() {
                     name="type"
                     value={form.type}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
                   >
                     {contactTypes.map((type) => (
                       <option key={type.value} value={type.value}>
@@ -262,7 +262,7 @@ export default function ContactPage() {
                     value={form.subject}
                     onChange={handleInputChange}
                     required
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bengali-text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
                     placeholder="বার্তার বিষয় লিখুন"
                   />
                 </div>
@@ -277,7 +277,7 @@ export default function ContactPage() {
                     onChange={handleInputChange}
                     required
                     rows={6}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bengali-text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bengali-text"
                     placeholder="আপনার বার্তা বিস্তারিতভাবে লিখুন..."
                   />
                 </div>
@@ -285,7 +285,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bengali-text"
+                  className="w-full flex items-center justify-center space-x-3 bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bengali-text"
                 >
                   {isSubmitting ? (
                     <>
@@ -305,7 +305,7 @@ export default function ContactPage() {
         </div>
 
         {/* Quick Help */}
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
+        <div className="mt-12 bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 rounded-xl p-8 text-white">
           <div className="text-center">
             <h3 className="text-2xl font-bold mb-4 bengali-text">
               দ্রুত সাহায্য প্রয়োজন?
@@ -316,13 +316,13 @@ export default function ContactPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
                 href="/faq" 
-                className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
+                className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
               >
                 FAQ দেখুন
               </a>
               <a 
                 href="/guidelines" 
-                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors bengali-text"
+                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors bengali-text"
               >
                 নিয়মাবলী পড়ুন
               </a>

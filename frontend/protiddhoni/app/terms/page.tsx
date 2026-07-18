@@ -91,7 +91,7 @@ export default function TermsPage() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <Scale className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <Scale className="w-16 h-16 text-primary-600 mx-auto mb-4" />
           <h1 className="text-4xl font-bold text-gray-900 mb-4 bengali-text">
             সেবার শর্তাবলী
           </h1>
@@ -124,7 +124,7 @@ export default function TermsPage() {
           {sections.map((section) => (
             <div key={section.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
                   {section.icon}
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 bengali-text">
@@ -245,7 +245,7 @@ export default function TermsPage() {
         </div>
 
         {/* Contact for Legal Issues */}
-        <div className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
+        <div className="mt-8 bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 rounded-xl p-8 text-white">
           <div className="text-center">
             <Gavel className="w-12 h-12 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-4 bengali-text">
@@ -257,13 +257,13 @@ export default function TermsPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
                 href="/contact" 
-                className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
+                className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
               >
                 যোগাযোগ ফর্ম
               </a>
               <a 
                 href="mailto:legal@protiddhoni.com" 
-                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors"
               >
                 legal@protiddhoni.com
               </a>

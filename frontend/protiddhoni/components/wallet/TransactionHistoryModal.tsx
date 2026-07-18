@@ -121,7 +121,7 @@ export default function TransactionHistoryModal({ isOpen, onClose }: Transaction
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold bengali-text">লেনদেনের ইতিহাস</h2>
           <button
             onClick={onClose}
@@ -135,7 +135,7 @@ export default function TransactionHistoryModal({ isOpen, onClose }: Transaction
         <div className="overflow-y-auto flex-1 p-6">
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary-600 mb-3" />
               <p className="text-gray-500 bengali-text">লোড হচ্ছে...</p>
             </div>
           )}

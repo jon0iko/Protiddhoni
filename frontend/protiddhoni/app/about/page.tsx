@@ -18,7 +18,7 @@ export default function AboutPage() {
         {/* Mission Statement */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
           <div className="flex items-center space-x-3 mb-6">
-            <Target className="w-6 h-6 text-blue-600" />
+            <Target className="w-6 h-6 text-primary-600" />
             <h2 className="text-2xl font-bold text-gray-900 bengali-text">আমাদের লক্ষ্য</h2>
           </div>
           <p className="text-gray-700 leading-relaxed bengali-text text-lg">
@@ -28,9 +28,9 @@ export default function AboutPage() {
         </div>
 
         {/* Vision */}
-        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border border-blue-200 p-8 mb-8">
+        <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl border border-primary-200 p-8 mb-8">
           <div className="flex items-center space-x-3 mb-6">
-            <Eye className="w-6 h-6 text-purple-600" />
+            <Eye className="w-6 h-6 text-accent-600" />
             <h2 className="text-2xl font-bold text-gray-900 bengali-text">আমাদের স্বপ্ন</h2>
           </div>
           <p className="text-gray-700 leading-relaxed bengali-text text-lg">
@@ -53,7 +53,7 @@ export default function AboutPage() {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <Users className="w-8 h-8 text-blue-600" />
+              <Users className="w-8 h-8 text-primary-600" />
               <h3 className="text-xl font-bold text-gray-900 bengali-text">সম্প্রদায়</h3>
             </div>
             <p className="text-gray-600 bengali-text">
@@ -101,7 +101,7 @@ export default function AboutPage() {
 
         {/* Call to Action */}
         <div className="text-center mt-12">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
+          <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 rounded-xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-4 bengali-text">
               আমাদের যাত্রায় অংশ নিন
             </h3>
@@ -111,13 +111,13 @@ export default function AboutPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
                 href="/register" 
-                className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
+                className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
               >
                 যোগদান করুন
               </a>
               <a 
                 href="/contact" 
-                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors bengali-text"
+                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors bengali-text"
               >
                 যোগাযোগ করুন
               </a>
