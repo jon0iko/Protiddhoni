@@ -23,6 +23,16 @@ jobs:
         with:
           version: 10.8.0
 
+      - name: Build Backend
+        # The backend is TypeScript and must be compiled. We do it HERE, on the
+        # runner, not on the VPS: the VPS is small and `tsc` times out there.
+        # This mirrors how the frontend is built and shipped as a tarball.
+        working-directory: ./backend
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm run build
+          tar -czf backend_dist.tar.gz dist
+
       - name: Build Frontend
         working-directory: ./frontend/protiddhoni
         env:
@@ -38,7 +48,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "frontend/protiddhoni/next_build.tar.gz"
+          source: "frontend/protiddhoni/next_build.tar.gz,backend/backend_dist.tar.gz"
           target: "/home/azureuser/Protiddhoni"
 
       - name: Execute Deployment Scripts on VPS
@@ -60,10 +70,15 @@ jobs:
             git reset --hard origin/main
             
             cd backend
-            pnpm install
-            # The backend is TypeScript: compile to dist/ before restarting.
-            # dist/ is git-ignored, so it must be built here on every deploy.
-            pnpm build
+
+            # dist/ arrives prebuilt from the runner — never compile on this box.
+            rm -rf dist
+            tar -xzf backend_dist.tar.gz
+            rm backend_dist.tar.gz
+
+            # Runtime dependencies only. The TypeScript toolchain is a devDependency
+            # and is not needed here, which keeps install fast and light.
+            pnpm install --prod --no-frozen-lockfile
 
             # The pm2 process was originally registered against backend/server.js,
             # which no longer exists. Re-register it at the compiled entry point.
