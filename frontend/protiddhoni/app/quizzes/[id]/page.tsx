@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element, react/no-unescaped-entities, jsx-a11y/alt-text, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, prefer-const */
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,20 +10,35 @@ import {
   Brain,
   CheckCircle2,
   Coins,
+  GraduationCap,
   Loader2,
   Sparkles,
+  Timer,
   Trophy,
+  Users,
   XCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { toBengaliNumber } from '@/lib/numberFormatter';
 import type {
+  QuizAttemptStatus,
   QuizQuestionPlayable,
   QuizReviewItem,
-  QuizSourceContent,
+  QuizSettlement,
   QuizSpecificLeaderboardEntry,
+  RoundPhase,
 } from '@/types';
+import {
+  DIFFICULTY_LABEL,
+  PHASE_LABEL,
+  PHASE_STYLES,
+  formatClock,
+  formatCountdown,
+  formatDateTime,
+  formatDuration,
+  msUntil,
+} from '../_lib/round';
 
 type QuizPreview = {
   id: string;
@@ -31,17 +46,25 @@ type QuizPreview = {
   description?: string | null;
   difficulty: 'easy' | 'medium' | 'hard';
   entry_cost: number;
-  reward_per_correct: number;
   total_questions: number;
   time_limit_seconds?: number | null;
+  quiz_type: 'general' | 'exam';
+  exam_category?: string | null;
+  topic?: string | null;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  prize_pool: number;
+  settled_at?: string | null;
+  settlement?: QuizSettlement | null;
+  phase: RoundPhase;
+  players_joined?: number;
   creator?: { id: string; username: string; full_name: string } | null;
-  source_content?: QuizSourceContent | null;
   published_at?: string | null;
 };
 
 type AttemptInfo = {
   id: string;
-  status: 'in_progress' | 'completed' | 'abandoned';
+  status: QuizAttemptStatus;
   score: number;
   correct_answers: number;
   kori_spent: number;
@@ -54,14 +77,10 @@ type SubmissionResult = {
   correct_answers: number;
   total_questions: number;
   kori_earned: number;
+  payout_pending?: boolean;
+  closes_at?: string | null;
   balance_after: number | null;
   review: QuizReviewItem[];
-};
-
-const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'সহজ',
-  medium: 'মাঝারি',
-  hard: 'কঠিন',
 };
 
 export default function PlayQuizPage() {
@@ -82,6 +101,7 @@ export default function PlayQuizPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [entering, setEntering] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const [timeLimitSeconds, setTimeLimitSeconds] = useState<number | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
@@ -89,23 +109,37 @@ export default function PlayQuizPage() {
   const expiredRef = useRef(false); // ensures the countdown auto-submits exactly once
   const submittingRef = useRef(false); // guards against duplicate/overlapping submits
 
+  // Single ticker for every round countdown on this page.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const handle = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(handle);
+  }, []);
+
+  const loadPreview = useCallback(async () => {
+    if (!quizId) return null;
+    const res = await api.quizzes.getPreview(quizId);
+    if (!res?.success) return null;
+    setPreview(res.data.quiz);
+    setExistingAttempt(res.data.user_attempt || null);
+    return res.data;
+  }, [quizId]);
+
   useEffect(() => {
     if (!quizId) return;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.quizzes.getPreview(quizId);
-        if (!res?.success) {
-          setError(res?.error || 'কুইজ লোড করা যায়নি');
+        const data = await loadPreview();
+        if (!data) {
+          setError('কুইজ লোড করা যায়নি');
           return;
         }
-        setPreview(res.data.quiz);
-        setExistingAttempt(res.data.user_attempt || null);
 
-        if (res.data.user_attempt?.status === 'completed') {
+        if (data.user_attempt?.status === 'completed') {
           try {
-            const attemptRes = await api.quizzes.getAttempt(res.data.user_attempt.id);
+            const attemptRes = await api.quizzes.getAttempt(data.user_attempt.id);
             if (attemptRes?.success) {
               setReviewFromHistory(attemptRes.data.review || []);
               setPhase('result');
@@ -122,14 +156,47 @@ export default function PlayQuizPage() {
       }
     };
     load();
-  }, [quizId]);
+  }, [quizId, loadPreview]);
 
-  const handleStart = async () => {
+  // Once a round settles, refresh the preview so the payout can be shown.
+  const settlementPending =
+    phase === 'result' && preview && !preview.settled_at && preview.phase === 'closed';
+  useEffect(() => {
+    if (!settlementPending) return;
+    const handle = window.setInterval(() => {
+      loadPreview().catch(() => undefined);
+    }, 15000);
+    return () => window.clearInterval(handle);
+  }, [settlementPending, loadPreview]);
+
+  const handleEnter = async () => {
     if (!quizId) return;
     if (!isLoggedIn) {
       router.push(`/login?redirect=/quizzes/${quizId}`);
       return;
     }
+    setEntering(true);
+    setError(null);
+    try {
+      const res = await api.quizzes.enter(quizId);
+      if (!res?.success) {
+        setError(res?.error || 'রাউন্ডে যোগ দেওয়া যায়নি');
+        return;
+      }
+      await loadPreview();
+      await refreshBalance();
+    } catch (err: any) {
+      const status = err?.status;
+      const message = err?.response?.data?.error || err?.message || 'রাউন্ডে যোগ দেওয়া যায়নি';
+      if (status === 402) setError('পর্যাপ্ত কড়ি নেই — ওয়ালেটে কড়ি যোগ করুন।');
+      else setError(message);
+    } finally {
+      setEntering(false);
+    }
+  };
+
+  const handleStart = async () => {
+    if (!quizId) return;
     setBusy(true);
     setError(null);
     try {
@@ -143,19 +210,18 @@ export default function PlayQuizPage() {
       setAnswers({});
       setCurrentIndex(0);
       setPhase('playing');
-      startedAtRef.current = Date.now();
+      startedAtRef.current = res.data.started_at
+        ? new Date(res.data.started_at).getTime()
+        : Date.now();
       const limit = Number(res.data?.quiz?.time_limit_seconds) || null;
       setTimeLimitSeconds(limit);
       setRemainingSeconds(limit);
       setExpired(false);
       expiredRef.current = false;
       submittingRef.current = false;
-      await refreshBalance();
     } catch (err: any) {
-      const status = err?.status;
       const message = err?.response?.data?.error || err?.message || 'কুইজ শুরু করা যায়নি';
-      if (status === 402) setError('পর্যাপ্ত কড়ি নেই — ওয়ালেটে কড়ি যোগ করুন।');
-      else setError(message);
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -306,6 +372,11 @@ export default function PlayQuizPage() {
 
   if (!preview) return null;
 
+  const roundPhase: RoundPhase = preview.phase || 'open';
+  const hasEntered = Boolean(existingAttempt);
+  const closesIn = msUntil(preview.closes_at, nowMs);
+  const opensIn = msUntil(preview.opens_at, nowMs);
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
@@ -322,41 +393,42 @@ export default function PlayQuizPage() {
             <Brain className="w-7 h-7" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-xs text-gray-500 bengali-text">
-              <span>{DIFFICULTY_LABEL[preview.difficulty] || preview.difficulty}</span>
-              <span>·</span>
-              <span>{toBengaliNumber(preview.total_questions)}টি প্রশ্ন</span>
-              {preview.creator?.full_name && (
-                <>
-                  <span>·</span>
-                  <span>সৃষ্টিকর্তা: {preview.creator.full_name}</span>
-                </>
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className={`px-2 py-0.5 rounded-full bengali-text ${PHASE_STYLES[roundPhase]}`}>
+                {PHASE_LABEL[roundPhase]}
+              </span>
+              {preview.quiz_type === 'exam' && (
+                <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1">
+                  <GraduationCap className="w-3 h-3" />
+                  {preview.exam_category || 'পরীক্ষা'}
+                </span>
               )}
+              <span className="text-gray-500 bengali-text">
+                {DIFFICULTY_LABEL[preview.difficulty] || preview.difficulty}
+              </span>
+              <span className="text-gray-400">·</span>
+              <span className="text-gray-500 bengali-text">
+                {toBengaliNumber(preview.total_questions)}টি প্রশ্ন
+              </span>
             </div>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900 bengali-text">{preview.title}</h1>
+            <h1 className="mt-1.5 text-2xl font-bold text-gray-900 bengali-text">{preview.title}</h1>
             {preview.description && (
               <p className="mt-2 text-gray-700 bengali-text">{preview.description}</p>
+            )}
+            {preview.topic && (
+              <p className="mt-1 text-sm text-gray-500 bengali-text">বিষয়: {preview.topic}</p>
             )}
             <div className="mt-4 flex flex-wrap gap-2 text-sm">
               <span className="inline-flex items-center gap-1 bg-yellow-50 text-yellow-800 px-3 py-1 rounded-full bengali-text">
                 <Coins className="w-4 h-4" /> প্রবেশ ফি {toBengaliNumber(preview.entry_cost)}
               </span>
-              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full bengali-text">
-                <Sparkles className="w-4 h-4" /> প্রতি সঠিক উত্তরে {toBengaliNumber(preview.reward_per_correct)} কড়ি
+              <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full bengali-text">
+                <Users className="w-4 h-4" /> {toBengaliNumber(preview.players_joined ?? 0)} জন
               </span>
               {user?.kori_balance !== undefined && (
-                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full bengali-text">
+                <span className="inline-flex items-center gap-1 bg-slate-50 text-slate-700 px-3 py-1 rounded-full bengali-text">
                   <Coins className="w-4 h-4" /> আপনার ব্যালেন্স {toBengaliNumber(user.kori_balance)}
                 </span>
-              )}
-              {preview.source_content && (
-                <Link
-                  href={`/read/${preview.source_content.slug}`}
-                  className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full bengali-text hover:bg-emerald-100"
-                  title="মূল লেখাটি পড়ুন"
-                >
-                  📖 {preview.source_content.title}
-                </Link>
               )}
               {preview.time_limit_seconds ? (
                 <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 px-3 py-1 rounded-full bengali-text">
@@ -374,38 +446,30 @@ export default function PlayQuizPage() {
         </div>
       )}
 
-      {/* Lobby */}
-      {phase === 'lobby' && (
-        <div className="mt-6 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          {existingAttempt?.status === 'completed' ? (
-            <div className="text-center py-6">
-              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-              <p className="bengali-text text-gray-700">
-                আপনি এই কুইজ ইতিমধ্যে সম্পন্ন করেছেন। ফলাফল নিচে দেখানো হয়েছে।
-              </p>
-            </div>
-          ) : (
-            <>
-              <h2 className="text-lg font-bold text-gray-900 bengali-text">প্রস্তুত?</h2>
-              <p className="text-sm text-gray-600 mt-1 bengali-text">
-                &ldquo;কুইজ শুরু করুন&rdquo; চাপলে {toBengaliNumber(preview.entry_cost)} কড়ি কেটে নেওয়া হবে। প্রতিটি কুইজ মাত্র একবার খেলা যায়।
-              </p>
-              {preview.time_limit_seconds ? (
-                <p className="mt-2 inline-flex items-center gap-1 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-3 py-1 rounded-full bengali-text">
-                  ⏱️ সময়সীমা: {formatClock(preview.time_limit_seconds)}
-                </p>
-              ) : null}
-              <button
-                onClick={handleStart}
-                disabled={busy}
-                className="mt-5 w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white py-3 rounded-xl font-semibold bengali-text inline-flex items-center justify-center gap-2"
-              >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {isLoggedIn ? 'কুইজ শুরু করুন' : 'লগইন করে শুরু করুন'}
-              </button>
-            </>
-          )}
-        </div>
+      {/* Lobby — either CONFIRM ENTRY or the room, depending on whether the
+          player has already paid into the pool. */}
+      {phase === 'lobby' && !hasEntered && (
+        <ConfirmEntryPanel
+          preview={preview}
+          roundPhase={roundPhase}
+          opensIn={opensIn}
+          closesIn={closesIn}
+          isLoggedIn={isLoggedIn}
+          entering={entering}
+          onConfirm={handleEnter}
+        />
+      )}
+
+      {phase === 'lobby' && hasEntered && (
+        <RoomPanel
+          preview={preview}
+          roundPhase={roundPhase}
+          closesIn={closesIn}
+          attempt={existingAttempt}
+          busy={busy}
+          onStart={handleStart}
+          currentUserId={user?.id}
+        />
       )}
 
       {/* Playing */}
@@ -514,8 +578,186 @@ export default function PlayQuizPage() {
           result={result}
           reviewItems={reviewItems}
           currentUserId={user?.id}
+          closesIn={closesIn}
         />
       )}
+    </div>
+  );
+}
+
+/** Step 1: show the player exactly what entering costs and what it buys. */
+function ConfirmEntryPanel({
+  preview,
+  roundPhase,
+  opensIn,
+  closesIn,
+  isLoggedIn,
+  entering,
+  onConfirm,
+}: {
+  preview: QuizPreview;
+  roundPhase: RoundPhase;
+  opensIn: number | null;
+  closesIn: number | null;
+  isLoggedIn: boolean;
+  entering: boolean;
+  onConfirm: () => void;
+}) {
+  const canEnter = roundPhase === 'open';
+
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200 px-6 py-5 text-center">
+        <p className="text-xs uppercase tracking-wide text-amber-700 bengali-text">পুরস্কার তহবিল</p>
+        <p className="text-5xl font-extrabold text-amber-800 bengali-text mt-1 inline-flex items-center gap-2">
+          <Coins className="w-9 h-9" />
+          {toBengaliNumber(Math.round(Number(preview.prize_pool) || 0))}
+        </p>
+        <p className="mt-2 text-sm text-amber-800/80 bengali-text">
+          সেরা ৩ জন ভাগ করে নেবেন — ৫০% / ৩০% / ২০%
+        </p>
+      </div>
+
+      <div className="p-6">
+        <h2 className="text-lg font-bold text-gray-900 bengali-text">প্রবেশ নিশ্চিত করুন</h2>
+        <p className="text-sm text-gray-600 mt-1 bengali-text">
+          নিশ্চিত করলে আপনার ওয়ালেট থেকে{' '}
+          <strong className="text-gray-900">{toBengaliNumber(preview.entry_cost)} কড়ি</strong> কেটে
+          সরাসরি এই রাউন্ডের পুরস্কার তহবিলে যোগ হবে। প্রতিটি রাউন্ডে একবারই অংশ নেওয়া যায়, এবং
+          প্রবেশ ফি ফেরতযোগ্য নয়।
+        </p>
+
+        <dl className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <InfoTile label="প্রবেশ ফি" value={toBengaliNumber(preview.entry_cost)} />
+          <InfoTile label="তহবিল" value={toBengaliNumber(Math.round(Number(preview.prize_pool) || 0))} />
+          <InfoTile label="যোগ দিয়েছেন" value={toBengaliNumber(preview.players_joined ?? 0)} />
+          <InfoTile
+            label={roundPhase === 'scheduled' ? 'শুরু হবে' : 'শেষ হবে'}
+            value={formatCountdown(roundPhase === 'scheduled' ? opensIn : closesIn)}
+          />
+        </dl>
+
+        {preview.closes_at && (
+          <p className="mt-3 text-xs text-gray-500 bengali-text text-center">
+            ফলাফল ও পুরস্কার চূড়ান্ত হবে: {formatDateTime(preview.closes_at)}
+          </p>
+        )}
+
+        {!canEnter ? (
+          <div className="mt-5 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-center text-gray-600 bengali-text">
+            {roundPhase === 'scheduled'
+              ? 'এই রাউন্ড এখনো শুরু হয়নি — নির্ধারিত সময়ে ফিরে আসুন।'
+              : 'এই রাউন্ডে আর প্রবেশ করা যাবে না।'}
+          </div>
+        ) : (
+          <button
+            onClick={onConfirm}
+            disabled={entering}
+            className="mt-5 w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white py-3.5 rounded-xl font-semibold bengali-text inline-flex items-center justify-center gap-2"
+          >
+            {entering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coins className="w-4 h-4" />}
+            {isLoggedIn
+              ? `${toBengaliNumber(preview.entry_cost)} কড়ি দিয়ে প্রবেশ নিশ্চিত করুন`
+              : 'লগইন করে প্রবেশ করুন'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Step 2: the room — Start button, live room leaderboard, finalization clock. */
+function RoomPanel({
+  preview,
+  roundPhase,
+  closesIn,
+  attempt,
+  busy,
+  onStart,
+  currentUserId,
+}: {
+  preview: QuizPreview;
+  roundPhase: RoundPhase;
+  closesIn: number | null;
+  attempt: AttemptInfo | null;
+  busy: boolean;
+  onStart: () => void;
+  currentUserId?: string;
+}) {
+  const alreadyPlayed = attempt?.status === 'completed';
+  const canPlay = roundPhase === 'open' && !alreadyPlayed;
+  const urgent = closesIn != null && closesIn > 0 && closesIn < 5 * 60 * 1000;
+
+  return (
+    <div className="mt-6 space-y-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 bengali-text">
+              <CheckCircle2 className="w-4 h-4" /> আপনি এই রাউন্ডে আছেন
+            </p>
+            <p className="text-sm text-gray-600 mt-1 bengali-text">
+              {toBengaliNumber(attempt?.kori_spent ?? preview.entry_cost)} কড়ি তহবিলে জমা হয়েছে।
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] uppercase tracking-wide text-amber-700 bengali-text">তহবিল</p>
+            <p className="text-2xl font-extrabold text-amber-800 bengali-text inline-flex items-center gap-1">
+              <Coins className="w-5 h-5" />
+              {toBengaliNumber(Math.round(Number(preview.prize_pool) || 0))}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`mt-5 rounded-xl px-4 py-3 flex items-center justify-between gap-3 bengali-text ${
+            urgent ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-gray-50 border border-gray-200 text-gray-700'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2 text-sm">
+            <Timer className="w-4 h-4" /> বিজয়ী চূড়ান্ত হবে
+          </span>
+          <span className="font-bold">{formatCountdown(closesIn)}</span>
+        </div>
+
+        {alreadyPlayed ? (
+          <p className="mt-5 text-center text-sm text-gray-600 bengali-text">
+            আপনার স্কোর জমা হয়ে গেছে — রাউন্ড শেষ হলে পুরস্কার বিতরণ হবে।
+          </p>
+        ) : canPlay ? (
+          <button
+            onClick={onStart}
+            disabled={busy}
+            className="mt-5 w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white py-3.5 rounded-xl font-semibold bengali-text inline-flex items-center justify-center gap-2"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {attempt?.status === 'in_progress' ? 'খেলা চালিয়ে যান' : 'শুরু করুন'}
+          </button>
+        ) : (
+          <div className="mt-5 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-center text-gray-600 bengali-text">
+            {roundPhase === 'scheduled'
+              ? 'রাউন্ড শুরু হলে খেলতে পারবেন।'
+              : 'রাউন্ডের সময় শেষ — আর খেলা যাবে না।'}
+          </div>
+        )}
+
+        {preview.time_limit_seconds ? (
+          <p className="mt-3 text-center text-xs text-gray-500 bengali-text">
+            শুরু করার পর আপনার হাতে {formatClock(preview.time_limit_seconds)} সময় থাকবে।
+          </p>
+        ) : null}
+      </div>
+
+      <QuizLeaderboardPanel quizId={preview.id} currentUserId={currentUserId} />
+    </div>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
+      <dt className="text-[11px] text-gray-500 bengali-text">{label}</dt>
+      <dd className="text-lg font-bold text-gray-900 bengali-text">{value}</dd>
     </div>
   );
 }
@@ -562,6 +804,7 @@ function ResultPanel({
   result,
   reviewItems,
   currentUserId,
+  closesIn,
 }: {
   quizId: string;
   preview: QuizPreview;
@@ -569,10 +812,16 @@ function ResultPanel({
   result: SubmissionResult | null;
   reviewItems: QuizReviewItem[];
   currentUserId?: string;
+  closesIn: number | null;
 }) {
   const correct = result?.correct_answers ?? existingAttempt?.correct_answers ?? 0;
   const total = result?.total_questions ?? preview.total_questions;
-  const earned = result?.kori_earned ?? existingAttempt?.kori_earned ?? 0;
+
+  const settled = Boolean(preview.settled_at);
+  const myWin = settled
+    ? (preview.settlement?.winners || []).find((w) => w.user_id === currentUserId)
+    : undefined;
+  const payout = Number(myWin?.amount ?? existingAttempt?.kori_earned ?? 0);
 
   return (
     <div className="mt-6 space-y-6">
@@ -588,10 +837,46 @@ function ResultPanel({
         </div>
         <div className="mt-5 grid grid-cols-3 gap-3">
           <ResultStat label="সঠিক উত্তর" value={toBengaliNumber(correct)} />
-          <ResultStat label="অর্জিত কড়ি" value={toBengaliNumber(earned)} icon={<Coins className="w-4 h-4" />} />
-          <ResultStat label="স্কোর শতাংশ" value={`${toBengaliNumber(total ? Math.round((correct / total) * 100) : 0)}%`} />
+          <ResultStat
+            label={settled ? 'জেতা কড়ি' : 'তহবিল'}
+            value={toBengaliNumber(
+              Math.round(settled ? payout : Number(preview.prize_pool) || 0)
+            )}
+            icon={<Coins className="w-4 h-4" />}
+          />
+          <ResultStat
+            label="স্কোর শতাংশ"
+            value={`${toBengaliNumber(total ? Math.round((correct / total) * 100) : 0)}%`}
+          />
         </div>
       </div>
+
+      {/* Payout status — pending until the round closes and settles */}
+      {settled ? (
+        myWin ? (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl px-5 py-4 text-amber-900 bengali-text">
+            <p className="font-bold text-lg">
+              🏆 আপনি {toBengaliNumber(myWin.rank)}ম স্থান অধিকার করেছেন!
+            </p>
+            <p className="mt-1 text-sm">
+              {toBengaliNumber(Math.round(payout))} কড়ি আপনার ওয়ালেটে যোগ করা হয়েছে।
+            </p>
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-gray-700 bengali-text">
+            এই রাউন্ডটি চূড়ান্ত হয়েছে। এবার সেরা তিনে জায়গা হয়নি — পরের রাউন্ডে আবার চেষ্টা করুন!
+          </div>
+        )
+      ) : (
+        <div className="bg-sky-50 border border-sky-200 rounded-2xl px-5 py-4 text-sky-900 bengali-text">
+          <p className="font-semibold">✅ আপনার স্কোর নিশ্চিত হয়েছে</p>
+          <p className="mt-1 text-sm">
+            পুরস্কার বিতরণ হবে {formatDateTime(preview.closes_at)} — আর{' '}
+            <strong>{formatCountdown(closesIn)}</strong> বাকি। সেরা ৩ জন তহবিলের ৫০/৩০/২০ ভাগ পাবেন,
+            এবং কড়ি স্বয়ংক্রিয়ভাবে ওয়ালেটে জমা হবে।
+          </p>
+        </div>
+      )}
 
       <QuizLeaderboardPanel quizId={quizId} currentUserId={currentUserId} />
 
@@ -666,24 +951,6 @@ function ResultStat({ label, value, icon }: { label: string; value: string; icon
   );
 }
 
-function formatClock(totalSeconds: number): string {
-  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return '—';
-  const m = Math.floor(totalSeconds / 60);
-  const s = Math.floor(totalSeconds % 60);
-  const mm = String(m).padStart(2, '0');
-  const ss = String(s).padStart(2, '0');
-  return toBengaliNumber(`${mm}:${ss}`);
-}
-
-function formatDuration(ms: number | null): string {
-  if (!ms || !Number.isFinite(ms)) return '—';
-  const totalSeconds = Math.round(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes <= 0) return `${toBengaliNumber(seconds)} সেকেন্ড`;
-  return `${toBengaliNumber(minutes)} মি ${toBengaliNumber(seconds)} সে`;
-}
-
 function QuizLeaderboardPanel({
   quizId,
   currentUserId,
@@ -710,8 +977,11 @@ function QuizLeaderboardPanel({
       }
     };
     load();
+    // Refresh periodically so the room board stays live while people play.
+    const handle = window.setInterval(load, 20000);
     return () => {
       cancelled = true;
+      window.clearInterval(handle);
     };
   }, [quizId]);
 
@@ -719,7 +989,7 @@ function QuizLeaderboardPanel({
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="bg-gradient-to-r from-amber-50 to-primary-50 px-5 py-3 border-b border-gray-200 flex items-center gap-2">
         <Trophy className="w-5 h-5 text-primary-600" />
-        <h3 className="font-bold text-gray-900 bengali-text">🏆 এই কুইজের লিডারবোর্ড</h3>
+        <h3 className="font-bold text-gray-900 bengali-text">🏆 এই রাউন্ডের লিডারবোর্ড</h3>
       </div>
       {loading ? (
         <div className="py-8 text-center text-gray-500">
@@ -729,7 +999,7 @@ function QuizLeaderboardPanel({
         <div className="py-8 text-center text-red-600 bengali-text">{error}</div>
       ) : entries.length === 0 ? (
         <div className="py-8 text-center text-gray-500 bengali-text">
-          এখনও কেউ সম্পন্ন করেনি — আপনিই প্রথম!
+          এখনও কেউ সম্পন্ন করেনি — আপনিই প্রথম হতে পারেন!
         </div>
       ) : (
         <ol className="divide-y divide-gray-100">
@@ -770,10 +1040,12 @@ function QuizLeaderboardPanel({
                   <p className="font-semibold text-primary-700 bengali-text">
                     {toBengaliNumber(entry.score)}
                   </p>
-                  <p className="text-xs text-amber-700 inline-flex items-center gap-1 bengali-text">
-                    <Coins className="w-3 h-3" />
-                    {toBengaliNumber(Math.round(entry.kori_earned))}
-                  </p>
+                  {Number(entry.kori_earned) > 0 && (
+                    <p className="text-xs text-amber-700 inline-flex items-center gap-1 bengali-text">
+                      <Coins className="w-3 h-3" />
+                      {toBengaliNumber(Math.round(entry.kori_earned))}
+                    </p>
+                  )}
                 </div>
               </li>
             );

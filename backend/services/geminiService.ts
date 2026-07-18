@@ -31,45 +31,67 @@ class GeminiService {
     }
 
     /**
-     * Generate a fixed-shape JSON payload for a quiz from source material.
+     * Generate a fixed-shape JSON payload for a quiz round from a TOPIC.
+     *
+     * Rounds are no longer built from a pasted passage — an admin picks a round
+     * type and a topic, and the model writes questions in the appropriate style.
      *
      * @param {Object} input
      * @param {string} input.title
-     * @param {string} input.sourceMaterial - The raw text the questions should be based on
+     * @param {string} [input.topic] - Subject the questions should cover
+     * @param {'general'|'exam'} [input.quizType='general']
+     * @param {string} [input.examCategory] - BCS, Bank Job, ... (when quizType='exam')
      * @param {number} [input.questionCount=5]
      * @param {'easy'|'medium'|'hard'} [input.difficulty='medium']
-     * @param {string} [input.language='bn']
+     * @param {'bn'|'en'|'mixed'} [input.language='bn']
      * @returns {Promise<{questions: Array<{question: string, options: string[], correctIndex: number, explanation?: string}>}>}
      */
     async generateQuizQuestions({
         title,
-        sourceMaterial,
+        topic,
+        quizType = 'general',
+        examCategory,
         questionCount = 5,
         difficulty = 'medium',
         language = 'bn'
+    }: {
+        title: string;
+        topic?: string | null;
+        quizType?: 'general' | 'exam';
+        examCategory?: string | null;
+        questionCount?: number;
+        difficulty?: 'easy' | 'medium' | 'hard';
+        language?: 'bn' | 'en' | 'mixed';
     }) {
         if (!this.isConfigured()) {
             throw new Error('GEMINI_API_KEY is not configured on the server');
         }
 
         const count = Math.min(Math.max(parseInt(String(questionCount), 10) || 5, 1), 15);
-        const languageInstruction = language === 'bn'
-            ? 'Write all questions, options, and explanations in Bengali (বাংলা).'
-            : 'Write all questions, options, and explanations in English.';
+        const resolvedTopic = (topic && String(topic).trim()) || title;
+
+        const languageInstruction = language === 'mixed'
+            ? 'Write a natural mix of Bengali (বাংলা) and English questions — roughly half in each. Every option and explanation must be in the same language as its own question.'
+            : language === 'en'
+                ? 'Write all questions, options, and explanations in English.'
+                : 'Write all questions, options, and explanations in Bengali (বাংলা).';
+
+        const styleInstruction = quizType === 'exam'
+            ? `Write questions in the style of previously-asked ${examCategory || 'competitive recruitment'} recruitment exam questions on Bangla/English literature. Mirror the phrasing, length, and factual density typical of that exam's literature section.`
+            : `Write general literary-knowledge questions on the topic: ${resolvedTopic}.`;
 
         const prompt = [
             `You are an exam writer creating a ${difficulty} difficulty multiple-choice quiz titled "${title}".`,
-            `Produce exactly ${count} questions strictly grounded in the source material below.`,
+            `Produce exactly ${count} questions.`,
+            styleInstruction,
             'Each question must have exactly 4 options, with one and only one correct answer.',
             'Mark the correct option using a zero-based `correctIndex` (0, 1, 2, or 3).',
-            'Avoid trick questions and unverifiable trivia. Each question must be answerable from the source alone.',
-            'Include a short explanation citing why the marked option is correct.',
+            'Every question must be verifiable, factual, and unambiguous. Avoid trick questions, opinion-based questions, and anything that depends on current events.',
+            'Do not repeat the same fact across two questions.',
+            'Include a short explanation stating why the marked option is correct.',
             languageInstruction,
             '',
-            'SOURCE MATERIAL:',
-            '"""',
-            sourceMaterial,
-            '"""'
+            `TOPIC: ${resolvedTopic}`
         ].join('\n');
 
         const body = {

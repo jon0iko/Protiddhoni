@@ -668,7 +668,7 @@ export const api = {
         }
     },
 
-    // Quiz endpoints
+    // Quiz round endpoints
     quizzes: {
         listPublished: async () => {
             return makeAuthRequest(`${API_URL}/api/quizzes`);
@@ -678,6 +678,14 @@ export const api = {
             return makeAuthRequest(`${API_URL}/api/quizzes/${id}`);
         },
 
+        // Confirm entry — charges Kori into the prize pool. Idempotent.
+        enter: async (id: string) => {
+            return makeAuthRequest(`${API_URL}/api/quizzes/${id}/enter`, {
+                method: 'POST'
+            });
+        },
+
+        // Begin playing an already-entered round — charges nothing.
         start: async (id: string) => {
             return makeAuthRequest(`${API_URL}/api/quizzes/${id}/start`, {
                 method: 'POST'
@@ -719,33 +727,21 @@ export const api = {
             create: async (data: {
                 title: string;
                 description?: string;
-                source_material: string;
+                quiz_type: 'general' | 'exam';
+                exam_category?: string | null;
+                topic: string;
                 difficulty?: 'easy' | 'medium' | 'hard';
                 entry_cost?: number;
-                reward_per_correct?: number;
+                rake_bps?: number;
                 question_count?: number;
-                language?: 'bn' | 'en';
+                language?: 'bn' | 'en' | 'mixed';
+                opens_at?: string | null;
+                closes_at?: string | null;
+                time_limit_seconds?: number | null;
             }) => {
                 return makeAuthRequest(`${API_URL}/api/quizzes/admin`, {
                     method: 'POST',
                     body: JSON.stringify(data)
-                });
-            },
-            createFromContent: async (
-                contentId: string,
-                data?: {
-                    title?: string;
-                    description?: string;
-                    difficulty?: 'easy' | 'medium' | 'hard';
-                    entry_cost?: number;
-                    reward_per_correct?: number;
-                    question_count?: number;
-                    language?: 'bn' | 'en';
-                }
-            ) => {
-                return makeAuthRequest(`${API_URL}/api/quizzes/admin/from-content/${contentId}`, {
-                    method: 'POST',
-                    body: JSON.stringify(data || {})
                 });
             },
             update: async (id: string, data: Record<string, unknown>) => {
@@ -761,6 +757,7 @@ export const api = {
                     options?: string[];
                     correct_index?: number;
                     explanation?: string | null;
+                    language?: 'bn' | 'en' | null;
                 }
             ) => {
                 return makeAuthRequest(`${API_URL}/api/quizzes/admin/questions/${questionId}`, {
@@ -768,10 +765,41 @@ export const api = {
                     body: JSON.stringify(data)
                 });
             },
-            regenerate: async (id: string, data?: { question_count?: number; language?: 'bn' | 'en' }) => {
+            // Author a question by hand; appended after the existing ones.
+            createQuestion: async (
+                quizId: string,
+                data: {
+                    question_text: string;
+                    options: string[];
+                    correct_index: number;
+                    explanation?: string | null;
+                    language?: 'bn' | 'en' | null;
+                }
+            ) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/${quizId}/questions`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+            },
+            removeQuestion: async (questionId: string) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/questions/${questionId}`, {
+                    method: 'DELETE'
+                });
+            },
+            // Defaults to APPEND so manual edits survive; replace only works
+            // on a round nobody has entered yet.
+            regenerate: async (
+                id: string,
+                data?: { question_count?: number; language?: 'bn' | 'en' | 'mixed'; replace?: boolean }
+            ) => {
                 return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}/regenerate`, {
                     method: 'POST',
                     body: JSON.stringify(data || {})
+                });
+            },
+            settle: async (id: string) => {
+                return makeAuthRequest(`${API_URL}/api/quizzes/admin/${id}/settle`, {
+                    method: 'POST'
                 });
             },
             remove: async (id: string) => {
