@@ -236,3 +236,69 @@ export interface QuizLeaderboardEntry {
     bestScore: number;
     avgDurationMs: number | null;
 }
+
+// ---------------------------------------------------------------------------
+// Content edit moderation
+// ---------------------------------------------------------------------------
+
+export type AdminActionType = 'approve' | 'reject' | 'unpublish' | 'republish' | 'edit';
+
+export type ActionReviewState = 'unchecked' | 'checked';
+
+/** BEFORE/AFTER snapshot stored on an action_type='edit' log row. */
+export interface ContentEditSnapshot {
+    title?: string | null;
+    excerpt?: string | null;
+    body_length?: number;
+    body_preview?: string;
+}
+
+export interface AdminActionLogEntry {
+    id: string;
+    /** NULL for 'edit' rows — those are author-initiated, fall back to content.author. */
+    admin_id: string | null;
+    action_type: AdminActionType;
+    content_id: string;
+    reason: string | null;
+    metadata?: {
+        title?: string;
+        slug?: string;
+        author_id?: string;
+        edited_by?: string;
+        before?: ContentEditSnapshot;
+        after?: ContentEditSnapshot;
+        [key: string]: unknown;
+    };
+    is_reverted: boolean;
+    reverted_by: string | null;
+    reverted_at: string | null;
+    review_state?: ActionReviewState;
+    checked_by?: string | null;
+    checked_at?: string | null;
+    created_at: string;
+    admin?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'> | null;
+    content?: {
+        id: string;
+        title: string;
+        slug: string;
+        is_published: boolean;
+        status: string;
+        author_id: string;
+        author?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'> | null;
+    } | null;
+    checked_by_admin?: Pick<User, 'id' | 'username' | 'full_name'> | null;
+}
+
+/** A single row in the unified admin moderation queue. */
+export interface ModerationQueueItem {
+    id: string;
+    kind: 'submission' | 'edit';
+    timestamp: string;
+    title: string;
+    author: string;
+    href: string | null;
+    /** Underlying record: the content row for submissions, the log row for edits. */
+    contentId: string;
+    logId?: string;
+    snapshot?: { before?: ContentEditSnapshot; after?: ContentEditSnapshot };
+}
