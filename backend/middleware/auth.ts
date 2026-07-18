@@ -1,0 +1,75 @@
+import type { AuthUser } from '../types';
+import type { Request, Response, NextFunction } from 'express';
+/**
+ * Authentication Middleware
+ * Verifies JWT tokens and attaches user to request
+ */
+
+import jwt from 'jsonwebtoken';
+
+const authenticate = (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Get token from header
+        const authHeader = req.headers.authorization;
+        
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'No token provided' 
+            });
+        }
+
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        
+        // Verify token
+        const decoded = jwt.verify(
+            token, 
+            process.env.JWT_SECRET || 'your-secret-key'
+        ) as AuthUser;
+        
+        // Attach user info to request
+        req.user = decoded;
+        next();
+    } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Token expired' 
+            });
+        }
+        
+        return res.status(401).json({ 
+            success: false, 
+            error: 'Invalid token' 
+        });
+    }
+};
+
+// Optional authentication - doesn't fail if no token provided
+const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const authHeader = req.headers.authorization;
+        
+        console.log('OptionalAuth - authHeader:', authHeader ? authHeader.substring(0, 20) + '...' : 'none');
+        
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            const decoded = jwt.verify(
+                token, 
+                process.env.JWT_SECRET || 'your-secret-key'
+            ) as AuthUser;
+            req.user = decoded;
+            console.log('OptionalAuth - user authenticated:', decoded.id);
+        } else {
+            console.log('OptionalAuth - no valid token, continuing without auth');
+        }
+        
+        next();
+    } catch (error) {
+        // Continue without authentication if token is invalid
+        console.log('OptionalAuth - token verification failed:', error.message);
+        next();
+    }
+};
+
+export { authenticate, optionalAuth };

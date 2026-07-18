@@ -31,6 +31,10 @@ frontend/protiddhoni/.env
 out/
 build/
 
+# TypeScript build output (Backend)
+backend/dist/
+*.tsbuildinfo
+
 # Testing
 coverage/
 .nyc_output/

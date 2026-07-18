@@ -56,7 +56,10 @@ export default function AdminReviewPage() {
     try {
       const response = await api.content.getPending();
       if (response.success) {
-        setPendingContent(response.data || []);
+        const sorted = (response.data || []).sort((a: PendingContent, b: PendingContent) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setPendingContent(sorted);
       }
     } catch (error) {
       console.error('Error loading pending content:', error);

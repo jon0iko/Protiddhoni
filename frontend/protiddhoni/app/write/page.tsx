@@ -147,9 +147,6 @@ export default function WritingHubPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-4 bengali-text">
             লেখালেখির জগৎ
           </h1>
-          <p className="text-lg text-gray-600 bengali-text">
-            আপনার সৃজনশীলতার কেন্দ্রস্থল - এখানে শুরু করুন আপনার লেখার যাত্রা
-          </p>
         </div>
 
         {/* Quick Actions */}
