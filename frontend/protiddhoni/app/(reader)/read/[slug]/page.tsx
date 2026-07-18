@@ -19,6 +19,8 @@ import {
   ChevronRight,
   Loader2,
   EyeOff,
+  // AlertTriangle: report-content button. ExternalLink: external-writing link.
+  AlertTriangle,
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +30,7 @@ import RatingWidget from '@/components/reader/RatingWidget';
 import CommentList from '@/components/reader/CommentList';
 import PaywallBlock from '@/components/reader/PaywallBlock';
 import AudioPlayer from '@/components/reader/AudioPlayer';
+import ReportModal from '@/components/reader/ReportModal';
 
 export default function ReadContentPage() {
   const params = useParams();
@@ -51,6 +54,7 @@ export default function ReadContentPage() {
   const [showUnpublishModal, setShowUnpublishModal] = useState(false);
   const [unpublishReason, setUnpublishReason] = useState('');
   const [isUnpublishing, setIsUnpublishing] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     loadContent();
@@ -418,6 +422,13 @@ export default function ReadContentPage() {
                 </button>
               )}
               <button
+                onClick={() => setShowReportModal(true)}
+                className="p-2 rounded-lg transition-colors text-accent-600 hover:bg-accent-50"
+                title="অভিযোগ করুন"
+              >
+                <AlertTriangle className="w-5 h-5" />
+              </button>
+              <button
                 onClick={handleShare}
                 className="p-2 rounded-lg transition-colors"
                 style={{ color: 'var(--reader-secondary-text)' }}
@@ -723,6 +734,16 @@ export default function ReadContentPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Report Content Modal */}
+      {content && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          contentId={content.id}
+          contentTitle={content.title}
+        />
       )}
     </div>
   );
