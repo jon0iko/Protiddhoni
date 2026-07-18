@@ -510,6 +510,7 @@ export default function ReadContentPage() {
               {content.content_type === 'story' && 'গল্প'}
               {content.content_type === 'poem' && 'কবিতা'}
               {content.content_type === 'chapter' && 'পর্ব'}
+              {content.content_type === 'link' && 'বাইরের লেখা'}
             </span>
           </div>
 

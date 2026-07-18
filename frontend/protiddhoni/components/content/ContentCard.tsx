@@ -5,7 +5,7 @@
  */
 
 import Link from 'next/link';
-import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle, EyeOff } from 'lucide-react';
+import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle, EyeOff, ExternalLink } from 'lucide-react';
 
 interface ContentCardProps {
     content?: any;
@@ -40,7 +40,9 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         status,
         isSeries,
         chapters,
-        rejection_reason
+        rejection_reason,
+        content_type,
+        external_url
     } = item;
 
     const displayCoverImage = cover_image_url || coverImage;
@@ -52,9 +54,13 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
     // Detect admin-unpublished content: status is approved but is_published is explicitly false
     const isUnpublished = is_published === false && status === 'approved';
     
+    // "External link" content lives on another platform (Facebook, a blog), so
+    // it opens in a new tab instead of routing into /read/.
+    const isExternal = content_type === 'link' && !!external_url;
+
     // Determine the link based on content type
     const linkHref = isSeriesContent ? `/series/${slug}` : `/read/${slug}`;
-    
+
     // Render muted card for unpublished content (e.g. in bookmarks)
     if (isUnpublished) {
         return (
@@ -113,8 +119,9 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         );
     }
 
-    return (
-        <Link href={linkHref} className="group block h-full">
+    // Same card, different wrapper: a plain <a> for external pieces so the
+    // browser (not the Next router) handles the navigation.
+    const cardBody = (
             <article className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
                 {/* Image Section */}
                 <div className="relative h-48 flex-shrink-0 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
@@ -158,6 +165,16 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                         <div className="absolute bottom-3 left-3">
                             <span className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm bengali-text">
                                 ধারাবাহিক • {chapters || 0} অধ্যায়
+                            </span>
+                        </div>
+                    )}
+
+                    {/* External Link Badge */}
+                    {isExternal && (
+                        <div className="absolute bottom-3 left-3">
+                            <span className="flex items-center gap-1 bg-gradient-to-r from-teal-500 to-cyan-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm bengali-text">
+                                <ExternalLink className="w-3 h-3" />
+                                বাইরের লেখা
                             </span>
                         </div>
                     )}
@@ -247,6 +264,24 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                     </div>
                 </div>
             </article>
+    );
+
+    if (isExternal) {
+        return (
+            <a
+                href={external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block h-full"
+            >
+                {cardBody}
+            </a>
+        );
+    }
+
+    return (
+        <Link href={linkHref} className="group block h-full">
+            {cardBody}
         </Link>
     );
 }
