@@ -5,7 +5,9 @@
  */
 
 import Link from 'next/link';
-import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle, EyeOff, ExternalLink } from 'lucide-react';
+// Headphones (audiobook badge, from main) and ExternalLink (external-writing
+// badge, from this branch) are both rendered below — keep both imports.
+import { Star, Eye, Clock, Heart, CheckCircle, AlertCircle, XCircle, AlertTriangle, EyeOff, Headphones, ExternalLink } from 'lucide-react';
 
 interface ContentCardProps {
     content?: any;
@@ -28,6 +30,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         author,
         cover_image_url,
         coverImage,
+        audio_url,
         slug,
         is_premium,
         isPremium,
@@ -51,6 +54,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
     const displayCategory = category?.name || category;
     const isPremiumContent = is_premium || isPremium || false;
     const isSeriesContent = isSeries || false;
+    const hasAudio = Boolean(audio_url || item.audioUrl);
     // Detect admin-unpublished content: status is approved but is_published is explicitly false
     const isUnpublished = is_published === false && status === 'approved';
 
@@ -129,7 +133,7 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
     const cardBody = (
             <article className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
                 {/* Image Section */}
-                <div className="relative h-48 flex-shrink-0 bg-gradient-to-br from-blue-100 to-purple-100 overflow-hidden">
+                <div className="relative h-48 flex-shrink-0 bg-gradient-to-br from-primary-100 to-accent-100 overflow-hidden">
                     {displayCoverImage ? (
                         <img 
                             src={displayCoverImage} 
@@ -156,19 +160,27 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                         </div>
                     )}
 
-                    {/* Premium Badge */}
-                    {isPremiumContent && (
-                        <div className="absolute top-3 right-3">
-                            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
-                                Premium
-                            </span>
+                    {/* Top-right Badges (Premium, Audio) */}
+                    {(isPremiumContent || hasAudio) && (
+                        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
+                            {isPremiumContent && (
+                                <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm">
+                                    Premium
+                                </span>
+                            )}
+                            {hasAudio && (
+                                <span className="flex items-center gap-1 bg-gradient-to-r from-olive-500 to-olive-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm bengali-text" title="অডিও শোনা যাবে">
+                                    <Headphones className="w-3 h-3" />
+                                    অডিও
+                                </span>
+                            )}
                         </div>
                     )}
 
                     {/* Series Badge */}
                     {isSeriesContent && (
                         <div className="absolute bottom-3 left-3">
-                            <span className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm bengali-text">
+                            <span className="bg-gradient-to-r from-accent-500 to-accent-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm bengali-text">
                                 ধারাবাহিক • {chapters || 0} অধ্যায়
                             </span>
                         </div>

@@ -70,6 +70,10 @@ export const advancedSearch = async (req: Request, res: Response) => {
         // navbar suggestion bar (`q`) and the filter sidebar (`query`).
         const searchText = req.query.q || req.query.query || req.query.search;
 
+        const requestedSort = searchText
+            ? req.query.sort_by || 'relevance'
+            : req.query.sort_by === 'relevance' ? undefined : req.query.sort_by;
+
         builder
             .setSearchText(searchText)
             .setCategory(req.query.category)
@@ -79,7 +83,7 @@ export const advancedSearch = async (req: Request, res: Response) => {
             .setRating(req.query.rating)
             .setStatus(req.query.status)
             .setIsPremium(req.query.is_premium)
-            .setSort(req.query.sort_by, req.query.order as string)
+            .setSort(requestedSort, req.query.order as string)
             .setPagination(req.query.page, req.query.limit);
 
         const queryParams = builder.build();

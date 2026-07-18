@@ -129,7 +129,7 @@ export default function AdminReviewPage() {
   if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -145,20 +145,20 @@ export default function AdminReviewPage() {
         <div className="mb-8 flex items-start justify-between">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-purple-600" />
+              <div className="p-2 bg-accent-100 rounded-lg">
+                <AlertCircle className="w-6 h-6 text-accent-600" />
               </div>
               <h1 className="text-3xl font-bold text-gray-900 bengali-text">পর্যালোচনা প্যানেল</h1>
             </div>
             <p className="text-gray-600 bengali-text">
-              অপেক্ষমান রচনা: <span className="font-bold text-purple-600">{pendingContent.length}টি</span>
+              অপেক্ষমান রচনা: <span className="font-bold text-accent-600">{pendingContent.length}টি</span>
             </p>
           </div>
           <Link
             href="/admin/review/history"
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors bengali-text text-sm shadow-sm"
           >
-            <History className="w-4 h-4 text-purple-600" />
+            <History className="w-4 h-4 text-accent-600" />
             <span>ইতিহাস</span>
           </Link>
         </div>
@@ -188,7 +188,7 @@ export default function AdminReviewPage() {
                         অপেক্ষমান
                       </span>
                       {content.category && (
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full bengali-text">
+                        <span className="px-3 py-1 bg-primary-100 text-primary-800 text-xs font-medium rounded-full bengali-text">
                           {content.category.name}
                         </span>
                       )}
@@ -203,7 +203,7 @@ export default function AdminReviewPage() {
                           className="w-8 h-8 rounded-full"
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-full flex items-center justify-center">
                           <UserIcon className="w-4 h-4 text-white" />
                         </div>
                       )}

@@ -13,7 +13,7 @@ export default function Footer() {
                     <div className="col-span-1 md:col-span-2">
                         <div className="flex items-center space-x-2 mb-4">
                             <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">প</span>
+                                <span className="text-white font-bold text-xs bengali-text">প্র</span>
                             </div>
                             <div>
                                 <h3 className="text-xl font-bold bengali-text">প্রতিধ্বনি</h3>

@@ -174,8 +174,8 @@ export default function StoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50">
+      <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 text-white py-16">
         <div className="max-w-5xl mx-auto px-4">
           <Link 
             href="/"
@@ -242,7 +242,7 @@ export default function StoryPage() {
               className={`px-8 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 bengali-text ${
                 content.is_premium 
                   ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:shadow-lg' 
-                  : 'bg-white text-blue-600 hover:bg-blue-50'
+                  : 'bg-white text-primary-600 hover:bg-primary-50'
               }`}
             >
               {content.is_premium && <Crown className="w-5 h-5" />}
@@ -277,12 +277,12 @@ export default function StoryPage() {
                 <Link
                   key={chapter.id}
                   href={`/read/${chapter.slug}`}
-                  className="block bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-6 border border-gray-100 hover:border-blue-200 group"
+                  className="block bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-6 border border-gray-100 hover:border-primary-200 group"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                        <span className="bg-primary-100 text-primary-600 px-3 py-1 rounded-full text-sm font-medium">
                           পর্ব {chapter.chapter_number || index + 1}
                         </span>
                         {chapter.is_premium && (
@@ -291,7 +291,7 @@ export default function StoryPage() {
                           </span>
                         )}
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 bengali-text group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 bengali-text group-hover:text-primary-600 transition-colors">
                         {chapter.title}
                       </h3>
                       {chapter.excerpt && (
@@ -340,7 +340,7 @@ export default function StoryPage() {
         <div className="mt-12 bg-white rounded-xl shadow-md p-8 border border-gray-100">
           <h3 className="text-xl font-bold text-gray-900 mb-4 bengali-text">লেখক সম্পর্কে</h3>
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold flex-shrink-0">
+            <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold flex-shrink-0">
               {authorName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
@@ -350,7 +350,7 @@ export default function StoryPage() {
               )}
               <Link
                 href={`/profile/${content.author?.username}`}
-                className="text-blue-600 hover:text-blue-700 font-medium bengali-text"
+                className="text-primary-600 hover:text-primary-700 font-medium bengali-text"
               >
                 প্রোফাইল দেখুন →
               </Link>

@@ -110,14 +110,14 @@ export default function PrivacyPage() {
         </div>
 
         {/* Introduction */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-6 mb-8">
           <div className="flex items-start space-x-3">
-            <Shield className="w-6 h-6 text-blue-600 mt-1" />
+            <Shield className="w-6 h-6 text-primary-600 mt-1" />
             <div>
-              <h3 className="text-lg font-semibold text-blue-900 mb-2 bengali-text">
+              <h3 className="text-lg font-semibold text-primary-900 mb-2 bengali-text">
                 আমাদের প্রতিশ্রুতি
               </h3>
-              <p className="text-blue-800 bengali-text leading-relaxed">
+              <p className="text-primary-800 bengali-text leading-relaxed">
                 প্রতিধ্বনি আপনার গোপনীয়তা এবং ব্যক্তিগত তথ্যের নিরাপত্তাকে সর্বোচ্চ গুরুত্ব দেয়। 
                 এই নীতিতে আমরা কীভাবে আপনার তথ্য সংগ্রহ, ব্যবহার এবং সুরক্ষা করি তা বিস্তারিতভাবে ব্যাখ্যা করেছি।
               </p>
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
           {sections.map((section) => (
             <div key={section.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
                   {section.icon}
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 bengali-text">
@@ -219,7 +219,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* Contact Information */}
-        <div className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
+        <div className="mt-8 bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 rounded-xl p-8 text-white">
           <div className="text-center">
             <Mail className="w-12 h-12 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-4 bengali-text">
@@ -231,13 +231,13 @@ export default function PrivacyPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
                 href="/contact" 
-                className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
+                className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors bengali-text"
               >
                 যোগাযোগ করুন
               </a>
               <a 
                 href="mailto:privacy@protiddhoni.com" 
-                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                className="border border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors"
               >
                 privacy@protiddhoni.com
               </a>

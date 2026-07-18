@@ -21,7 +21,7 @@ export default function NewsletterSection() {
     };
 
     return (
-        <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600">
+        <section className="py-16 bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center text-white">
                     {/* Header */}
@@ -32,7 +32,7 @@ export default function NewsletterSection() {
                         <h2 className="text-3xl md:text-4xl font-bold mb-4 bengali-text">
                             নতুন গল্পের খবর পান
                         </h2>
-                        <p className="text-xl text-blue-100 max-w-2xl mx-auto bengali-text leading-relaxed">
+                        <p className="text-xl text-primary-50 max-w-2xl mx-auto bengali-text leading-relaxed">
                             আমাদের নিউজলেটার সাবস্ক্রাইব করে প্রতি সপ্তাহে নতুন গল্প, কবিতা এবং ধারাবাহিকের আপডেট পান
                         </p>
                     </div>
@@ -56,12 +56,12 @@ export default function NewsletterSection() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed bengali-text"
+                                    className="bg-white text-primary-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed bengali-text"
                                 >
                                     {isLoading ? 'সাবস্ক্রাইব হচ্ছে...' : 'সাবস্ক্রাইব করুন'}
                                 </button>
                             </div>
-                            <p className="text-blue-100 text-sm mt-3 bengali-text">
+                            <p className="text-primary-50 text-sm mt-3 bengali-text">
                                 আমরা আপনার তথ্য সুরক্ষিত রাখি এবং স্প্যাম পাঠাই না
                             </p>
                         </form>
@@ -74,7 +74,7 @@ export default function NewsletterSection() {
                                 <h3 className="text-xl font-semibold mb-2 bengali-text">
                                     ধন্যবাদ!
                                 </h3>
-                                <p className="text-blue-100 bengali-text">
+                                <p className="text-primary-50 bengali-text">
                                     আপনি সফলভাবে আমাদের নিউজলেটার সাবস্ক্রাইব করেছেন
                                 </p>
                             </div>
@@ -88,7 +88,7 @@ export default function NewsletterSection() {
                                 <span className="text-2xl bengali-text">📚</span>
                             </div>
                             <h3 className="font-semibold mb-2 bengali-text">নতুন প্রকাশনা</h3>
-                            <p className="text-blue-100 text-sm bengali-text">
+                            <p className="text-primary-50 text-sm bengali-text">
                                 প্রতি সপ্তাহে নতুন গল্প ও কবিতার আপডেট
                             </p>
                         </div>
@@ -98,7 +98,7 @@ export default function NewsletterSection() {
                                 <span className="text-2xl bengali-text">✍️</span>
                             </div>
                             <h3 className="font-semibold mb-2 bengali-text">লেখকদের সাক্ষাৎকার</h3>
-                            <p className="text-blue-100 text-sm bengali-text">
+                            <p className="text-primary-50 text-sm bengali-text">
                                 জনপ্রিয় লেখকদের সাথে একান্ত আলাপচারিতা
                             </p>
                         </div>
@@ -108,7 +108,7 @@ export default function NewsletterSection() {
                                 <span className="text-2xl bengali-text">🎯</span>
                             </div>
                             <h3 className="font-semibold mb-2 bengali-text">লেখার টিপস</h3>
-                            <p className="text-blue-100 text-sm bengali-text">
+                            <p className="text-primary-50 text-sm bengali-text">
                                 উন্নত লেখালেখির জন্য পরামর্শ ও গাইড
                             </p>
                         </div>

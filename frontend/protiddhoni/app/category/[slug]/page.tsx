@@ -53,7 +53,7 @@ export default function CategoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -61,9 +61,9 @@ export default function CategoryPage() {
   if (!category) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
+      <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500 text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
           <button 
             onClick={() => router.back()}
