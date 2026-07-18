@@ -26,6 +26,7 @@ import ReadingControls from '@/components/reader/ReadingControls';
 import RatingWidget from '@/components/reader/RatingWidget';
 import CommentList from '@/components/reader/CommentList';
 import PaywallBlock from '@/components/reader/PaywallBlock';
+import AudioPlayer from '@/components/reader/AudioPlayer';
 
 export default function ReadContentPage() {
   const params = useParams();
@@ -524,6 +525,11 @@ export default function ReadContentPage() {
             </div>
           )}
         </header>
+
+        {/* Audiobook Player */}
+        {content.audio_url && (
+          <AudioPlayer src={content.audio_url} title={content.title} />
+        )}
 
         {/* Content Body */}
         <div 

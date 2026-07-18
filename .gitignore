@@ -56,3 +56,6 @@ logs/
 
 # Custom
 /Lab mats
+
+# Audiobook source files — served from Supabase Storage, not committed
+/audio-mp3/
