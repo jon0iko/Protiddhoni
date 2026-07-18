@@ -22,6 +22,7 @@ export interface Content {
     body: string;
     excerpt?: string;
     cover_image_url?: string;
+    audio_url?: string;
     category_id: string;
     series_id?: string;
     chapter_number?: number;
