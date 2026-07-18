@@ -31,6 +31,8 @@ router.post('/:id/submit', authenticate, contentController.submitForReview);
 // Admin-only routes
 router.get('/admin/pending', authenticate, requireAdmin, contentController.getPending);
 router.get('/admin/action-history', authenticate, requireAdmin, contentController.getAdminActionHistory);
+router.get('/admin/edit-queue', authenticate, requireAdmin, contentController.getEditQueue);
+router.post('/admin/action-log/:id/check', authenticate, requireAdmin, contentController.markActionChecked);
 router.post('/:id/approve', authenticate, requireAdmin, contentController.approve);
 router.post('/:id/reject', authenticate, requireAdmin, contentController.reject);
 router.post('/:id/unpublish', authenticate, requireAdmin, contentController.unpublish);

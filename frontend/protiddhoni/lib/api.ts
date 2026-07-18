@@ -225,6 +225,21 @@ export const api = {
             if (page) params.set('page', String(page));
             if (limit) params.set('limit', String(limit));
             return makeAuthRequest(`${API_URL}/api/content/admin/action-history?${params}`);
+        },
+
+        // Moderation queue: author edits to already-published articles.
+        getEditQueue: async (page?: number, limit?: number, reviewState?: string) => {
+            const params = new URLSearchParams();
+            if (page) params.set('page', String(page));
+            if (limit) params.set('limit', String(limit));
+            if (reviewState) params.set('review_state', reviewState);
+            return makeAuthRequest(`${API_URL}/api/content/admin/edit-queue?${params}`);
+        },
+
+        markActionChecked: async (logId: string) => {
+            return makeAuthRequest(`${API_URL}/api/content/admin/action-log/${logId}/check`, {
+                method: 'POST'
+            });
         }
     },
     
