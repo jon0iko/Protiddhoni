@@ -780,5 +780,34 @@ export const api = {
                 });
             }
         }
+    },
+
+    // Content Reports endpoints
+    reports: {
+        create: async (data: {
+            content_id: string;
+            reason_category: string;
+            reason_details?: string;
+        }) => {
+            return makeAuthRequest(`${API_URL}/api/reports`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+        },
+
+        getPending: async () => {
+            return makeAuthRequest(`${API_URL}/api/reports/admin/pending`);
+        },
+
+        resolve: async (data: {
+            content_id: string;
+            action: 'takedown' | 'dismiss';
+            reason?: string;
+        }) => {
+            return makeAuthRequest(`${API_URL}/api/reports/admin/resolve`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+        }
     }
 };
