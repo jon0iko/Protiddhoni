@@ -34,7 +34,6 @@ const CONTENT_TYPES = [
   { id: 'story', name: 'গদ্য', icon: BookOpen, description: 'ছোটগল্প, উপন্যাস বা প্রবন্ধ' },
   { id: 'poem', name: 'পদ্য', icon: Feather, description: 'ছড়া বা কবিতা' },
   { id: 'chapter', name: 'পর্ব', icon: FileText, description: 'ধারাবাহিক সিরিজের অংশ' },
-  { id: 'link', name: 'বাইরের লেখা', icon: Link2, description: 'অন্য প্ল্যাটফর্মে প্রকাশিত লেখার লিংক' },
 ] as const;
 
 /**
@@ -225,14 +224,6 @@ export default function PublishModal({
       }
     }
 
-    if (formData.contentType === 'link') {
-      const url = (formData.externalUrl || '').trim();
-      if (!url) {
-        newErrors.externalUrl = 'লেখাটির লিংক দিন।';
-      } else if (!isValidExternalUrl(url)) {
-        newErrors.externalUrl = 'সঠিক লিংক দিন। লিংকটি http:// বা https:// দিয়ে শুরু হতে হবে।';
-      }
-    }
 
     if (formData.isPremium) {
       if (!formData.price || formData.price <= 0) {
@@ -276,17 +267,13 @@ export default function PublishModal({
         }
       }
 
-      const isLink = formData.contentType === 'link';
-
       // Create content data
       const contentData = {
         title: formData.title.trim(),
-        // A link post has no body of its own — it lives on another platform.
-        body: isLink ? null : content,
+        body: content,
         excerpt: formData.excerpt.trim(),
         content_type: formData.contentType,
         category_id: formData.categoryId,
-        external_url: isLink ? (formData.externalUrl || '').trim() : undefined,
         series_id: formData.contentType === 'chapter' ? formData.seriesId : undefined,
         chapter_number: formData.contentType === 'chapter' ? formData.chapterNumber : undefined,
         is_premium: formData.isPremium,
@@ -395,14 +382,14 @@ export default function PublishModal({
                 <label className="text-sm font-medium flex items-center gap-2 bengali-text">
                   লেখার ধরন <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {CONTENT_TYPES.map((type) => {
                     const Icon = type.icon;
                     return (
                       <button
                         key={type.id}
                         type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, contentType: type.id as 'story' | 'poem' | 'chapter' | 'link' }))}
+                        onClick={() => setFormData(prev => ({ ...prev, contentType: type.id as 'story' | 'poem' | 'chapter' }))}
                         className={cn(
                           "flex flex-col items-center p-4 rounded-xl border-2 transition-all",
                           formData.contentType === type.id
@@ -445,35 +432,6 @@ export default function PublishModal({
                   <p className="text-sm text-red-500 bengali-text">{errors.title}</p>
                 )}
               </div>
-
-              {/* External URL (only for link posts) */}
-              {formData.contentType === 'link' && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2 bengali-text">
-                    <Link2 className="h-4 w-4" />
-                    লেখাটির লিংক <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    inputMode="url"
-                    value={formData.externalUrl || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, externalUrl: e.target.value }))}
-                    placeholder="https://example.com/your-writing"
-                    className={cn(
-                      "w-full px-4 py-3 rounded-xl border bg-gray-50",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
-                      errors.externalUrl ? "border-red-500" : "border-gray-200"
-                    )}
-                  />
-                  {errors.externalUrl ? (
-                    <p className="text-sm text-red-500 bengali-text">{errors.externalUrl}</p>
-                  ) : (
-                    <p className="text-xs text-gray-400 bengali-text">
-                      ফেসবুক, ব্লগ বা অন্য যেকোনো সাইটে প্রকাশিত আপনার লেখার সম্পূর্ণ ঠিকানা দিন। পাঠক কার্ডে ক্লিক করলে নতুন ট্যাবে সেখানেই যাবেন।
-                    </p>
-                  )}
-                </div>
-              )}
 
               {/* Excerpt */}
               <div className="space-y-2">

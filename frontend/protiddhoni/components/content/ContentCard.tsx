@@ -53,10 +53,17 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
     const isSeriesContent = isSeries || false;
     // Detect admin-unpublished content: status is approved but is_published is explicitly false
     const isUnpublished = is_published === false && status === 'approved';
-    
-    // "External link" content lives on another platform (Facebook, a blog), so
-    // it opens in a new tab instead of routing into /read/.
-    const isExternal = content_type === 'link' && !!external_url;
+
+    // An "external link" piece was published elsewhere. It still gets a normal
+    // reader page here — the excerpt stands in for the body and that page offers
+    // a button out to the original. The card only carries a badge.
+    const isExternal = content_type === 'link';
+
+    // The author block is its own link target, so we need the username (not just
+    // a display name) and an avatar. `author` may be a plain string on legacy
+    // callers, hence the object check.
+    const authorUsername = typeof author === 'object' ? author?.username : undefined;
+    const authorAvatar = typeof author === 'object' ? author?.profile_picture_url : undefined;
 
     // Determine the link based on content type
     const linkHref = isSeriesContent ? `/series/${slug}` : `/read/${slug}`;
@@ -119,8 +126,6 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
         );
     }
 
-    // Same card, different wrapper: a plain <a> for external pieces so the
-    // browser (not the Next router) handles the navigation.
     const cardBody = (
             <article className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
                 {/* Image Section */}
@@ -232,14 +237,39 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
                     )}
                     
                     <div className="mt-auto">
-                        {/* Author */}
+                        {/* Author — a separate click target from the card itself.
+                            Sits above the card's stretched overlay link (z-20 vs
+                            z-10) so clicking the name or avatar goes to the
+                            profile instead of opening the article. */}
                         <div className="flex items-center mb-4">
-                            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
-                                {displayAuthor.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-900 bengali-text">{displayAuthor}</p>
-                            </div>
+                            {authorUsername ? (
+                                <Link
+                                    href={`/profile/${authorUsername}`}
+                                    className="relative z-20 flex items-center group/author rounded-lg -m-1 p-1 hover:bg-gray-50 transition-colors"
+                                >
+                                    {authorAvatar ? (
+                                        <img
+                                            src={authorAvatar}
+                                            alt={displayAuthor}
+                                            className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3 flex-shrink-0">
+                                            {displayAuthor.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    <p className="text-sm font-medium text-gray-900 bengali-text group-hover/author:text-primary-600 group-hover/author:underline transition-colors">
+                                        {displayAuthor}
+                                    </p>
+                                </Link>
+                            ) : (
+                                <div className="flex items-center">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3 flex-shrink-0">
+                                        {displayAuthor.charAt(0).toUpperCase()}
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-900 bengali-text">{displayAuthor}</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Stats Bar */}
@@ -266,22 +296,18 @@ export default function ContentCard({ content, story, showStatus = false }: Cont
             </article>
     );
 
-    if (isExternal) {
-        return (
-            <a
-                href={external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group block h-full"
-            >
-                {cardBody}
-            </a>
-        );
-    }
-
+    // The card is NOT wrapped in a single <Link> — that would make the author
+    // link an invalid nested anchor. Instead the card body renders normally and
+    // a stretched overlay link covers it, while the author block sits above that
+    // overlay on a higher z-index. Two independent click targets, valid markup.
     return (
-        <Link href={linkHref} className="group block h-full">
+        <div className="group relative block h-full">
+            <Link
+                href={linkHref}
+                className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                aria-label={title}
+            />
             {cardBody}
-        </Link>
+        </div>
     );
 }

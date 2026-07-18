@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Feather,
   Pen,
-  Loader2
+  Loader2,
+  Link2
 } from 'lucide-react';
 
 interface UserStats {
@@ -150,7 +151,7 @@ export default function WritingHubPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <button
             onClick={() => router.push('/write/editor')}
             className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
@@ -158,6 +159,15 @@ export default function WritingHubPage() {
             <PlusCircle className="w-8 h-8 mb-3 mx-auto" />
             <h3 className="text-lg font-bold mb-2 bengali-text">নতুন লেখা</h3>
             <p className="text-sm opacity-90 bengali-text">একটি নতুন গল্প শুরু করুন</p>
+          </button>
+
+          <button
+            onClick={() => router.push('/write/external')}
+            className="bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          >
+            <Link2 className="w-8 h-8 mb-3 mx-auto" />
+            <h3 className="text-lg font-bold mb-2 bengali-text">বাইরের লেখা</h3>
+            <p className="text-sm opacity-90 bengali-text">অন্য সাইটে প্রকাশিত লেখা যুক্ত করুন</p>
           </button>
 
           {/* <button
