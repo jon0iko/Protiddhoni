@@ -86,7 +86,7 @@ describe('ContentQueryBuilder', () => {
     });
 
     describe('setSort', () => {
-        test.each(['published_at', 'view_count', 'created_at', 'title'])(
+        test.each(['relevance', 'published_at', 'view_count', 'created_at', 'title'])(
             'accepts the whitelisted column %s',
             (column) => {
                 expect(newBuilder().setSort(column, 'asc').build().sort).toEqual({ column, order: 'asc' });

@@ -25,7 +25,7 @@ export default function SearchFilter() {
         type: searchParams.get('type') || 'all',
         rating: searchParams.get('rating') ? parseInt(searchParams.get('rating')!) : 0,
         is_premium: searchParams.get('is_premium') === 'true',
-        sort_by: searchParams.get('sort_by') || 'published_at',
+        sort_by: searchParams.get('sort_by') || (initialQuery ? 'relevance' : 'published_at'),
         order: searchParams.get('order') || 'desc'
     });
 
@@ -38,7 +38,8 @@ export default function SearchFilter() {
             type: searchParams.get('type') || 'all',
             rating: searchParams.get('rating') ? parseInt(searchParams.get('rating')!) : 0,
             is_premium: searchParams.get('is_premium') === 'true',
-            sort_by: searchParams.get('sort_by') || 'published_at',
+            sort_by: searchParams.get('sort_by')
+                || ((searchParams.get('q') || searchParams.get('query')) ? 'relevance' : 'published_at'),
             order: searchParams.get('order') || 'desc'
         });
     }, [searchParams]);
@@ -192,6 +193,9 @@ export default function SearchFilter() {
                         value={filters.sort_by} 
                         onChange={(e) => setFilters({...filters, sort_by: e.target.value})}
                     >
+                        {filters.query.trim() && (
+                            <option value="relevance">প্রাসঙ্গিকতা</option>
+                        )}
                         <option value="published_at">নতুন</option>
                         <option value="view_count">জনপ্রিয়</option>
                         <option value="title">শিরোনাম</option>

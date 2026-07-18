@@ -99,7 +99,7 @@ class ContentQueryBuilder {
     }
 
     setSort(sortBy: any, order: string = 'desc'): this {
-        const validColumns = ['published_at', 'view_count', 'created_at', 'title'];
+        const validColumns = ['relevance', 'published_at', 'view_count', 'created_at', 'title'];
         if (validColumns.includes(sortBy)) {
             this.sort = { column: sortBy, order };
         }

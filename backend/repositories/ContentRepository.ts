@@ -5,6 +5,7 @@
 
 import db from '../config/database';
 import logger from '../config/logger';
+import { normalizeSearchText, sortContentByRelevance } from '../utils/searchRanking';
 
 class ContentRepository {
     async create(contentData) {
@@ -359,6 +360,22 @@ class ContentRepository {
      */
     async findAdvanced(queryParams) {
         const { filters, sort, pagination } = queryParams;
+        const normalizedSearch = normalizeSearchText(filters.searchText)
+            .replace(/[%,()]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        let matchingAuthorIds: string[] = [];
+
+        if (normalizedSearch) {
+            const authorTerm = `%${normalizedSearch}%`;
+            const { data: authors, error: authorError } = await db.getClient()
+                .from('users')
+                .select('id')
+                .or(`username.ilike.${authorTerm},full_name.ilike.${authorTerm}`);
+
+            if (authorError) throw authorError;
+            matchingAuthorIds = (authors || []).map(author => author.id);
+        }
 
         // Use inner join only when filtering by category slug, so content with no
         // category isn't accidentally hidden.
@@ -378,10 +395,18 @@ class ContentRepository {
                 .eq('is_published', true)
                 .eq('status', 'approved');
 
-            if (filters.searchText) {
-                const escaped = filters.searchText.replace(/[%,()]/g, ' ');
-                const term = `%${escaped}%`;
-                q = q.or(`title.ilike.${term},excerpt.ilike.${term}`);
+            if (normalizedSearch) {
+                const term = `%${normalizedSearch}%`;
+                const searchConditions = [
+                    `title.ilike.${term}`,
+                    `excerpt.ilike.${term}`
+                ];
+
+                if (matchingAuthorIds.length > 0) {
+                    searchConditions.push(`author_id.in.(${matchingAuthorIds.join(',')})`);
+                }
+
+                q = q.or(searchConditions.join(','));
             }
             if (filters.categorySlug) {
                 q = q.eq('category.slug', filters.categorySlug);
@@ -401,38 +426,67 @@ class ContentRepository {
             return q;
         };
 
-        // When filtering by minimum rating, we must filter in memory (ratings live
-        // in a separate table). Fetch the full filtered set, compute averages,
-        // then paginate after — so total count and page slicing are correct.
-        if (filters.minRating) {
-            const fullQuery = buildBaseQuery({ count: 'exact' })
-                .order(sort.column, { ascending: sort.order === 'asc' });
+        const fetchAllMatching = async (column: string, order: string) => {
+            const batchSize = 1000;
+            const rows: any[] = [];
+            let expectedCount: number | null = null;
 
-            const { data: allData, error: fullError } = await fullQuery;
-            if (fullError) throw fullError;
+            while (expectedCount === null || rows.length < expectedCount) {
+                const from = rows.length;
+                const query = buildBaseQuery({ count: 'exact' })
+                    .order(column, { ascending: order === 'asc' })
+                    .range(from, from + batchSize - 1);
+                const { data, error, count } = await query;
 
-            const contentIds = (allData || []).map(c => c.id);
-            let ratingMap = {};
-            if (contentIds.length > 0) {
-                const { data: reviews } = await db.getClient()
-                    .from('reviews')
-                    .select('content_id, rating')
-                    .in('content_id', contentIds);
+                if (error) throw error;
+                const batch = data || [];
+                rows.push(...batch);
+                expectedCount = count ?? rows.length;
 
-                (reviews || []).forEach(r => {
-                    if (!ratingMap[r.content_id]) ratingMap[r.content_id] = [];
-                    ratingMap[r.content_id].push(r.rating);
+                if (batch.length < batchSize) break;
+            }
+
+            return rows;
+        };
+
+        // Rating and relevance both need the complete candidate set before
+        // pagination. Ratings live in another table, while relevance combines
+        // title, joined author fields, and excerpt.
+        if (filters.minRating || (normalizedSearch && sort.column === 'relevance')) {
+            const fallbackSort = sort.column === 'relevance'
+                ? { column: 'published_at', order: 'desc' }
+                : sort;
+            let filtered = await fetchAllMatching(fallbackSort.column, fallbackSort.order);
+
+            if (filters.minRating) {
+                const contentIds = filtered.map(c => c.id);
+                const ratingMap: Record<string, number[]> = {};
+                if (contentIds.length > 0) {
+                    const { data: reviews, error: reviewError } = await db.getClient()
+                        .from('reviews')
+                        .select('content_id, rating')
+                        .in('content_id', contentIds);
+
+                    if (reviewError) throw reviewError;
+                    (reviews || []).forEach(r => {
+                        if (!ratingMap[r.content_id]) ratingMap[r.content_id] = [];
+                        ratingMap[r.content_id].push(r.rating);
+                    });
+                }
+
+                filtered = filtered.filter(item => {
+                    const itemReviews = ratingMap[item.id] || [];
+                    const avg = itemReviews.length > 0
+                        ? itemReviews.reduce((a, b) => a + b, 0) / itemReviews.length
+                        : 0;
+                    item.average_rating = avg;
+                    return avg >= filters.minRating;
                 });
             }
 
-            const filtered = (allData || []).filter(item => {
-                const itemReviews = ratingMap[item.id] || [];
-                const avg = itemReviews.length > 0
-                    ? itemReviews.reduce((a, b) => a + b, 0) / itemReviews.length
-                    : 0;
-                item.average_rating = avg;
-                return avg >= filters.minRating;
-            });
+            if (normalizedSearch && sort.column === 'relevance') {
+                filtered = sortContentByRelevance(filtered, normalizedSearch);
+            }
 
             const from = (pagination.page - 1) * pagination.limit;
             const to = from + pagination.limit;
