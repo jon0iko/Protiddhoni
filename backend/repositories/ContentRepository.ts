@@ -217,7 +217,7 @@ class ContentRepository {
                 category:category_id (id, name, slug)
             `)
             .eq('status', 'pending')
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: false });
         
         if (error) throw error;
         return data;
