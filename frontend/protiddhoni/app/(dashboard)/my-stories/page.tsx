@@ -126,7 +126,18 @@ export default function MyStoriesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredContents.map((content) => (
-              <ContentCard key={content.id} content={content} showStatus />
+              <div key={content.id} className="flex flex-col">
+                <ContentCard content={content} showStatus />
+                {/* Authors can revise an existing article — including one that is
+                    already live. Published edits are logged for admin review. */}
+                <Link
+                  href={`/write/editor?edit=${content.id}`}
+                  className="mt-2 inline-flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>সম্পাদনা করুন</span>
+                </Link>
+              </div>
             ))}
           </div>
         )}

@@ -13,7 +13,8 @@ import {
   Feather,
   FileText,
   ChevronDown,
-  Edit
+  Edit,
+  Link2
 } from 'lucide-react';
 import { cn, validateImageFile, fileToBase64, getExcerptFromHtml } from '@/lib/utils';
 import { uploadCoverImage } from '@/lib/imageUpload';
@@ -35,6 +36,20 @@ const CONTENT_TYPES = [
   { id: 'chapter', name: 'পর্ব', icon: FileText, description: 'ধারাবাহিক সিরিজের অংশ' },
 ] as const;
 
+/**
+ * Only absolute http/https URLs are accepted. This rejects javascript:, data:
+ * and other schemes that would become an XSS vector once the URL is rendered as
+ * an <a href> on the content card.
+ */
+const isValidExternalUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 export default function PublishModal({
   isOpen,
   onClose,
@@ -50,6 +65,7 @@ export default function PublishModal({
     excerpt: '',
     contentType: 'story',
     categoryId: '',
+    externalUrl: '',
     seriesId: undefined,
     chapterNumber: undefined,
     isPremium: false,
@@ -208,6 +224,7 @@ export default function PublishModal({
       }
     }
 
+
     if (formData.isPremium) {
       if (!formData.price || formData.price <= 0) {
         newErrors.price = 'প্রিমিয়াম কন্টেন্টের জন্য মূল্য নির্ধারণ করুন (০ এর চেয়ে বেশি)।';
@@ -297,6 +314,7 @@ export default function PublishModal({
         excerpt: '',
         contentType: 'story',
         categoryId: '',
+        externalUrl: '',
         price: undefined,
         seriesId: undefined,
         chapterNumber: undefined,

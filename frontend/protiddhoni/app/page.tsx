@@ -1,5 +1,6 @@
 import HeroSection from '@/components/home/HeroSection';
 import FeaturedContent from '@/components/home/FeaturedContent';
+import AuthorReel from '@/components/home/AuthorReel';
 import CategoryShowcase from '@/components/home/CategoryShowcase';
 // import NewsletterSection from '@/components/home/NewsletterSection';
 
@@ -14,6 +15,9 @@ export default function Home() {
         <FeaturedContent />
       </section>
       
+      {/* Author Reel - Most-read writers */}
+      <AuthorReel />
+
       {/* Category Showcase - Explore by Genre */}
       <CategoryShowcase />
       
