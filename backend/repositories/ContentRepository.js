@@ -4,6 +4,7 @@
  */
 
 const db = require('../config/database');
+const logger = require('../config/logger');
 
 class ContentRepository {
     async create(contentData) {
@@ -251,7 +252,7 @@ class ContentRepository {
             });
 
         if (!error) {
-            console.log('[ViewCount] RPC increment_view_count_once result:', {
+            logger.debug('[ViewCount] RPC increment_view_count_once result:', {
                 contentId,
                 sessionKeyPreview: sessionKey?.slice(0, 12),
                 viewerKeyPreview: viewerKey?.slice(0, 12),
@@ -260,7 +261,7 @@ class ContentRepository {
             return data;
         }
 
-        console.error('[ViewCount] RPC increment_view_count_once failed:', {
+        logger.error('[ViewCount] RPC increment_view_count_once failed:', {
             contentId,
             sessionKeyPreview: sessionKey?.slice(0, 12),
             viewerKeyPreview: viewerKey?.slice(0, 12),
@@ -285,7 +286,7 @@ class ContentRepository {
             .select('id');
 
         if (insertError) {
-            console.error('[ViewCount] Table fallback failed, skipping increment:', {
+            logger.error('[ViewCount] Table fallback failed, skipping increment:', {
                 contentId,
                 message: insertError.message,
                 code: insertError.code
@@ -298,7 +299,7 @@ class ContentRepository {
             await this.incrementViewCount(contentId);
         }
 
-        console.log('[ViewCount] Table fallback result:', {
+        logger.debug('[ViewCount] Table fallback result:', {
             contentId,
             sessionKeyPreview: sessionKey?.slice(0, 12),
             viewerKeyPreview: viewerKey?.slice(0, 12),
@@ -319,7 +320,22 @@ class ContentRepository {
     }
 
     async getStats(contentId) {
-        // Get review stats
+        // Aggregate review stats inside Postgres (COUNT + AVG) via RPC instead of
+        // pulling every review row into Node and averaging in JS. See
+        // scripts/optimization_migrations.sql for get_content_review_stats.
+        const { data, error } = await db.getClient()
+            .rpc('get_content_review_stats', { p_content_id: contentId });
+
+        if (!error && Array.isArray(data)) {
+            const row = data[0] || {};
+            return {
+                totalReviews: Number(row.total_reviews) || 0,
+                averageRating: Number(row.average_rating) || 0
+            };
+        }
+
+        // Fallback: if the RPC is not deployed yet, use the original in-JS path so
+        // behaviour is preserved until the migration is run.
         const { data: reviews, error: reviewError } = await db.getClient()
             .from('reviews')
             .select('rating')

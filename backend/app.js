@@ -3,9 +3,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const logger = require('./config/logger');
 
 const app = express();
+
+// Trust the reverse proxy (Render/Vercel/nginx) so req.ip and the rate limiter
+// see the real client IP from X-Forwarded-For instead of the proxy's address.
+app.set('trust proxy', 1);
 
 // CORS configuration (must be before helmet)
 const corsOptions = {
@@ -22,6 +28,10 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
+// Gzip responses. Content bodies (long-form Bengali text) compress extremely
+// well, cutting egress bandwidth — the main variable cost at scale — by ~70%+.
+app.use(compression());
+
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
@@ -31,18 +41,43 @@ if (process.env.NODE_ENV === 'development') {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Rate limiting. Protects the API (and the downstream Supabase bill) from a
+// single abusive client. Disabled in test to keep the suite deterministic.
+if (process.env.NODE_ENV !== 'test') {
+    // Generous global cap for normal browsing.
+    const globalLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 1000,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { success: false, error: 'Too many requests, please try again later.' }
+    });
+    app.use('/api', globalLimiter);
+
+    // Stricter cap on auth endpoints to slow credential-stuffing / brute force.
+    const authLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 30,
+        standardHeaders: true,
+        legacyHeaders: false,
+        skipSuccessfulRequests: true, // only failed attempts count toward the cap
+        message: { success: false, error: 'Too many attempts, please try again later.' }
+    });
+    app.use('/api/auth/login', authLimiter);
+    app.use('/api/auth/register', authLimiter);
+}
+
 // Health check route
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV 
+        environment: process.env.NODE_ENV
     });
 });
 
 // API routes
 app.use('/api/auth', require('./routes/auth'));
-console.log('✅ Auth routes registered at /api/auth');
 app.use('/api/content', require('./routes/content'));
 app.use('/api/series', require('./routes/series'));
 app.use('/api/users', require('./routes/users'));

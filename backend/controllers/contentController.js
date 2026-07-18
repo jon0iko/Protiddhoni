@@ -11,7 +11,15 @@ const { updateSlugFromTitle } = require('../utils/slugify');
 const ContentQueryBuilder = require('../utils/ContentQueryBuilder');
 const { ContentAccess, PaywallDecorator } = require('../middleware/contentAccessDecorator');
 const db = require('../config/database');
+const logger = require('../config/logger');
+const cacheManager = require('../services/cacheManager');
 const crypto = require('crypto');
+
+// Namespace for cached public content-list responses. Any content mutation
+// flushes this prefix so a newly published/edited/removed piece is reflected in
+// list endpoints immediately (not after the TTL).
+const CONTENT_LIST_CACHE_PREFIX = 'content:list:';
+const invalidateContentLists = () => cacheManager.deleteByPrefix(CONTENT_LIST_CACHE_PREFIX);
 
 const getViewerKey = (req) => {
     if (req.user?.id) {
@@ -99,7 +107,7 @@ exports.getById = async (req, res) => {
             viewerKey
         );
 
-        console.log('[ViewCount] getById increment decision:', {
+        logger.debug('[ViewCount] getById increment decision:', {
             contentId: req.params.id,
             sessionKeyPreview: effectiveSessionKey.slice(0, 12),
             viewerKeyPreview: viewerKey.slice(0, 12),
@@ -181,7 +189,7 @@ exports.getBySlug = async (req, res) => {
                 viewerKey
             );
 
-            console.log('[ViewCount] getBySlug increment decision:', {
+            logger.debug('[ViewCount] getBySlug increment decision:', {
                 slug: slugOrId,
                 contentId: content.id,
                 sessionKeyPreview: effectiveSessionKey.slice(0, 12),
@@ -231,10 +239,15 @@ exports.getPublished = async (req, res) => {
                 limit: req.query.limit
             };
 
-            const result = await ContentRepository.findPublishedPaginated(filters);
-            res.json({ 
-                success: true, 
-                data: result.data, 
+            // Public, non-personalized listing → cacheable. Short TTL plus
+            // explicit invalidation on writes keeps it fresh.
+            const cacheKey = `${CONTENT_LIST_CACHE_PREFIX}paginated:${JSON.stringify(filters)}`;
+            const result = await cacheManager.getOrSet(cacheKey, 60,
+                () => ContentRepository.findPublishedPaginated(filters));
+
+            res.json({
+                success: true,
+                data: result.data,
                 pagination: result.pagination
             });
         } else {
@@ -248,7 +261,10 @@ exports.getPublished = async (req, res) => {
                 limit: req.query.limit ? parseInt(req.query.limit) : undefined
             };
 
-            const contents = await ContentRepository.findPublished(filters);
+            const cacheKey = `${CONTENT_LIST_CACHE_PREFIX}legacy:${JSON.stringify(filters)}`;
+            const contents = await cacheManager.getOrSet(cacheKey, 60,
+                () => ContentRepository.findPublished(filters));
+
             res.json({ success: true, data: contents, count: contents.length });
         }
     } catch (error) {
@@ -318,6 +334,7 @@ exports.update = async (req, res) => {
         }
 
         const content = await ContentRepository.update(req.params.id, updates);
+        invalidateContentLists();
         res.json({ success: true, data: content });
     } catch (error) {
         console.error('Update content error:', error);
@@ -338,6 +355,7 @@ exports.delete = async (req, res) => {
         }
 
         await ContentRepository.delete(req.params.id);
+        invalidateContentLists();
         res.json({ success: true, message: 'Content deleted successfully' });
     } catch (error) {
         console.error('Delete content error:', error);
@@ -407,13 +425,16 @@ exports.approve = async (req, res) => {
             rejection_reason: null
         });
 
+        // Freshly published content must appear in list endpoints immediately.
+        invalidateContentLists();
+
         // Notify author and followers (Observer pattern)
         await NotificationService.notifyContentApproved(updated);
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             data: updated,
-            message: 'লেখা অনুমোদিত এবং প্রকাশিত হয়েছে' 
+            message: 'লেখা অনুমোদিত এবং প্রকাশিত হয়েছে'
         });
     } catch (error) {
         console.error('Approve content error:', error);
@@ -453,13 +474,16 @@ exports.reject = async (req, res) => {
             reviewed_at: new Date().toISOString()
         });
 
+        // A rejected piece is no longer published — flush any cached lists.
+        invalidateContentLists();
+
         // Notify author (Observer pattern)
         await NotificationService.notifyContentRejected(updated);
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             data: updated,
-            message: 'লেখা প্রত্যাখ্যান করা হয়েছে' 
+            message: 'লেখা প্রত্যাখ্যান করা হয়েছে'
         });
     } catch (error) {
         console.error('Reject content error:', error);

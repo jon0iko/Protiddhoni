@@ -95,16 +95,30 @@ export default function ReadContentPage() {
     fetchAuthorProfile();
   }, [content?.author?.username, isLoggedIn]);
 
+  // Loads the sibling chapters of a series for prev/next navigation. Runs in the
+  // background (not blocking the article render) and owns its own error handling.
+  const loadSeriesChapters = async (seriesId: string, currentContentId: string) => {
+    try {
+      const chaptersResponse = await api.series.getChapters(seriesId);
+      if (!chaptersResponse.success) return;
+
+      const chapters = chaptersResponse.data || [];
+      setSeriesChapters(chapters);
+
+      const currentIndex = chapters.findIndex((ch: any) => ch.id === currentContentId);
+      setPrevChapter(currentIndex > 0 ? chapters[currentIndex - 1] : null);
+      setNextChapter(currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null);
+    } catch (error) {
+      console.error('Error loading series chapters:', error);
+    }
+  };
+
   const loadContent = async () => {
     setLoading(true);
     setIsBlocked(false);
     setPaywallInfo(null);
     
     try {
-      console.log('Loading content for slug:', slug);
-      console.log('User logged in:', isLoggedIn);
-      console.log('User data:', user);
-      
       const response = await api.content.getBySlug(slug);
       
       // Check if content is blocked by paywall
@@ -124,27 +138,12 @@ export default function ReadContentPage() {
       if (response.success) {
         setContent(response.data);
         setIsFollowing(response.data.author?.isFollowing || false);
-        
-        // If this is a chapter in a series, load all chapters for navigation
+
+        // If this is a chapter in a series, load chapters for navigation in the
+        // background. Not awaited here so the article renders immediately instead
+        // of waiting on a second round-trip; the prev/next nav fills in shortly.
         if (response.data.series_id) {
-          const chaptersResponse = await api.series.getChapters(response.data.series_id);
-          if (chaptersResponse.success) {
-            const chapters = chaptersResponse.data || [];
-            setSeriesChapters(chapters);
-            
-            // Find prev and next chapters
-            const currentIndex = chapters.findIndex((ch: any) => ch.id === response.data.id);
-            if (currentIndex > 0) {
-              setPrevChapter(chapters[currentIndex - 1]);
-            } else {
-              setPrevChapter(null);
-            }
-            if (currentIndex < chapters.length - 1) {
-              setNextChapter(chapters[currentIndex + 1]);
-            } else {
-              setNextChapter(null);
-            }
-          }
+          loadSeriesChapters(response.data.series_id, response.data.id);
         }
       } else {
         // Content not found

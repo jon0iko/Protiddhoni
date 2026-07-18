@@ -6,7 +6,7 @@
 
 import { getAuthToken } from './auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const getClientSessionId = (): string | null => {
     if (typeof window === 'undefined') {
@@ -44,11 +44,8 @@ const getHeaders = (token?: string | null): HeadersInit => {
     
     if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
-        console.log('API Request - Token included:', authToken.substring(0, 20) + '...');
-    } else {
-        console.log('API Request - No token available');
     }
-    
+
     return headers;
 };
 

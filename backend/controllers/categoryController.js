@@ -5,19 +5,38 @@
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ContentRepository = require('../repositories/ContentRepository');
+const cacheManager = require('../services/cacheManager');
 const slugify = require('../utils/slugify');
 const { updateSlugFromTitle } = require('../utils/slugify');
 
+// Namespace for every cached category entry, so a single deleteByPrefix flushes
+// them all when categories change.
+const CATEGORY_CACHE_PREFIX = 'categories:';
+
 exports.getAll = async (req, res) => {
     try {
-        const categories = await CategoryRepository.findAll();
-        
-        // Optionally include content count for each category
-        if (req.query.includeCount === 'true') {
-            for (const category of categories) {
-                category.contentCount = await CategoryRepository.getContentCount(category.id);
+        const includeCount = req.query.includeCount === 'true';
+        const cacheKey = `${CATEGORY_CACHE_PREFIX}all:count=${includeCount}`;
+
+        // Categories are a small, near-static, non-personalized list requested on
+        // almost every page (nav/showcase). Cache for 5 min; writes invalidate it.
+        const categories = await cacheManager.getOrSet(cacheKey, 300, async () => {
+            const rows = await CategoryRepository.findAll();
+
+            // Optionally include content count for each category. Counts are
+            // fetched concurrently (not sequentially) so N categories cost one
+            // round-trip of latency instead of N.
+            if (includeCount) {
+                const counts = await Promise.all(
+                    rows.map(category => CategoryRepository.getContentCount(category.id))
+                );
+                rows.forEach((category, i) => {
+                    category.contentCount = counts[i];
+                });
             }
-        }
+
+            return rows;
+        });
 
         res.json({ success: true, data: categories, count: categories.length });
     } catch (error) {
@@ -88,7 +107,10 @@ exports.create = async (req, res) => {
         };
 
         const category = await CategoryRepository.create(categoryData);
-        
+
+        // New category must appear immediately in the cached list.
+        cacheManager.deleteByPrefix(CATEGORY_CACHE_PREFIX);
+
         res.status(201).json({ success: true, data: category });
     } catch (error) {
         console.error('Create category error:', error);
@@ -117,7 +139,10 @@ exports.delete = async (req, res) => {
 
         // Delete category
         await CategoryRepository.delete(id);
-        
+
+        // Removed category must disappear immediately from the cached list.
+        cacheManager.deleteByPrefix(CATEGORY_CACHE_PREFIX);
+
         res.json({ success: true, message: 'Category deleted successfully' });
     } catch (error) {
         console.error('Delete category error:', error);
