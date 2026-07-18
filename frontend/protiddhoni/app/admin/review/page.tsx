@@ -229,7 +229,7 @@ export default function AdminReviewPage() {
                         <span className="bengali-text">{formatDate(content.created_at)}</span>
                       </span>
                       <span className="px-2 py-1 bg-gray-100 rounded bengali-text">
-                        {content.content_type === 'story' ? 'গল্প' : content.content_type === 'poem' ? 'কবিতা' : 'অন্যান্য'}
+                        {content.content_type === 'story' ? 'গল্প' : content.content_type === 'poem' ? 'কবিতা' : content.content_type === 'link' ? 'বাইরের লেখা' : 'অন্যান্য'}
                       </span>
                     </div>
                   </div>

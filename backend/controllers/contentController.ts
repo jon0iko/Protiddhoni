@@ -12,6 +12,7 @@ import slugify from '../utils/slugify';
 import { updateSlugFromTitle } from '../utils/slugify';
 import ContentQueryBuilder from '../utils/ContentQueryBuilder';
 import { ContentAccess, PaywallDecorator } from '../middleware/contentAccessDecorator';
+import { isValidExternalUrl } from '../services/contentFactory';
 import db from '../config/database';
 import logger from '../config/logger';
 import cacheManager from '../services/cacheManager';
@@ -33,7 +34,10 @@ const AUTHOR_EDITABLE_CONTENT_FIELDS = [
     'cover_image_url',
     'category_id',
     'is_premium',
-    'price'
+    'price',
+    // External-link posts keep their destination editable; without this an edit
+    // to a link post would silently blank its URL.
+    'external_url'
 ] as const;
 
 // Audit rows store a short preview, never the full body — a long article would
@@ -96,6 +100,17 @@ export const advancedSearch = async (req: Request, res: Response) => {
 
 export const create = async (req: Request, res: Response) => {
     try {
+        // An external_url is rendered as an <a href> on the content card, so a
+        // javascript:/data: URL here would be stored XSS. Reject anything that
+        // isn't an absolute http(s) URL. Client-side validation is not enough.
+        if (req.body.external_url !== undefined && req.body.external_url !== null
+            && !isValidExternalUrl(req.body.external_url)) {
+            return res.status(400).json({
+                success: false,
+                error: 'External URL must be a valid http(s) link'
+            });
+        }
+
         const contentData = {
             ...req.body,
             author_id: req.user.id,
@@ -362,6 +377,16 @@ export const update = async (req: Request, res: Response) => {
             if (Object.prototype.hasOwnProperty.call(req.body, field)) {
                 updates[field] = req.body[field];
             }
+        }
+
+        // Same XSS guard as create — an edit must not be able to smuggle in a
+        // javascript:/data: URL that create would have rejected.
+        if (updates.external_url !== undefined && updates.external_url !== null
+            && !isValidExternalUrl(updates.external_url)) {
+            return res.status(400).json({
+                success: false,
+                error: 'External URL must be a valid http(s) link'
+            });
         }
 
         // Update slug if title changed or if slug is empty
