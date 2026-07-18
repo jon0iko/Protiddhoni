@@ -1,4 +1,3 @@
-'use client';
 
 import { Shield, Eye, Lock, Users, Database, AlertTriangle, Mail, Calendar } from 'lucide-react';
 

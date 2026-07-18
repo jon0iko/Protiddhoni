@@ -112,10 +112,7 @@ export default function CategoriesPage() {
       <div className="bg-gradient-to-r from-primary-600 via-accent-600 to-olive-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <div className="flex items-center justify-center mb-6">
-              <BookOpen className="h-16 w-16 text-white/90 mr-4" />
-              <h1 className="text-5xl font-bold bengali-text">গল্পের বিভাগসমূহ</h1>
-            </div>
+            
             <p className="text-xl text-primary-100 max-w-3xl mx-auto leading-relaxed bengali-text">
               আপনার পছন্দের ধরনের গল্প খুঁজে নিন। প্রেম থেকে রহস্য, অনুপ্রেরণা থেকে অ্যাডভেঞ্চার - 
               সব ধরনের গল্পের সমাহার এখানে।

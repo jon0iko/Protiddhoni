@@ -19,12 +19,25 @@ cp .env.example .env
    - JWT secret
    - Payment gateway credentials
 
-4. Start development server:
+4. Start development server (TypeScript, hot-reload via tsx):
 ```bash
 pnpm dev
 ```
 
+## Scripts
+
+| Command | What it does |
+|---------|--------------|
+| `pnpm dev` | Run the TypeScript source directly with hot reload |
+| `pnpm build` | Compile TypeScript to `dist/` (excludes tests) |
+| `pnpm start` | Run the compiled server (`node dist/server.js`) — use in production |
+| `pnpm typecheck` | Type-check everything including tests, no output emitted |
+| `pnpm test` | Run the Jest suite via ts-jest |
+| `pnpm seed` | Seed the database |
+
 ## Project Structure
+
+The backend is written entirely in **TypeScript**.
 
 ```
 backend/
@@ -35,9 +48,11 @@ backend/
 ├── services/        # Business logic (Factory, Strategy, Observer patterns)
 ├── controllers/     # Route controllers
 ├── routes/          # API routes
+├── types/           # Shared domain types + Express Request augmentation
 ├── utils/           # Utility functions
-├── app.js           # Express app setup
-└── server.js        # Server entry point
+├── app.ts           # Express app setup
+├── server.ts        # Server entry point
+└── dist/            # Compiled output (git-ignored, created by `pnpm build`)
 ```
 
 ## Design Patterns Implemented

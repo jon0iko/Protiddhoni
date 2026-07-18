@@ -44,9 +44,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Type-check
+        # The backend is TypeScript. This catches type regressions that the test
+        # suite would not, and fails fast before the build.
+        run: pnpm typecheck
+
+      - name: Build
+        # Proves the TypeScript actually compiles — deploy runs this same step,
+        # so a broken build fails here rather than in production.
+        run: pnpm build
+
       - name: Run tests
         # The test suite mocks the database; these placeholders just stop the
-        # Supabase singleton (config/database.js) from throwing at import time.
+        # Supabase singleton (config/database.ts) from throwing at import time.
         env:
           NODE_ENV: test
           SUPABASE_URL: https://example.supabase.co
