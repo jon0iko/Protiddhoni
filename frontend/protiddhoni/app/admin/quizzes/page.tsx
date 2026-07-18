@@ -5,21 +5,23 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen,
   Brain,
   CheckCircle2,
   Coins,
   Edit3,
+  GraduationCap,
   Loader2,
   Plus,
   Shield,
   Sparkles,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { toBengaliNumber } from '@/lib/numberFormatter';
-import type { QuizSummary } from '@/types';
+import type { QuizSummary, RoundPhase } from '@/types';
+import { PHASE_LABEL, PHASE_STYLES, formatDateTime } from '@/app/quizzes/_lib/round';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'খসড়া',
@@ -114,23 +116,18 @@ export default function AdminQuizListPage() {
           <div className="inline-flex items-center gap-2 text-sm text-primary-700 bengali-text">
             <Shield className="w-4 h-4" /> অ্যাডমিন প্যানেল
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 bengali-text mt-1">কুইজ ব্যবস্থাপনা</h1>
+          <h1 className="text-3xl font-bold text-gray-900 bengali-text mt-1">রাউন্ড ব্যবস্থাপনা</h1>
           <p className="text-gray-600 bengali-text mt-1 max-w-2xl">
-            পাঠ্য উপাদান লিখুন, Gemini AI মাল্টিপল চয়েস প্রশ্ন তৈরি করবে। প্রকাশিত হলে ব্যবহারকারীরা কড়ি খরচ করে অংশ নিতে পারবে।
+            ধরন, বিষয় ও সময়সূচি ঠিক করুন — Gemini প্রশ্ন লিখবে, আপনি সম্পাদনা করবেন। প্রকাশের পর
+            প্রবেশ ফি পুরস্কার তহবিলে জমা হয় এবং রাউন্ড শেষে সেরা ৩ জন স্বয়ংক্রিয়ভাবে কড়ি পান।
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/admin/quizzes/new/from-content"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium bengali-text inline-flex items-center gap-2"
-          >
-            <BookOpen className="w-4 h-4" /> কনটেন্ট থেকে কুইজ
-          </Link>
-          <Link
             href="/admin/quizzes/new"
             className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg font-medium bengali-text inline-flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> ম্যানুয়াল কুইজ
+            <Plus className="w-4 h-4" /> নতুন রাউন্ড
           </Link>
         </div>
       </div>
@@ -152,9 +149,10 @@ export default function AdminQuizListPage() {
             <thead className="bg-gray-50 border-b border-gray-200 text-left">
               <tr className="text-gray-600 bengali-text">
                 <th className="px-4 py-3">শিরোনাম</th>
-                <th className="px-4 py-3">অবস্থা</th>
+                <th className="px-4 py-3">অবস্থা / পর্যায়</th>
                 <th className="px-4 py-3 text-right">প্রশ্ন</th>
-                <th className="px-4 py-3 text-right">ফি / পুরস্কার</th>
+                <th className="px-4 py-3 text-right">ফি / তহবিল</th>
+                <th className="px-4 py-3 text-right">অংশগ্রহণ</th>
                 <th className="px-4 py-3 text-right">ক্রিয়া</th>
               </tr>
             </thead>
@@ -170,24 +168,44 @@ export default function AdminQuizListPage() {
                         </p>
                       )}
                       <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {quiz.quiz_type === 'exam' ? (
+                          <span className="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                            <GraduationCap className="w-3 h-3" />
+                            {quiz.exam_category || 'পরীক্ষা'}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-700 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full bengali-text">
+                            সাধারণ
+                          </span>
+                        )}
+                        {quiz.closes_at && (
+                          <span className="text-[11px] text-gray-500 bengali-text">
+                            শেষ: {formatDateTime(quiz.closes_at)}
+                          </span>
+                        )}
                         {quiz.ai_model && (
                           <span className="text-[11px] text-gray-400 inline-flex items-center gap-1">
                             <Sparkles className="w-3 h-3" /> {quiz.ai_model}
-                          </span>
-                        )}
-                        {quiz.source_content?.title && (
-                          <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1 bengali-text">
-                            <BookOpen className="w-3 h-3" />
-                            {quiz.source_content.title}
                           </span>
                         )}
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full bengali-text ${STATUS_STYLES[quiz.status]}`}>
-                      {STATUS_LABEL[quiz.status] || quiz.status}
-                    </span>
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={`text-xs px-2 py-1 rounded-full bengali-text ${STATUS_STYLES[quiz.status]}`}>
+                        {STATUS_LABEL[quiz.status] || quiz.status}
+                      </span>
+                      {quiz.phase && (
+                        <span
+                          className={`text-[11px] px-2 py-0.5 rounded-full bengali-text ${
+                            PHASE_STYLES[quiz.phase as RoundPhase]
+                          }`}
+                        >
+                          {PHASE_LABEL[quiz.phase as RoundPhase]}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right text-gray-700 bengali-text">
                     {toBengaliNumber(quiz.total_questions)}
@@ -195,7 +213,14 @@ export default function AdminQuizListPage() {
                   <td className="px-4 py-3 text-right text-gray-700 bengali-text">
                     <span className="inline-flex items-center gap-1 text-yellow-700">
                       <Coins className="w-4 h-4" />
-                      {toBengaliNumber(quiz.entry_cost)} / {toBengaliNumber(quiz.reward_per_correct)}
+                      {toBengaliNumber(quiz.entry_cost)} /{' '}
+                      <strong>{toBengaliNumber(Math.round(Number(quiz.prize_pool) || 0))}</strong>
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-700 bengali-text">
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      {toBengaliNumber(quiz.players_joined ?? 0)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">

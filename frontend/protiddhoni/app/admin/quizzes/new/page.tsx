@@ -4,9 +4,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Brain, Coins, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Brain, Coins, GraduationCap, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { EXAM_CATEGORY_OPTIONS, fromDatetimeLocal } from '@/app/quizzes/_lib/round';
 
 export default function CreateQuizPage() {
   const router = useRouter();
@@ -14,12 +15,17 @@ export default function CreateQuizPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    source_material: '',
+    quiz_type: 'general' as 'general' | 'exam',
+    exam_category: EXAM_CATEGORY_OPTIONS[0],
+    topic: '',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
-    entry_cost: 5,
-    reward_per_correct: 2,
     question_count: 5,
-    language: 'bn' as 'bn' | 'en',
+    language: 'bn' as 'bn' | 'en' | 'mixed',
+    entry_cost: 5,
+    rake_bps: 0,
+    time_limit_seconds: 300,
+    opens_at: '',
+    closes_at: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,8 +44,12 @@ export default function CreateQuizPage() {
       setError('শিরোনাম দিন');
       return;
     }
-    if (form.source_material.trim().length < 80) {
-      setError('পাঠ্য উপাদান কমপক্ষে ৮০ অক্ষরের হওয়া উচিত');
+    if (form.topic.trim().length < 3) {
+      setError('বিষয় (topic) কমপক্ষে ৩ অক্ষরের হতে হবে');
+      return;
+    }
+    if (form.opens_at && form.closes_at && new Date(form.closes_at) <= new Date(form.opens_at)) {
+      setError('শেষ সময় অবশ্যই শুরুর সময়ের পরে হতে হবে');
       return;
     }
 
@@ -48,20 +58,25 @@ export default function CreateQuizPage() {
       const res = await api.quizzes.admin.create({
         title: form.title.trim(),
         description: form.description.trim() || undefined,
-        source_material: form.source_material,
+        quiz_type: form.quiz_type,
+        exam_category: form.quiz_type === 'exam' ? form.exam_category : null,
+        topic: form.topic.trim(),
         difficulty: form.difficulty,
         entry_cost: Number(form.entry_cost),
-        reward_per_correct: Number(form.reward_per_correct),
+        rake_bps: Number(form.rake_bps),
         question_count: Number(form.question_count),
         language: form.language,
+        opens_at: fromDatetimeLocal(form.opens_at),
+        closes_at: fromDatetimeLocal(form.closes_at),
+        time_limit_seconds: Number(form.time_limit_seconds) > 0 ? Number(form.time_limit_seconds) : null,
       });
       if (res?.success) {
         router.push(`/admin/quizzes/${res.data.quiz.id}`);
       } else {
-        setError(res?.error || 'কুইজ তৈরি করা যায়নি');
+        setError(res?.error || 'রাউন্ড তৈরি করা যায়নি');
       }
     } catch (err: any) {
-      const message = err?.response?.data?.error || err?.message || 'কুইজ তৈরি করা যায়নি';
+      const message = err?.response?.data?.error || err?.message || 'রাউন্ড তৈরি করা যায়নি';
       setError(message);
     } finally {
       setBusy(false);
@@ -91,9 +106,9 @@ export default function CreateQuizPage() {
             <Brain className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 bengali-text">নতুন কুইজ</h1>
+            <h1 className="text-2xl font-bold text-gray-900 bengali-text">নতুন রাউন্ড</h1>
             <p className="text-sm text-gray-600 bengali-text">
-              উপাদান দিন, Gemini মাল্টিপল চয়েস প্রশ্ন তৈরি করবে।
+              ধরন ও বিষয় দিন — Gemini সেই অনুযায়ী প্রশ্ন লিখবে। পরে হাতে সম্পাদনা করা যাবে।
             </p>
           </div>
         </div>
@@ -105,7 +120,7 @@ export default function CreateQuizPage() {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               required
-              placeholder="যেমন: রবীন্দ্রনাথ ঠাকুরের জীবন ও কর্ম"
+              placeholder="যেমন: রবীন্দ্রনাথ ঠাকুর — সাপ্তাহিক রাউন্ড"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
             />
           </Field>
@@ -120,18 +135,51 @@ export default function CreateQuizPage() {
             />
           </Field>
 
-          <Field label="পাঠ্য উপাদান (Gemini এই অনুচ্ছেদ থেকে প্রশ্ন বানাবে)">
-            <textarea
-              value={form.source_material}
-              onChange={(e) => setForm({ ...form, source_material: e.target.value })}
-              rows={10}
+          {/* Round type */}
+          <Field label="রাউন্ডের ধরন">
+            <div className="grid grid-cols-2 gap-3">
+              <TypeRadio
+                checked={form.quiz_type === 'general'}
+                onChange={() => setForm({ ...form, quiz_type: 'general' })}
+                title="সাধারণ"
+                subtitle="সাহিত্যবিষয়ক সাধারণ জ্ঞান"
+                icon={<Sparkles className="w-4 h-4" />}
+              />
+              <TypeRadio
+                checked={form.quiz_type === 'exam'}
+                onChange={() => setForm({ ...form, quiz_type: 'exam' })}
+                title="পরীক্ষা"
+                subtitle="নিয়োগ পরীক্ষার ধাঁচে"
+                icon={<GraduationCap className="w-4 h-4" />}
+              />
+            </div>
+          </Field>
+
+          {form.quiz_type === 'exam' && (
+            <Field label="পরীক্ষার বিভাগ">
+              <select
+                value={form.exam_category}
+                onChange={(e) => setForm({ ...form, exam_category: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              >
+                {EXAM_CATEGORY_OPTIONS.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
+          <Field label="বিষয় (topic) — এই বিষয়ে প্রশ্ন তৈরি হবে">
+            <input
+              type="text"
+              value={form.topic}
+              onChange={(e) => setForm({ ...form, topic: e.target.value })}
               required
-              placeholder="যে বিষয়ের ওপর কুইজ তৈরি হবে তার সম্পূর্ণ বর্ণনা দিন। যত বিস্তৃত হবে, প্রশ্ন তত নির্ভুল।"
+              placeholder="যেমন: বাংলা সাহিত্যের মধ্যযুগ, কাজী নজরুল ইসলামের কবিতা"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
             />
-            <p className="text-xs text-gray-500 mt-1 bengali-text">
-              কমপক্ষে ৮০ অক্ষর — বর্তমান: {form.source_material.length}
-            </p>
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -164,11 +212,12 @@ export default function CreateQuizPage() {
               >
                 <option value="bn">বাংলা</option>
                 <option value="en">English</option>
+                <option value="mixed">মিশ্র (বাংলা + English)</option>
               </select>
             </Field>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="প্রবেশ ফি (কড়ি)">
               <div className="relative">
                 <Coins className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-yellow-700" />
@@ -182,20 +231,51 @@ export default function CreateQuizPage() {
                 />
               </div>
             </Field>
-            <Field label="প্রতি সঠিক উত্তরের পুরস্কার (কড়ি)">
-              <div className="relative">
-                <Sparkles className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600" />
-                <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={form.reward_per_correct}
-                  onChange={(e) => setForm({ ...form, reward_per_correct: Number(e.target.value) })}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
-                />
-              </div>
+            <Field label="হাউস কাট (bps, ১০০ = ১%)">
+              <input
+                type="number"
+                min={0}
+                max={10000}
+                step={50}
+                value={form.rake_bps}
+                onChange={(e) => setForm({ ...form, rake_bps: Number(e.target.value) })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              />
+            </Field>
+            <Field label="সময়সীমা (সেকেন্ড) — ০ হলে সীমা নেই">
+              <input
+                type="number"
+                min={0}
+                max={3600}
+                step={10}
+                value={form.time_limit_seconds}
+                onChange={(e) => setForm({ ...form, time_limit_seconds: Number(e.target.value) })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              />
             </Field>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="রাউন্ড শুরুর সময়">
+              <input
+                type="datetime-local"
+                value={form.opens_at}
+                onChange={(e) => setForm({ ...form, opens_at: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              />
+            </Field>
+            <Field label="রাউন্ড শেষের সময় (বিজয়ী চূড়ান্ত হবে)">
+              <input
+                type="datetime-local"
+                value={form.closes_at}
+                onChange={(e) => setForm({ ...form, closes_at: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent bengali-text"
+              />
+            </Field>
+          </div>
+          <p className="text-xs text-gray-500 bengali-text -mt-2">
+            প্রকাশ করার আগে শেষের সময় অবশ্যই দিতে হবে — না দিলে রাউন্ড কখনো চূড়ান্ত হবে না।
+          </p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 bengali-text">
@@ -216,12 +296,43 @@ export default function CreateQuizPage() {
               className="px-5 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-semibold bengali-text inline-flex items-center gap-2 disabled:opacity-60"
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {busy ? 'AI প্রশ্ন তৈরি করছে...' : 'প্রশ্ন তৈরি করুন'}
+              {busy ? 'AI প্রশ্ন তৈরি করছে...' : 'রাউন্ড তৈরি করুন'}
             </button>
           </div>
         </form>
       </div>
     </div>
+  );
+}
+
+function TypeRadio({
+  checked,
+  onChange,
+  title,
+  subtitle,
+  icon,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <label
+      className={`cursor-pointer rounded-xl border px-4 py-3 flex items-start gap-3 transition-colors ${
+        checked ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-primary-300'
+      }`}
+    >
+      <input type="radio" checked={checked} onChange={onChange} className="mt-1 accent-primary-600" />
+      <span>
+        <span className="font-semibold text-gray-900 bengali-text inline-flex items-center gap-1.5">
+          {icon}
+          {title}
+        </span>
+        <span className="block text-xs text-gray-600 bengali-text mt-0.5">{subtitle}</span>
+      </span>
+    </label>
   );
 }
 

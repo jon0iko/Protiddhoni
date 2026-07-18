@@ -149,12 +149,38 @@ export interface NewsletterForm {
 // Quiz Types
 export type QuizDifficulty = 'easy' | 'medium' | 'hard';
 export type QuizStatus = 'draft' | 'published' | 'archived';
+export type QuizType = 'general' | 'exam';
+export type QuizLanguage = 'bn' | 'en' | 'mixed';
+export type QuizAttemptStatus = 'entered' | 'in_progress' | 'completed' | 'abandoned';
 
-export interface QuizSourceContent {
-    id: string;
-    title: string;
-    slug: string;
-    content_type?: string;
+/** Derived server-side from status + opens_at + closes_at + settled_at. */
+export type RoundPhase = 'draft' | 'scheduled' | 'open' | 'closed' | 'settled';
+
+/** Exam sub-categories offered when quiz_type === 'exam'. */
+export const EXAM_CATEGORIES = [
+    'BCS',
+    'Bank Job',
+    'Primary',
+    'NTRCA',
+    'University Admission',
+    'Other',
+] as const;
+export type ExamCategory = (typeof EXAM_CATEGORIES)[number];
+
+export interface QuizSettlementWinner {
+    rank: number;
+    user_id: string;
+    attempt_id: string;
+    score: number;
+    amount: number;
+}
+
+export interface QuizSettlement {
+    pool: number;
+    rake: number;
+    paid: number;
+    winners: QuizSettlementWinner[];
+    settled_at?: string;
 }
 
 export interface QuizSummary {
@@ -163,17 +189,29 @@ export interface QuizSummary {
     description?: string | null;
     difficulty: QuizDifficulty;
     entry_cost: number;
-    reward_per_correct: number;
     total_questions: number;
     status: QuizStatus;
+    quiz_type: QuizType;
+    exam_category?: string | null;
+    topic?: string | null;
+    opens_at?: string | null;
+    closes_at?: string | null;
+    prize_pool: number;
+    rake_bps: number;
+    settled_at?: string | null;
+    settlement?: QuizSettlement | null;
+    phase: RoundPhase;
+    seconds_to_open?: number | null;
+    seconds_to_close?: number | null;
+    players_joined?: number;
+    time_limit_seconds?: number | null;
     published_at?: string | null;
-    created_at: string;
+    created_at?: string;
     ai_model?: string | null;
     creator?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'>;
-    source_content?: QuizSourceContent | null;
     user_attempt?: {
         id: string;
-        status: 'in_progress' | 'completed' | 'abandoned';
+        status: QuizAttemptStatus;
         score: number;
         correct_answers: number;
         kori_earned: number;
@@ -196,6 +234,8 @@ export interface QuizQuestionPlayable {
     position: number;
     question_text: string;
     options: string[];
+    /** A single round may mix Bangla and English questions. */
+    language?: 'bn' | 'en' | null;
 }
 
 export interface QuizQuestionFull extends QuizQuestionPlayable {
@@ -215,7 +255,7 @@ export interface QuizAttemptSummary {
     correct_answers: number;
     kori_spent: number;
     kori_earned: number;
-    status: 'in_progress' | 'completed' | 'abandoned';
+    status: QuizAttemptStatus;
     started_at: string;
     completed_at?: string | null;
     duration_ms?: number | null;
@@ -223,6 +263,10 @@ export interface QuizAttemptSummary {
         id: string;
         title: string;
         difficulty?: QuizDifficulty;
+        quiz_type?: QuizType;
+        exam_category?: string | null;
+        closes_at?: string | null;
+        settled_at?: string | null;
     };
 }
 
