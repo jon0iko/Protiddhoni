@@ -129,7 +129,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              {/* <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              {/* <div className="w-8 h-8 bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
                 <Book className="w-5 h-5 text-white" />
               </div> */}
               <div className="flex flex-col">
@@ -268,7 +268,7 @@ export default function Navbar() {
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors bengali-text"
                         onClick={() => setShowWriteMenu(false)}
                       >
-                        <PlusCircle className="w-4 h-4 text-blue-500" />
+                        <PlusCircle className="w-4 h-4 text-primary-500" />
                         <div>
                           <div className="font-medium">নতুন গল্প</div>
                           <div className="text-xs text-gray-500">নতুন গল্প লিখুন</div>
@@ -290,7 +290,7 @@ export default function Navbar() {
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-olive-50 hover:text-olive-600 transition-colors bengali-text"
                         onClick={() => setShowWriteMenu(false)}
                       >
-                        <FileText className="w-4 h-4 text-purple-500" />
+                        <FileText className="w-4 h-4 text-accent-500" />
                         <div>
                           <div className="font-medium">খসড়া</div>
                           <div className="text-xs text-gray-500">অসম্পূর্ণ গল্প দেখুন</div>
