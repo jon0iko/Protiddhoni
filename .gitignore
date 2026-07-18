@@ -64,3 +64,6 @@ QUIZ_FEATURE_DOCUMENTATION.md
 
 # Audiobook source files — served from Supabase Storage, not committed
 /audio-mp3/
+
+# Claude Code agent worktrees (transient)
+.claude/worktrees/

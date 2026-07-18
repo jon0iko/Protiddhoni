@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "seed": "tsx scripts/seedDatabase.ts",
-    "upload-audio": "tsx scripts/uploadAudiobooks.ts"
+    "upload-audio": "tsx scripts/uploadAudiobooks.ts",
+    "migrate": "tsx scripts/run_quiz_migration.ts"
   },
   "keywords": [],
   "author": "",

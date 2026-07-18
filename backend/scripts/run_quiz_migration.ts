@@ -3,7 +3,9 @@ import 'dotenv/config';
 import { Client } from 'pg';
 import { createClient } from '@supabase/supabase-js';
 /**
- * One-off runner for `create_quiz_tables.sql`.
+ * Runner for a migration file in this directory.
+ *
+ *   pnpm migrate <file.sql>     (defaults to create_quiz_tables.sql)
  *
  * Tries three paths in order:
  *   1. `pg` direct connection via SUPABASE_DB_URL (preferred)
@@ -16,8 +18,19 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-const SQL_FILE = path.join(__dirname, 'create_quiz_tables.sql');
+const requested = process.argv[2] || 'create_quiz_tables.sql';
+// Accept either a bare filename in this directory or an explicit path.
+const SQL_FILE = path.isAbsolute(requested) || requested.includes(path.sep)
+    ? path.resolve(requested)
+    : path.join(__dirname, requested);
+
+if (!fs.existsSync(SQL_FILE)) {
+    console.error(`❌ No such migration file: ${SQL_FILE}`);
+    process.exit(1);
+}
+
 const sql = fs.readFileSync(SQL_FILE, 'utf8');
+console.log(`▶︎ Migration: ${path.basename(SQL_FILE)}`);
 
 async function tryDirectPg() {
     let connectionString = process.env.SUPABASE_DB_URL;
@@ -84,7 +97,7 @@ Pick one of these options:
     1. In Supabase dashboard → Project Settings → Database → Connection string
        copy the "URI" form (the one that already includes [YOUR-PASSWORD]).
     2. export SUPABASE_DB_URL="postgresql://postgres.<ref>:<password>@...pooler.supabase.com:6543/postgres"
-    3. node backend/scripts/run_quiz_migration.js
+    3. pnpm --dir backend migrate ${path.basename(SQL_FILE)}
 `);
     process.exit(1);
 })();

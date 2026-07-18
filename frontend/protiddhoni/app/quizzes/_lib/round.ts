@@ -1,0 +1,163 @@
+/**
+ * Shared presentation helpers for scheduled quiz rounds.
+ *
+ * The server is the authority on a round's phase and on the entry window —
+ * everything here is cosmetic. Client clock skew can make a countdown read a
+ * second or two off; the RPCs enforce the real window.
+ */
+
+import { toBengaliNumber } from '@/lib/numberFormatter';
+import type { RoundPhase } from '@/types';
+
+export const PHASE_LABEL: Record<RoundPhase, string> = {
+  draft: 'খসড়া',
+  scheduled: 'শীঘ্রই শুরু',
+  open: 'চলমান',
+  closed: 'ফলাফলের অপেক্ষায়',
+  settled: 'সম্পন্ন',
+};
+
+export const PHASE_STYLES: Record<RoundPhase, string> = {
+  draft: 'bg-gray-100 text-gray-700 border border-gray-200',
+  scheduled: 'bg-sky-50 text-sky-700 border border-sky-200',
+  open: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  closed: 'bg-amber-50 text-amber-700 border border-amber-200',
+  settled: 'bg-violet-50 text-violet-700 border border-violet-200',
+};
+
+export const DIFFICULTY_LABEL: Record<string, string> = {
+  easy: 'সহজ',
+  medium: 'মাঝারি',
+  hard: 'কঠিন',
+};
+
+export const DIFFICULTY_STYLES: Record<string, string> = {
+  easy: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  medium: 'bg-primary-50 text-primary-700 border border-primary-200',
+  hard: 'bg-accent-50 text-accent-700 border border-accent-200',
+};
+
+export const EXAM_CATEGORY_OPTIONS = [
+  'BCS',
+  'Bank Job',
+  'Primary',
+  'NTRCA',
+  'University Admission',
+  'Other',
+];
+
+/** Milliseconds between now and an ISO timestamp; null when there is none. */
+export function msUntil(iso: string | null | undefined, nowMs: number): number | null {
+  if (!iso) return null;
+  const target = new Date(iso).getTime();
+  if (!Number.isFinite(target)) return null;
+  return target - nowMs;
+}
+
+/** "০২ ঘ ১৪ মি ০৯ সে" style countdown. */
+export function formatCountdown(ms: number | null): string {
+  if (ms == null) return '—';
+  if (ms <= 0) return 'শেষ';
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days > 0) return `${toBengaliNumber(days)} দিন ${toBengaliNumber(hours)} ঘ`;
+  if (hours > 0) return `${toBengaliNumber(hours)} ঘ ${toBengaliNumber(minutes)} মি`;
+  if (minutes > 0) return `${toBengaliNumber(minutes)} মি ${toBengaliNumber(seconds)} সে`;
+  return `${toBengaliNumber(seconds)} সে`;
+}
+
+/** mm:ss clock for the in-game timer. */
+export function formatClock(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return '—';
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return toBengaliNumber(`${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+}
+
+export function formatDuration(ms: number | null | undefined): string {
+  if (!ms || !Number.isFinite(ms)) return '—';
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes <= 0) return `${toBengaliNumber(seconds)} সেকেন্ড`;
+  return `${toBengaliNumber(minutes)} মি ${toBengaliNumber(seconds)} সে`;
+}
+
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return toBengaliNumber(
+    date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+  );
+}
+
+/** Convert an ISO timestamp to the value a <input type="datetime-local"> wants. */
+export function toDatetimeLocal(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+}
+
+/** Inverse of toDatetimeLocal — local wall-clock string back to an ISO instant. */
+export function fromDatetimeLocal(value: string): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+// ---- Prize pool economics --------------------------------------------------
+// These mirror minimumBasePool() / perQuestionSeconds() in the backend's
+// quizController so the admin form can show the floor before submitting. The
+// server re-validates; this is a preview, never the source of truth.
+
+/** Prize split for 1st / 2nd / 3rd, matching settle_quiz_round(). */
+export const PRIZE_WEIGHTS = [0.5, 0.3, 0.2] as const;
+
+/**
+ * Smallest base pool that still leaves 3rd place ahead of their entry fee.
+ * Worst case is three entrants who all finish — the smallest pool that must
+ * still be split three ways.
+ */
+export function minimumBasePool(entryCost: number, rakeBps: number): number {
+  const E = Math.max(0, Number(entryCost) || 0);
+  if (E <= 0) return 0;
+  const r = Math.min(Math.max(Number(rakeBps) || 0, 0), 10000) / 10000;
+  return Math.floor(E / PRIZE_WEIGHTS[2] - 3 * E * (1 - r)) + 1;
+}
+
+/** What 3rd place takes home in that same worst case, given a base pool. */
+export function worstCaseThirdPrize(basePool: number, entryCost: number, rakeBps: number): number {
+  const E = Math.max(0, Number(entryCost) || 0);
+  const B = Math.max(0, Number(basePool) || 0);
+  const r = Math.min(Math.max(Number(rakeBps) || 0, 0), 10000) / 10000;
+  return PRIZE_WEIGHTS[2] * (B + 3 * E * (1 - r));
+}
+
+/** Per-question countdown: the round's total time split evenly. */
+export function perQuestionSeconds(
+  timeLimitSeconds: number | null | undefined,
+  totalQuestions: number | null | undefined
+): number | null {
+  const limit = Number(timeLimitSeconds);
+  const total = Number(totalQuestions);
+  if (!Number.isFinite(limit) || limit <= 0) return null;
+  if (!Number.isFinite(total) || total <= 0) return null;
+  return Math.max(5, Math.floor(limit / total));
+}

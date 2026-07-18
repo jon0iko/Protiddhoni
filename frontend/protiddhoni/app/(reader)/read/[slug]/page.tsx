@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Loader2,
   EyeOff,
-  AlertTriangle
+  // AlertTriangle: report-content button. ExternalLink: external-writing link.
+  AlertTriangle,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -520,6 +522,7 @@ export default function ReadContentPage() {
               {content.content_type === 'story' && 'গল্প'}
               {content.content_type === 'poem' && 'কবিতা'}
               {content.content_type === 'chapter' && 'পর্ব'}
+              {content.content_type === 'link' && 'বাইরের লেখা'}
             </span>
           </div>
 
@@ -540,17 +543,55 @@ export default function ReadContentPage() {
           <AudioPlayer src={content.audio_url} title={content.title} />
         )}
 
-        {/* Content Body */}
-        <div 
-          className="prose prose-lg max-w-none bengali-text mb-12"
-          style={{
-            fontFamily: 'var(--font-kalpurush), sans-serif',
-            lineHeight: '1.8',
-            fontSize: 'var(--current-reader-font-size, var(--reader-font-medium))',
-            color: 'var(--reader-text)'
-          }}
-          dangerouslySetInnerHTML={{ __html: content.body }}
-        />
+        {/* Content Body.
+            An external-link piece has no body of its own — it lives on another
+            platform — so the excerpt stands in as the readable content and a
+            button below sends the reader to the original. */}
+        {content.content_type === 'link' ? (
+          <div
+            className="prose prose-lg max-w-none bengali-text mb-8"
+            style={{
+              fontFamily: 'var(--font-kalpurush), sans-serif',
+              lineHeight: '1.8',
+              fontSize: 'var(--current-reader-font-size, var(--reader-font-medium))',
+              color: 'var(--reader-text)'
+            }}
+          >
+            <p>{content.excerpt}</p>
+          </div>
+        ) : (
+          <div
+            className="prose prose-lg max-w-none bengali-text mb-12"
+            style={{
+              fontFamily: 'var(--font-kalpurush), sans-serif',
+              lineHeight: '1.8',
+              fontSize: 'var(--current-reader-font-size, var(--reader-font-medium))',
+              color: 'var(--reader-text)'
+            }}
+            dangerouslySetInnerHTML={{ __html: content.body }}
+          />
+        )}
+
+        {/* Read-the-original call to action, external pieces only */}
+        {content.content_type === 'link' && content.external_url && (
+          <div
+            className="mb-12 rounded-2xl border p-6 text-center"
+            style={{ borderColor: 'var(--reader-border)', background: 'var(--reader-surface, transparent)' }}
+          >
+            <p className="text-sm mb-4 bengali-text" style={{ color: 'var(--reader-muted, #6b7280)' }}>
+              এই লেখাটি অন্য একটি প্ল্যাটফর্মে প্রকাশিত হয়েছে।
+            </p>
+            <a
+              href={content.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-medium bengali-text transition-colors"
+            >
+              মূল লেখাটি পড়ুন
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        )}
 
         <TippingWidget 
           authorId={content.author.id} 

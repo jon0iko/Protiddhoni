@@ -375,7 +375,7 @@ export default function AdminReviewPage() {
                           </span>
                         )}
                         <span className="text-xs text-gray-400 bengali-text">
-                          {content.content_type === 'story' ? 'গল্প' : content.content_type === 'poem' ? 'কবিতা' : 'অন্যান্য'}
+                          {content.content_type === 'story' ? 'গল্প' : content.content_type === 'poem' ? 'কবিতা' : content.content_type === 'link' ? 'বাইরের লেখা' : 'অন্যান্য'}
                         </span>
                       </div>
 

@@ -18,8 +18,11 @@ export interface Content {
     author_id: string;
     title: string;
     slug: string;
-    content_type: 'story' | 'poem' | 'chapter';
-    body: string;
+    content_type: 'story' | 'poem' | 'chapter' | 'link';
+    /** Null for content_type = 'link', which lives on an external platform. */
+    body: string | null;
+    /** Only set for content_type = 'link': the absolute http(s) URL of the piece. */
+    external_url?: string;
     excerpt?: string;
     cover_image_url?: string;
     audio_url?: string;
@@ -146,12 +149,42 @@ export interface NewsletterForm {
 // Quiz Types
 export type QuizDifficulty = 'easy' | 'medium' | 'hard';
 export type QuizStatus = 'draft' | 'published' | 'archived';
+export type QuizType = 'general' | 'exam';
+export type QuizLanguage = 'bn' | 'en' | 'mixed';
+export type QuizAttemptStatus = 'entered' | 'in_progress' | 'completed' | 'abandoned';
 
-export interface QuizSourceContent {
-    id: string;
-    title: string;
-    slug: string;
-    content_type?: string;
+/** Derived server-side from status + opens_at + closes_at + settled_at. */
+export type RoundPhase = 'draft' | 'scheduled' | 'open' | 'closed' | 'settled';
+
+/** Exam sub-categories offered when quiz_type === 'exam'. */
+export const EXAM_CATEGORIES = [
+    'BCS',
+    'Bank Job',
+    'Primary',
+    'NTRCA',
+    'University Admission',
+    'Other',
+] as const;
+export type ExamCategory = (typeof EXAM_CATEGORIES)[number];
+
+export interface QuizSettlementWinner {
+    rank: number;
+    user_id: string;
+    attempt_id: string;
+    score: number;
+    amount: number;
+}
+
+export interface QuizSettlement {
+    pool: number;
+    /** House seed money included in `pool`; excluded from the rake basis. */
+    base_pool?: number;
+    /** Entry fees collected, i.e. `pool - base_pool`. */
+    entries?: number;
+    rake: number;
+    paid: number;
+    winners: QuizSettlementWinner[];
+    settled_at?: string;
 }
 
 export interface QuizSummary {
@@ -160,17 +193,38 @@ export interface QuizSummary {
     description?: string | null;
     difficulty: QuizDifficulty;
     entry_cost: number;
-    reward_per_correct: number;
     total_questions: number;
     status: QuizStatus;
+    quiz_type: QuizType;
+    exam_category?: string | null;
+    topic?: string | null;
+    /** Language the AI is instructed to generate in. */
+    language?: 'bn' | 'en' | 'mixed';
+    opens_at?: string | null;
+    closes_at?: string | null;
+    prize_pool: number;
+    /** Kori the house seeded the round with, before any entry fee. */
+    base_pool: number;
+    /** Smallest base_pool that still leaves 3rd place in profit. */
+    min_base_pool?: number;
+    rake_bps: number;
+    settled_at?: string | null;
+    settlement?: QuizSettlement | null;
+    phase: RoundPhase;
+    /** Total time split evenly per question; null when the round is untimed. */
+    seconds_per_question?: number | null;
+    generation_instructions?: string | null;
+    seconds_to_open?: number | null;
+    seconds_to_close?: number | null;
+    players_joined?: number;
+    time_limit_seconds?: number | null;
     published_at?: string | null;
-    created_at: string;
+    created_at?: string;
     ai_model?: string | null;
     creator?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'>;
-    source_content?: QuizSourceContent | null;
     user_attempt?: {
         id: string;
-        status: 'in_progress' | 'completed' | 'abandoned';
+        status: QuizAttemptStatus;
         score: number;
         correct_answers: number;
         kori_earned: number;
@@ -193,6 +247,8 @@ export interface QuizQuestionPlayable {
     position: number;
     question_text: string;
     options: string[];
+    /** A single round may mix Bangla and English questions. */
+    language?: 'bn' | 'en' | null;
 }
 
 export interface QuizQuestionFull extends QuizQuestionPlayable {
@@ -212,7 +268,7 @@ export interface QuizAttemptSummary {
     correct_answers: number;
     kori_spent: number;
     kori_earned: number;
-    status: 'in_progress' | 'completed' | 'abandoned';
+    status: QuizAttemptStatus;
     started_at: string;
     completed_at?: string | null;
     duration_ms?: number | null;
@@ -220,6 +276,10 @@ export interface QuizAttemptSummary {
         id: string;
         title: string;
         difficulty?: QuizDifficulty;
+        quiz_type?: QuizType;
+        exam_category?: string | null;
+        closes_at?: string | null;
+        settled_at?: string | null;
     };
 }
 
@@ -232,4 +292,70 @@ export interface QuizLeaderboardEntry {
     gamesPlayed: number;
     bestScore: number;
     avgDurationMs: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Content edit moderation
+// ---------------------------------------------------------------------------
+
+export type AdminActionType = 'approve' | 'reject' | 'unpublish' | 'republish' | 'edit';
+
+export type ActionReviewState = 'unchecked' | 'checked';
+
+/** BEFORE/AFTER snapshot stored on an action_type='edit' log row. */
+export interface ContentEditSnapshot {
+    title?: string | null;
+    excerpt?: string | null;
+    body_length?: number;
+    body_preview?: string;
+}
+
+export interface AdminActionLogEntry {
+    id: string;
+    /** NULL for 'edit' rows — those are author-initiated, fall back to content.author. */
+    admin_id: string | null;
+    action_type: AdminActionType;
+    content_id: string;
+    reason: string | null;
+    metadata?: {
+        title?: string;
+        slug?: string;
+        author_id?: string;
+        edited_by?: string;
+        before?: ContentEditSnapshot;
+        after?: ContentEditSnapshot;
+        [key: string]: unknown;
+    };
+    is_reverted: boolean;
+    reverted_by: string | null;
+    reverted_at: string | null;
+    review_state?: ActionReviewState;
+    checked_by?: string | null;
+    checked_at?: string | null;
+    created_at: string;
+    admin?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'> | null;
+    content?: {
+        id: string;
+        title: string;
+        slug: string;
+        is_published: boolean;
+        status: string;
+        author_id: string;
+        author?: Pick<User, 'id' | 'username' | 'full_name' | 'profile_picture_url'> | null;
+    } | null;
+    checked_by_admin?: Pick<User, 'id' | 'username' | 'full_name'> | null;
+}
+
+/** A single row in the unified admin moderation queue. */
+export interface ModerationQueueItem {
+    id: string;
+    kind: 'submission' | 'edit';
+    timestamp: string;
+    title: string;
+    author: string;
+    href: string | null;
+    /** Underlying record: the content row for submissions, the log row for edits. */
+    contentId: string;
+    logId?: string;
+    snapshot?: { before?: ContentEditSnapshot; after?: ContentEditSnapshot };
 }

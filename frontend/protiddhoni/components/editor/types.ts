@@ -39,11 +39,12 @@ export interface ContentSubmission {
   title: string;
   body: string;
   excerpt?: string;
-  content_type: 'story' | 'poem' | 'chapter';
+  content_type: 'story' | 'poem' | 'chapter' | 'link';
   category_id: string;
   series_id?: string;
   chapter_number?: number;
   cover_image_url?: string;
+  external_url?: string;
   is_premium?: boolean;
   price?: number;
 }
@@ -51,8 +52,9 @@ export interface ContentSubmission {
 export interface PublishFormData {
   title: string;
   excerpt: string;
-  contentType: 'story' | 'poem' | 'chapter';
+  contentType: 'story' | 'poem' | 'chapter' | 'link';
   categoryId: string;
+  externalUrl?: string;
   seriesId?: string;
   chapterNumber?: number;
   isPremium: boolean;
@@ -68,6 +70,7 @@ export interface PublishFormErrors {
   category?: string;
   series?: string;
   chapterNumber?: string;
+  externalUrl?: string;
   price?: string;
   coverImage?: string;
   general?: string;
