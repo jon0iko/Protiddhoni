@@ -314,6 +314,14 @@ export const api = {
     
     // Users endpoints
     users: {
+        // Top authors by total views across their published work. Public + cached
+        // server-side; used by the homepage author reel.
+        getTopAuthors: async (limit?: number) => {
+            const query = limit ? `?limit=${encodeURIComponent(limit)}` : '';
+            const response = await fetch(`${API_URL}/api/users/top-authors${query}`);
+            return handleResponse(response);
+        },
+
         getProfile: async (username: string) => {
             const encodedUsername = encodeURIComponent(username);
             const url = `${API_URL}/api/users/${encodedUsername}`;

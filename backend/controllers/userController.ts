@@ -8,6 +8,112 @@ import UserRepository from '../repositories/UserRepository';
 import ContentRepository from '../repositories/ContentRepository';
 import SeriesRepository from '../repositories/SeriesRepository';
 import NotificationService from '../services/notificationService';
+import db from '../config/database';
+import cacheManager from '../services/cacheManager';
+
+// Namespace for cached author-reel entries, so a single deleteByPrefix flushes
+// them all.
+const AUTHOR_CACHE_PREFIX = 'authors:';
+
+interface TopAuthor {
+    id: string;
+    username: string;
+    full_name: string | null;
+    profile_picture_url: string | null;
+    total_views: number;
+    article_count: number;
+}
+
+/**
+ * Aggregate top authors in JS. Only used when the get_top_authors RPC has not
+ * been deployed yet (see scripts/add_top_authors_rpc.sql), so the homepage keeps
+ * working on a database that has not run the migration.
+ */
+const aggregateTopAuthorsInJs = async (limit: number): Promise<TopAuthor[]> => {
+    const { data, error } = await db.getClient()
+        .from('content')
+        .select('view_count, author:author_id (id, username, full_name, profile_picture_url)')
+        .eq('is_published', true)
+        .eq('status', 'approved');
+
+    if (error) throw error;
+
+    const byAuthor = new Map<string, TopAuthor>();
+
+    for (const row of (data || []) as any[]) {
+        // Supabase types the embedded relation as an array in some versions.
+        const author = Array.isArray(row.author) ? row.author[0] : row.author;
+        if (!author?.id) continue;
+
+        const existing = byAuthor.get(author.id);
+        if (existing) {
+            existing.total_views += Number(row.view_count) || 0;
+            existing.article_count += 1;
+        } else {
+            byAuthor.set(author.id, {
+                id: author.id,
+                username: author.username,
+                full_name: author.full_name ?? null,
+                profile_picture_url: author.profile_picture_url ?? null,
+                total_views: Number(row.view_count) || 0,
+                article_count: 1
+            });
+        }
+    }
+
+    return Array.from(byAuthor.values())
+        .sort((a, b) => b.total_views - a.total_views || b.article_count - a.article_count)
+        .slice(0, limit);
+};
+
+/**
+ * GET /api/users/top-authors?limit=10
+ *
+ * Public. Powers the homepage author reel: authors ranked by total views across
+ * their published content, tie-broken by article count.
+ *
+ * This is a small, near-static, non-personalized list requested on every
+ * homepage load, so it is cached for 5 minutes.
+ */
+export const getTopAuthors = async (req: Request, res: Response) => {
+    try {
+        const parsedLimit = parseInt(String(req.query.limit ?? ''), 10);
+        const limit = Number.isFinite(parsedLimit)
+            ? Math.min(Math.max(parsedLimit, 1), 50)
+            : 10;
+
+        const cacheKey = `${AUTHOR_CACHE_PREFIX}reel:top${limit}`;
+
+        const authors = await cacheManager.getOrSet(cacheKey, 300, async () => {
+            // Aggregate inside Postgres so this costs one round-trip returning at
+            // most `limit` rows.
+            const { data, error } = await db.getClient()
+                .rpc('get_top_authors', { p_limit: limit });
+
+            if (!error && Array.isArray(data)) {
+                return (data as any[]).map(row => ({
+                    id: row.id,
+                    username: row.username,
+                    full_name: row.full_name ?? null,
+                    profile_picture_url: row.profile_picture_url ?? null,
+                    total_views: Number(row.total_views) || 0,
+                    article_count: Number(row.article_count) || 0
+                }));
+            }
+
+            // Fallback: the RPC is not deployed yet. Group in JS so behaviour is
+            // preserved until the migration is run.
+            console.warn('get_top_authors RPC unavailable, falling back to in-JS aggregation');
+            return aggregateTopAuthorsInJs(limit);
+        });
+
+        res.json({ success: true, data: authors, count: authors.length });
+    } catch (error) {
+        console.error('Get top authors error:', error);
+        // The reel is decorative: never fail the homepage over it.
+        res.json({ success: true, data: [], count: 0 });
+    }
+};
 
 export const getProfile = async (req: Request, res: Response) => {
     try {

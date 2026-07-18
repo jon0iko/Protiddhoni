@@ -7,6 +7,10 @@ const router = express.Router();
 import * as userController from '../controllers/userController';
 import { authenticate, optionalAuth } from '../middleware/auth';
 
+// NOTE: literal paths MUST be registered ABOVE the '/:username' catch-all below,
+// otherwise Express matches them as a username and they never fire.
+router.get('/top-authors', userController.getTopAuthors);
+
 // Public routes (with optional auth for isFollowing check)
 router.get('/:username', optionalAuth, userController.getProfile);
 router.get('/:userId/followers', userController.getFollowers);

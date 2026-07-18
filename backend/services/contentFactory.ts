@@ -65,6 +65,53 @@ class Chapter extends Content {
     }
 }
 
+/**
+ * Writing the author published somewhere else (Facebook, a blog, a magazine).
+ * It has no body of its own — just a URL pointing at where it actually lives.
+ */
+class ExternalLink extends Content {
+    content_type: string;
+    external_url: string;
+    excerpt: string;
+    cover_image_url: string;
+
+    constructor(data: any) {
+        super(data);
+        this.content_type = 'link';
+        this.external_url = data.external_url;
+        this.excerpt = data.excerpt;
+        this.cover_image_url = data.cover_image_url;
+    }
+
+    validate() {
+        // Deliberately does NOT call super.validate(): a link post has no body.
+        if (!this.title) {
+            throw new Error('Title is required');
+        }
+        if (!this.external_url) {
+            throw new Error('External URL is required');
+        }
+        if (!isValidExternalUrl(this.external_url)) {
+            throw new Error('External URL must be a valid http(s) URL');
+        }
+    }
+}
+
+/**
+ * Accept only absolute http/https URLs. Blocks javascript:, data:, file: and
+ * other schemes that would become an XSS/phishing vector once rendered as an
+ * <a href> on the content card.
+ */
+export const isValidExternalUrl = (value: unknown): boolean => {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    try {
+        const parsed = new URL(value.trim());
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
+
 class ContentFactory {
     static createContent(type, data) {
         switch (type) {
@@ -74,6 +121,8 @@ class ContentFactory {
                 return new Poem(data);
             case 'chapter':
                 return new Chapter(data);
+            case 'link':
+                return new ExternalLink(data);
             default:
                 throw new Error(`Unknown content type: ${type}`);
         }

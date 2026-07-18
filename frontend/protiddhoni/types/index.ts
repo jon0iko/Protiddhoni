@@ -18,8 +18,11 @@ export interface Content {
     author_id: string;
     title: string;
     slug: string;
-    content_type: 'story' | 'poem' | 'chapter';
-    body: string;
+    content_type: 'story' | 'poem' | 'chapter' | 'link';
+    /** Null for content_type = 'link', which lives on an external platform. */
+    body: string | null;
+    /** Only set for content_type = 'link': the absolute http(s) URL of the piece. */
+    external_url?: string;
     excerpt?: string;
     cover_image_url?: string;
     audio_url?: string;
