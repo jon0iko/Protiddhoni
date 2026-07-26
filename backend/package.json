@@ -9,6 +9,7 @@
     "dev": "tsx watch server.ts",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "seed": "tsx scripts/seedDatabase.ts",
     "upload-audio": "tsx scripts/uploadAudiobooks.ts",
     "migrate": "tsx scripts/run_quiz_migration.ts"

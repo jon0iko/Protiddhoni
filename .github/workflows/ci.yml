@@ -63,7 +63,10 @@ jobs:
           SUPABASE_SERVICE_KEY: test-service-key
           SUPABASE_ANON_KEY: test-anon-key
           JWT_SECRET: test-jwt-secret
-        run: pnpm test
+        # --coverage so the thresholds in jest.config.ts are actually evaluated.
+        # Plain `pnpm test` never collects coverage, which meant the configured
+        # thresholds had never once been enforced.
+        run: pnpm test:coverage
 
   frontend:
     name: Frontend (build + test)
@@ -91,7 +94,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:coverage
 
       - name: Build
         # `next build` runs the TypeScript typecheck and ESLint, so this step is

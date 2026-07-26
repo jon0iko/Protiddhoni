@@ -88,8 +88,20 @@ class BkashPayment extends PaymentStrategy {
         hmac.update(JSON.stringify(payload));
         const expectedSignature = hmac.digest('hex');
 
-        // Simple string comparison (a timing-safe comparison should be used in true production)
-        if (crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signatureHeader))) {
+        const expectedBuffer = Buffer.from(expectedSignature);
+        const providedBuffer = Buffer.from(signatureHeader);
+
+        // crypto.timingSafeEqual throws RangeError unless both buffers are the
+        // same byte length -- which is exactly the common case for a malformed or
+        // truncated attacker-supplied signature. Without this guard the webhook
+        // raised a 500 instead of rejecting the request. Comparing lengths first
+        // leaks only the length, which is already public (sha256 hex is always 64).
+        if (expectedBuffer.length !== providedBuffer.length) {
+            console.error('bKash Webhook Signature Length Mismatch');
+            return false;
+        }
+
+        if (crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
             return true;
         }
 
