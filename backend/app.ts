@@ -26,6 +26,7 @@ import paymentsRoutes from './routes/payments';
 import purchasesRoutes from './routes/purchases';
 import pushRoutes from './routes/push';
 import quizzesRoutes from './routes/quizzes';
+import reportsRoutes from './routes/reports';
 
 const app = express();
 
@@ -114,6 +115,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/purchases', purchasesRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/quizzes', quizzesRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

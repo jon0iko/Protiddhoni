@@ -50,6 +50,87 @@ function EditorContent() {
   // Loading states
   const [isSaving, setIsSaving] = useState(false);
 
+  // Edit mode: the editor is loaded with an EXISTING content row (?edit=<id>)
+  // instead of a draft. Saving goes through api.content.update rather than the
+  // create-only publish flow.
+  const [editContentId, setEditContentId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editExcerpt, setEditExcerpt] = useState('');
+  const [editWasPublished, setEditWasPublished] = useState(false);
+
+  // Load an existing content item for editing
+  const loadContentForEdit = useCallback(async (contentId: string) => {
+    try {
+      const response = await api.content.getById(contentId);
+      const item = response?.data;
+
+      if (!item) {
+        alert('রচনাটি পাওয়া যায়নি।');
+        return;
+      }
+
+      setEditContentId(item.id);
+      setEditTitle(item.title || '');
+      setEditExcerpt(item.excerpt || '');
+      setEditWasPublished(!!item.is_published && item.status === 'approved');
+
+      setContent(item.body || '');
+      setInitialContent(item.body || '');
+      setWordCount(countWordsInHtml(item.body || ''));
+
+      // Editing an existing article must never touch the draft autosave slot.
+      setCurrentDraftId(null);
+      setCurrentDraftName(item.title || '');
+
+      if (tiptapRef.current) {
+        tiptapRef.current.setContent(item.body || '');
+      }
+    } catch (error) {
+      console.error('Error loading content for edit:', error);
+      alert('রচনাটি লোড করতে সমস্যা হয়েছে।');
+    }
+  }, []);
+
+  // Save changes back to the published article
+  const handleSaveEdit = useCallback(async () => {
+    if (!editContentId) return;
+
+    if (!editTitle.trim()) {
+      alert('শিরোনাম লিখুন।');
+      return;
+    }
+    if (!content || content === '<p></p>') {
+      alert('সংরক্ষণ করার আগে কিছু লিখুন।');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await api.content.update(editContentId, {
+        title: editTitle.trim(),
+        body: content,
+        excerpt: editExcerpt.trim()
+      });
+
+      if (response?.success) {
+        setHasUnsavedChanges(false);
+        alert(
+          editWasPublished
+            ? 'পরিবর্তন সংরক্ষিত হয়েছে। প্রকাশিত লেখার সম্পাদনা অ্যাডমিন পর্যালোচনার জন্য নথিভুক্ত হয়েছে।'
+            : 'পরিবর্তন সংরক্ষিত হয়েছে।'
+        );
+        router.push('/my-stories');
+      } else {
+        alert(response?.error || 'পরিবর্তন সংরক্ষণ করতে সমস্যা হয়েছে।');
+      }
+    } catch (error) {
+      console.error('Error saving edit:', error);
+      alert((error instanceof Error && error.message) || 'পরিবর্তন সংরক্ষণ করতে সমস্যা হয়েছে।');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editContentId, editTitle, editExcerpt, editWasPublished, content, router]);
+
   // Load a specific draft by ID
   const loadDraftById = useCallback(async (draftId: string) => {
     try {
@@ -82,9 +163,13 @@ function EditorContent() {
   // Load content from local storage on mount (user-specific)
   useEffect(() => {
     if (typeof window !== 'undefined' && !authLoading) {
-      // Check if we should load a specific draft from URL
+      // Check if we should load a specific draft or an existing article from URL
+      const editId = searchParams.get('edit');
       const draftId = searchParams.get('draft');
-      if (draftId) {
+      if (editId) {
+        // Editing an already-created content item
+        loadContentForEdit(editId);
+      } else if (draftId) {
         // Loading an existing draft from URL
         loadDraftById(draftId);
       } else {
@@ -103,7 +188,7 @@ function EditorContent() {
       
       setIsPageReady(true);
     }
-  }, [user?.id, authLoading, searchParams, loadDraftById]);
+  }, [user?.id, authLoading, searchParams, loadDraftById, loadContentForEdit]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -117,11 +202,12 @@ function EditorContent() {
     setContent(html);
     setHasUnsavedChanges(true);
     
-    // Save to local storage immediately
-    if (typeof window !== 'undefined' && isPageReady) {
+    // Save to local storage immediately. Skipped in edit mode so revising a
+    // published article never overwrites the user's in-progress new draft.
+    if (typeof window !== 'undefined' && isPageReady && !editContentId) {
       storage.set(user?.id, STORAGE_KEYS.CONTENT, html);
     }
-  }, [user?.id, isPageReady]);
+  }, [user?.id, isPageReady, editContentId]);
 
   // Handle word count changes
   const handleWordCountChange = useCallback((count: number) => {
@@ -218,14 +304,18 @@ function EditorContent() {
     }
   }, [user?.id]);
 
-  // Open publish modal
+  // Open publish modal — or, in edit mode, save back to the existing article.
   const handlePublish = useCallback(() => {
     if (!content || content === '<p></p>') {
       alert('প্রকাশ করার আগে কিছু লিখুন।');
       return;
     }
+    if (editContentId) {
+      handleSaveEdit();
+      return;
+    }
     setShowPublishModal(true);
-  }, [content]);
+  }, [content, editContentId, handleSaveEdit]);
 
   // Handle publish success
   const handlePublishSuccess = useCallback(() => {
@@ -287,6 +377,68 @@ function EditorContent() {
         onPublish={handlePublish}
         onViewDrafts={handleViewDrafts}
       />
+
+      {/* Edit mode banner: title/excerpt fields + explicit save */}
+      {editContentId && (
+        <div className="max-w-4xl mx-auto w-full px-4 pt-6">
+          <div className="bg-white border border-purple-200 rounded-lg p-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex-1 min-w-[220px]">
+                <h2 className="text-sm font-semibold text-purple-700 mb-1 bengali-text">
+                  প্রকাশিত লেখা সম্পাদনা
+                </h2>
+                {editWasPublished && (
+                  <p className="text-xs text-gray-500 bengali-text">
+                    এই লেখাটি ইতিমধ্যে প্রকাশিত। আপনার পরিবর্তন সঙ্গে সঙ্গে পাঠকের কাছে যাবে
+                    এবং অ্যাডমিন পর্যালোচনার জন্য নথিভুক্ত হবে।
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 bengali-text"
+              >
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                পরিবর্তন সংরক্ষণ করুন
+              </button>
+            </div>
+
+            <div className="grid gap-3 mt-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 bengali-text">
+                  শিরোনাম
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => {
+                    setEditTitle(e.target.value);
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bengali-text"
+                  placeholder="রচনার শিরোনাম"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 bengali-text">
+                  সারসংক্ষেপ
+                </label>
+                <input
+                  type="text"
+                  value={editExcerpt}
+                  onChange={(e) => {
+                    setEditExcerpt(e.target.value);
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bengali-text"
+                  placeholder="সংক্ষিপ্ত বিবরণ"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Editor Container */}
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">

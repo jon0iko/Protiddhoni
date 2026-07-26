@@ -201,3 +201,15 @@ select:focus-visible {
 *:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Hide the scrollbar on horizontally-scrollable reels (e.g. the homepage author
+   reel) while keeping the element scrollable. Mirrors the rule in
+   components/editor/tiptap.css, which is only imported by the editor. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

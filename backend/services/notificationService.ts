@@ -206,6 +206,73 @@ class NotificationService {
         }
     }
 
+    // ---- Quiz rounds -------------------------------------------------------
+
+    /**
+     * Tell every participant that a round has finished and the pool is paid.
+     * Bulk-inserts one notification row per participant (same pattern as
+     * notifyFollowers) then fires a single push batch.
+     */
+    async notifyQuizFinished(participantUserIds: string[], quiz: { id: string; title: string }) {
+        try {
+            const userIds = Array.from(new Set(participantUserIds || [])).filter(Boolean);
+            if (userIds.length === 0) return [];
+
+            const notifications = userIds.map((userId) => ({
+                user_id: userId,
+                type: 'quiz_finished',
+                title: 'কুইজ রাউন্ড শেষ',
+                message: `"${quiz.title}" রাউন্ডটি শেষ হয়েছে — ফলাফল ও পুরস্কার ঘোষণা করা হয়েছে।`,
+                related_entity_type: 'quiz',
+                related_entity_id: quiz.id
+            }));
+
+            await db.getClient()
+                .from('notifications')
+                .insert(notifications);
+
+            await pushService.sendToUsers(userIds, {
+                title: 'কুইজ রাউন্ড শেষ',
+                body: `"${quiz.title}" এর ফলাফল প্রকাশিত হয়েছে`,
+                url: `/quizzes/${quiz.id}`,
+                icon: '/icons/icon-192.png'
+            });
+
+            return userIds;
+        } catch (error) {
+            console.error('Error notifying quiz participants:', error);
+        }
+    }
+
+    /** Tell a single winner what they placed and how much Kori they won. */
+    async notifyQuizPrize(userId: string, quiz: { id: string; title: string }, rank: number, amount: number) {
+        try {
+            if (!userId) return;
+            const place = rank === 1 ? 'প্রথম' : rank === 2 ? 'দ্বিতীয়' : rank === 3 ? 'তৃতীয়' : `${rank}তম`;
+            const message = `"${quiz.title}" রাউন্ডে আপনি ${place} হয়েছেন এবং ${amount} কড়ি জিতেছেন!`;
+
+            await db.getClient()
+                .from('notifications')
+                .insert({
+                    user_id: userId,
+                    type: 'quiz_prize',
+                    title: '🏆 আপনি কড়ি জিতেছেন',
+                    message,
+                    related_entity_type: 'quiz',
+                    related_entity_id: quiz.id
+                });
+
+            await pushService.sendToUser(userId, {
+                title: '🏆 আপনি কড়ি জিতেছেন',
+                body: message,
+                url: `/quizzes/${quiz.id}`,
+                icon: '/icons/icon-192.png'
+            });
+        } catch (error) {
+            console.error('Error notifying quiz prize:', error);
+        }
+    }
+
     // Get user notifications
     async getUserNotifications(userId, limit = 20) {
         try {

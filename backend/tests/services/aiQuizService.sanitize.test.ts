@@ -1,17 +1,17 @@
 /**
- * geminiService._sanitizeQuestions -- the boundary between model output and the
+ * aiQuizService._sanitizeQuestions -- the boundary between model output and the
  * database.
  *
- * Everything Gemini returns passes through here before an administrator ever
+ * Everything the model returns passes through here before an administrator ever
  * sees it, so this function is the only thing stopping a malformed or truncated
  * generation from becoming a quiz question with no correct answer. It is pure:
  * no network, no clock, no environment. It also held roughly half of the file's
  * uncovered branches.
  */
 
-import geminiService from '../../services/geminiService';
+import aiQuizService from '../../services/aiQuizService';
 
-const sanitize = (input: any) => (geminiService as any)._sanitizeQuestions(input);
+const sanitize = (input: any) => (aiQuizService as any)._sanitizeQuestions(input);
 
 const valid = (over: Record<string, any> = {}) => ({
     question: 'Who narrates the story?',

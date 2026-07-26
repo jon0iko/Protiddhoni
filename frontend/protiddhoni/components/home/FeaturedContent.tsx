@@ -166,7 +166,12 @@ export default function FeaturedContent() {
                 tags: [],
                 totalRatings: item.stats?.totalReviews || 0,
                 likes: 0,
-                isSeries: false
+                isSeries: false,
+                // Pass these through so external-link posts surfaced here render
+                // as outbound links with the external badge, rather than routing
+                // to an internal /read/ page that doesn't exist for them.
+                content_type: item.content_type,
+                external_url: item.external_url
             };
         }
     };

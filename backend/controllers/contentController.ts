@@ -12,6 +12,7 @@ import slugify from '../utils/slugify';
 import { updateSlugFromTitle } from '../utils/slugify';
 import ContentQueryBuilder from '../utils/ContentQueryBuilder';
 import { ContentAccess, PaywallDecorator } from '../middleware/contentAccessDecorator';
+import { isValidExternalUrl } from '../services/contentFactory';
 import db from '../config/database';
 import logger from '../config/logger';
 import cacheManager from '../services/cacheManager';
@@ -22,6 +23,32 @@ import crypto from 'crypto';
 // list endpoints immediately (not after the TTL).
 const CONTENT_LIST_CACHE_PREFIX = 'content:list:';
 const invalidateContentLists = () => cacheManager.deleteByPrefix(CONTENT_LIST_CACHE_PREFIX);
+
+// Fields an author (or admin) may change through PUT /api/content/:id.
+// Deliberately excludes status, is_published, published_at, author_id, slug and
+// every counter column — those are only mutated by the moderation endpoints.
+const AUTHOR_EDITABLE_CONTENT_FIELDS = [
+    'title',
+    'body',
+    'excerpt',
+    'cover_image_url',
+    'category_id',
+    'is_premium',
+    'price',
+    // External-link posts keep their destination editable; without this an edit
+    // to a link post would silently blank its URL.
+    'external_url'
+] as const;
+
+// Audit rows store a short preview, never the full body — a long article would
+// bloat every log row and the queue only needs enough to eyeball the change.
+const LOG_BODY_PREVIEW_LENGTH = 280;
+const truncateForLog = (body?: string | null) => {
+    if (!body) return '';
+    return body.length > LOG_BODY_PREVIEW_LENGTH
+        ? `${body.slice(0, LOG_BODY_PREVIEW_LENGTH)}…`
+        : body;
+};
 
 const getViewerKey = (req) => {
     if (req.user?.id) {
@@ -77,6 +104,17 @@ export const advancedSearch = async (req: Request, res: Response) => {
 
 export const create = async (req: Request, res: Response) => {
     try {
+        // An external_url is rendered as an <a href> on the content card, so a
+        // javascript:/data: URL here would be stored XSS. Reject anything that
+        // isn't an absolute http(s) URL. Client-side validation is not enough.
+        if (req.body.external_url !== undefined && req.body.external_url !== null
+            && !isValidExternalUrl(req.body.external_url)) {
+            return res.status(400).json({
+                success: false,
+                error: 'External URL must be a valid http(s) link'
+            });
+        }
+
         const contentData = {
             ...req.body,
             author_id: req.user.id,
@@ -332,14 +370,75 @@ export const update = async (req: Request, res: Response) => {
             return res.status(403).json({ success: false, error: 'Unauthorized' });
         }
 
-        const updates = { ...req.body };
-        
+        // SECURITY: never spread req.body straight into the update. This endpoint
+        // is reachable by any authenticated author for their own content, so an
+        // unfiltered spread lets a caller set moderation columns (status,
+        // is_published, author_id, ...) and self-publish without review.
+        // Anything outside this allowlist is dropped silently rather than 400'd
+        // so existing callers that send extra fields keep working.
+        const updates: Record<string, any> = {};
+        for (const field of AUTHOR_EDITABLE_CONTENT_FIELDS) {
+            if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+                updates[field] = req.body[field];
+            }
+        }
+
+        // Same XSS guard as create — an edit must not be able to smuggle in a
+        // javascript:/data: URL that create would have rejected.
+        if (updates.external_url !== undefined && updates.external_url !== null
+            && !isValidExternalUrl(updates.external_url)) {
+            return res.status(400).json({
+                success: false,
+                error: 'External URL must be a valid http(s) link'
+            });
+        }
+
         // Update slug if title changed or if slug is empty
-        if (req.body.title && (req.body.title !== existingContent.title || !existingContent.slug)) {
-            updates.slug = updateSlugFromTitle(existingContent.slug, req.body.title);
+        if (updates.title && (updates.title !== existingContent.title || !existingContent.slug)) {
+            updates.slug = updateSlugFromTitle(existingContent.slug, updates.title);
         }
 
         const content = await ContentRepository.update(req.params.id, updates);
+
+        // MODERATION HOOK: an author silently rewriting an already-live article
+        // bypasses review entirely, so record it for after-the-fact moderation.
+        // Only for content that is actually live (draft/pending edits are normal
+        // authoring), and only when the editor is the author — an admin editing
+        // someone else's piece must not queue work for admins.
+        if (
+            existingContent.is_published === true &&
+            existingContent.status === 'approved' &&
+            existingContent.author_id === req.user.id
+        ) {
+            try {
+                await AdminActionLogRepository.create({
+                    admin_id: null, // author-initiated: there is no admin actor
+                    action_type: 'edit',
+                    content_id: existingContent.id,
+                    reason: null,
+                    metadata: {
+                        edited_by: req.user.id,
+                        slug: content?.slug || existingContent.slug,
+                        before: {
+                            title: existingContent.title || null,
+                            excerpt: existingContent.excerpt || null,
+                            body_length: (existingContent.body || '').length,
+                            body_preview: truncateForLog(existingContent.body)
+                        },
+                        after: {
+                            title: content?.title ?? existingContent.title ?? null,
+                            excerpt: content?.excerpt ?? existingContent.excerpt ?? null,
+                            body_length: (content?.body || '').length,
+                            body_preview: truncateForLog(content?.body)
+                        }
+                    }
+                });
+            } catch (logError) {
+                // Auditing must never break the author's edit.
+                logger.error('Failed to log author edit for moderation', logError);
+            }
+        }
+
         invalidateContentLists();
         res.json({ success: true, data: content });
     } catch (error) {
@@ -660,6 +759,44 @@ export const getAdminActionHistory = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Get admin action history error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+/**
+ * Moderation queue: author edits to already-published articles that no admin
+ * has triaged yet. Defaults to review_state='unchecked'.
+ */
+export const getEditQueue = async (req: Request, res: Response) => {
+    try {
+        const { page, limit, review_state: reviewState } = req.query;
+        const result = await AdminActionLogRepository.findAll({
+            page,
+            limit,
+            actionType: 'edit',
+            reviewState: reviewState || 'unchecked'
+        });
+
+        res.json({
+            success: true,
+            data: result.data,
+            pagination: result.pagination
+        });
+    } catch (error) {
+        console.error('Get edit queue error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+/**
+ * Clear a moderation-queue item: mark the action log entry as checked.
+ */
+export const markActionChecked = async (req: Request, res: Response) => {
+    try {
+        const updated = await AdminActionLogRepository.markChecked(req.params.id, req.user.id);
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        console.error('Mark action checked error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

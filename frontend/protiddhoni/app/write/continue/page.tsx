@@ -33,7 +33,8 @@ interface Story {
 const contentTypeNames: Record<string, string> = {
   'story': 'ছোটগল্প',
   'poem': 'কবিতা',
-  'chapter': 'অধ্যায়'
+  'chapter': 'অধ্যায়',
+  'link': 'বাইরের লেখা'
 };
 
 const statusNames: Record<string, string> = {

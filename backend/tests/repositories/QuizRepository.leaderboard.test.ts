@@ -301,9 +301,26 @@ describe('replaceQuestions() -- delete then insert', () => {
         ]);
 
         expect(ins.insert).toHaveBeenCalledWith([
-            { quiz_id: 'quiz-1', position: 0, question_text: 'Q1?', options: ['a', 'b', 'c', 'd'], correct_index: 2, explanation: 'because' },
-            { quiz_id: 'quiz-1', position: 1, question_text: 'Q2?', options: ['w', 'x', 'y', 'z'], correct_index: 0, explanation: null }
+            { quiz_id: 'quiz-1', position: 0, question_text: 'Q1?', options: ['a', 'b', 'c', 'd'], correct_index: 2, explanation: 'because', language: null },
+            { quiz_id: 'quiz-1', position: 1, question_text: 'Q2?', options: ['w', 'x', 'y', 'z'], correct_index: 0, explanation: null, language: null }
         ]);
+    });
+
+    it('carries a per-question language through to the row', async () => {
+        // Added when the multilingual quiz work landed on main. Questions without
+        // an explicit language store NULL and inherit the round's language.
+        const del = queryChain({ data: null, error: null });
+        const ins = queryChain({ data: [{ id: 'q1' }], error: null });
+        useClient(supabaseClient({ tables: { quiz_questions: [del, ins] } }));
+
+        await QuizRepository.replaceQuestions('quiz-1', [
+            { question: 'Q1?', options: ['a', 'b', 'c', 'd'], correctIndex: 0, language: 'en' },
+            { question: 'Q2?', options: ['a', 'b', 'c', 'd'], correctIndex: 0, language: '' }
+        ]);
+
+        const rows = ins.insert.mock.calls[0][0];
+        expect(rows[0].language).toBe('en');
+        expect(rows[1].language).toBeNull();   // empty string is falsy -> NULL
     });
 
     it('an empty question list wipes existing rows and inserts nothing', async () => {
