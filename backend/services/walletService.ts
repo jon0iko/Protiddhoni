@@ -3,11 +3,22 @@ import db from '../config/database';
 import logger from '../config/logger';
 
 class WalletService {
-  private supabase: SupabaseClient;
   private logger: typeof logger;
 
+  /**
+   * Resolved per call rather than captured in the constructor.
+   *
+   * db.getClient() returns the same frozen singleton every time, so this is
+   * behaviourally identical -- but capturing it at construction time meant the
+   * client was bound when the module was first imported, which made this service
+   * impossible to unit test (the instance is created at module scope on line
+   * `export default new WalletService()`).
+   */
+  private get supabase(): SupabaseClient {
+    return db.getClient();
+  }
+
   constructor() {
-    this.supabase = db.getClient();
     this.logger = logger;
   }
 

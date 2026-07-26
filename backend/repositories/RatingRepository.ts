@@ -1,8 +1,18 @@
 import db from '../config/database';
 
-const supabase = db.getClient();
-
 class RatingRepository {
+    /**
+     * Resolved per call rather than captured at module load.
+     *
+     * db.getClient() returns the same frozen singleton every time, so this is
+     * behaviourally identical -- but capturing it at module scope made this the
+     * only repository of the fourteen that could not be unit tested, because a
+     * test's mock is installed after the module has already been evaluated.
+     */
+    private get supabase() {
+        return db.getClient();
+    }
+
     /**
      * Create or update a rating
      */
@@ -10,7 +20,7 @@ class RatingRepository {
         const { content_id, user_id, user_identifier, rating } = ratingData;
 
         // Use the database function for upsert
-        const { data, error } = await supabase.rpc('upsert_rating', {
+        const { data, error } = await this.supabase.rpc('upsert_rating', {
             p_content_id: content_id,
             p_user_id: user_id || null,
             p_user_identifier: user_identifier || null,
@@ -25,7 +35,7 @@ class RatingRepository {
      * Get user's rating for a content
      */
     async findUserRating(contentId, userId, userIdentifier) {
-        const { data, error } = await supabase.rpc('get_user_rating', {
+        const { data, error } = await this.supabase.rpc('get_user_rating', {
             p_content_id: contentId,
             p_user_id: userId || null,
             p_user_identifier: userIdentifier || null
@@ -39,7 +49,7 @@ class RatingRepository {
      * Get rating statistics for a content
      */
     async getStats(contentId) {
-        const { data, error } = await supabase.rpc('get_content_rating_stats', {
+        const { data, error } = await this.supabase.rpc('get_content_rating_stats', {
             p_content_id: contentId
         });
 
@@ -51,7 +61,7 @@ class RatingRepository {
      * Get all ratings for a content (for admin/analytics)
      */
     async findByContentId(contentId) {
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('ratings')
             .select(`
                 *,
@@ -68,7 +78,7 @@ class RatingRepository {
      * Get all ratings by a user
      */
     async findByUserId(userId) {
-        const { data, error } = await supabase
+        const { data, error } = await this.supabase
             .from('ratings')
             .select(`
                 *,
@@ -85,7 +95,7 @@ class RatingRepository {
      * Delete a rating
      */
     async delete(ratingId) {
-        const { error } = await supabase
+        const { error } = await this.supabase
             .from('ratings')
             .delete()
             .eq('id', ratingId);
@@ -98,7 +108,7 @@ class RatingRepository {
      * Check if user has rated content
      */
     async hasUserRated(contentId, userId, userIdentifier) {
-        let query = supabase
+        let query = this.supabase
             .from('ratings')
             .select('id')
             .eq('content_id', contentId);

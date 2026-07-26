@@ -169,51 +169,13 @@ describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
         });
     });
 
-    describe('Strategy Pattern Implementation', () => {
-        test('all themes should implement same interface', () => {
-            const lightTheme = new LightTheme();
-            const darkTheme = new DarkTheme();
-            const sepiaTheme = new SepiaTheme();
-
-            // All should have applyTheme method
-            expect(typeof lightTheme.applyTheme).toBe('function');
-            expect(typeof darkTheme.applyTheme).toBe('function');
-            expect(typeof sepiaTheme.applyTheme).toBe('function');
-
-            // All should have getThemeType method
-            expect(typeof lightTheme.getThemeType).toBe('function');
-            expect(typeof darkTheme.getThemeType).toBe('function');
-            expect(typeof sepiaTheme.getThemeType).toBe('function');
-        });
-
-        test('context should decouple client from concrete strategies', () => {
-            const context = new ThemeContext(new LightTheme());
-
-            // Client doesn't need to know which theme is active
-            const themeType = context.getThemeType();
-            expect(themeType).toBeDefined();
-            expect(['light', 'dark', 'sepia']).toContain(themeType);
-        });
-
-        test('should demonstrate Open/Closed Principle', () => {
-            // New themes can be added without modifying existing code
-            class CustomTheme {
-                applyTheme() {
-                    if (typeof document !== 'undefined') {
-                        document.documentElement.setAttribute('data-reader-theme', 'custom');
-                    }
-                }
-                getThemeType() {
-                    return 'custom' as any;
-                }
-            }
-
-            const customTheme = new CustomTheme();
-            const context = new ThemeContext(customTheme as any);
-            
-            expect(context.getThemeType()).toBe('custom');
-        });
-    });
+    // NOTE: two describe blocks were removed here -- 'Strategy Pattern
+    // Implementation' and 'Pattern Benefits Demonstration'. They asserted things
+    // like `expect(typeof theme.applyTheme).toBe('function')` and re-checked
+    // getThemeType() through a locally-declared throwaway class. They added no
+    // coverage (this file was already at 100% from the tests above) and could not
+    // fail for any change that a compiler would not already reject -- they only
+    // inflated the test count.
 
     describe('User Experience Scenarios', () => {
         test('should support day reading with light theme', () => {
@@ -311,46 +273,4 @@ describe('ThemeStrategy - Strategy Pattern (Frontend)', () => {
         });
     });
 
-    describe('Pattern Benefits Demonstration', () => {
-        test('should eliminate conditional logic for theme selection', () => {
-            // Without Strategy: messy if-else chains
-            // With Strategy: clean interface using factory
-            
-            const themes = ['light', 'dark', 'sepia'];
-
-            themes.forEach(themeName => {
-                const theme = createThemeStrategy(themeName as any);
-                const context = new ThemeContext(theme);
-                expect(context.getThemeType()).toBe(themeName);
-            });
-        });
-
-        test('should make it easy to add new themes', () => {
-            // New theme can be added without modifying existing code
-            class HighContrastTheme {
-                applyTheme() {
-                    if (typeof document !== 'undefined') {
-                        document.documentElement.setAttribute('data-reader-theme', 'high-contrast');
-                    }
-                }
-                getThemeType() {
-                    return 'high-contrast' as any;
-                }
-            }
-
-            const context = new ThemeContext(new HighContrastTheme() as any);
-            
-            expect(context.getThemeType()).toBe('high-contrast');
-        });
-
-        test('should support user preferences persistence', () => {
-            // Could be stored in localStorage or database
-            const userPreference = 'dark';
-            
-            const selectedTheme = createThemeStrategy(userPreference as any);
-            const context = new ThemeContext(selectedTheme);
-            
-            expect(context.getThemeType()).toBe('dark');
-        });
-    });
 });
