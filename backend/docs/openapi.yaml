@@ -1,0 +1,1769 @@
+# OpenAPI 3.0 description of the Protiddhoni REST API.
+#
+# Served by swagger-ui-express at /api-docs (see app.ts). Kept as a single
+# static document rather than per-route JSDoc annotations so that the whole
+# API surface is readable in one place and reviewable in one diff.
+openapi: 3.0.3
+info:
+  title: Protiddhoni API
+  version: '1.0.0'
+  description: |
+    REST API for Protiddhoni, a Bengali digital storytelling platform.
+
+    **Authentication** — send `Authorization: Bearer <JWT>`. Obtain a token from
+    `POST /api/auth/login` or `POST /api/auth/register`.
+
+    **Response envelope** — every response has the shape
+    `{ success: boolean, data?: ..., message?: string, error?: string }`.
+
+    **Rate limits** — 1000 requests / 15 min per IP across `/api`; 30 failed
+    attempts / 15 min on the login and register endpoints.
+  license:
+    name: Coursework — CSE 4113, University of Dhaka
+servers:
+  - url: https://protiddhoni.farefin.com
+    description: Production
+  - url: http://localhost:5000
+    description: Local development
+tags:
+  - name: Authentication
+  - name: Content
+  - name: Series
+  - name: Users & Social
+  - name: Reviews (legacy)
+  - name: Comments
+  - name: Ratings
+  - name: Categories
+  - name: Bookmarks
+  - name: Likes
+  - name: Reading Preferences
+  - name: Drafts
+  - name: Notifications
+  - name: Payments & Wallet
+  - name: Purchases
+  - name: Web Push
+  - name: Quizzes
+  - name: Content Reports
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Success:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data: { description: Endpoint-specific payload }
+        message: { type: string }
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string, example: Not authorised }
+  responses:
+    Unauthorized:
+      description: Missing, invalid or expired token
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Authenticated but not permitted (wrong role, or premium content not purchased)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Resource not found
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    TooManyRequests:
+      description: Rate limit exceeded
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+paths:
+  /health:
+    get:
+      tags: [Operations]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Service is up
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in with email or username
+      security: []
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Log out (client discards the token)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/auth/profile:
+    get:
+      tags: [Authentication]
+      summary: Current user's profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Create an account and receive a JWT
+      security: []
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/bookmarks:
+    get:
+      tags: [Bookmarks]
+      summary: Get bookmarks
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Bookmarks]
+      summary: Create bookmarks
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/bookmarks/check/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Bookmarks]
+      summary: Get check
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/bookmarks/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Bookmarks]
+      summary: Delete bookmarks
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: Get categories
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+    post:
+      tags: [Categories]
+      summary: Create categories
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Categories]
+      summary: Delete categories
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/categories/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Categories]
+      summary: Get categories
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/categories/{slug}/content:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Categories]
+      summary: Get content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/comments:
+    post:
+      tags: [Comments]
+      summary: Create comments
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/comments/content/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Comments]
+      summary: Get content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/comments/replies/{commentId}:
+    parameters:
+      - name: commentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Comments]
+      summary: Get replies
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/comments/user/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Comments]
+      summary: Get user
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/comments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Comments]
+      summary: Update comments
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Comments]
+      summary: Delete comments
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content:
+    post:
+      tags: [Content]
+      summary: Create content
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/content/admin/action-history:
+    get:
+      tags: [Content]
+      summary: Get action history
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/content/admin/action-log/{id}/check:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Content]
+      summary: Create check
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/admin/edit-queue:
+    get:
+      tags: [Content]
+      summary: Get edit queue
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/content/admin/pending:
+    get:
+      tags: [Content]
+      summary: Moderation queue
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/content/author/{authorId}:
+    parameters:
+      - name: authorId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Content]
+      summary: Get author
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/category/{categorySlug}:
+    parameters:
+      - name: categorySlug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Content]
+      summary: Get category
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/my/drafts:
+    get:
+      tags: [Content]
+      summary: Get drafts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/content/published:
+    get:
+      tags: [Content]
+      summary: Paged list of published content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/content/recent-activity/{authorId}:
+    parameters:
+      - name: authorId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Content]
+      summary: Get recent activity
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/search:
+    get:
+      tags: [Content]
+      summary: Relevance-ranked search across title, excerpt and author
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/content/slug/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Content]
+      summary: Read one item by slug (paywall applied)
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/stats/author/{authorId}:
+    parameters:
+      - name: authorId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Content]
+      summary: Get author
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/stats/refresh:
+    post:
+      tags: [Content]
+      summary: Create refresh
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/content/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Content]
+      summary: Get content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Content]
+      summary: Update content
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Content]
+      summary: Delete content
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/{id}/approve:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Content]
+      summary: Approve and publish
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/{id}/reject:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Content]
+      summary: Reject with a reason
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/{id}/republish:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Content]
+      summary: Restore unpublished content
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/{id}/submit:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Content]
+      summary: Submit a draft for editorial review
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/content/{id}/unpublish:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Content]
+      summary: Take live content down
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/drafts:
+    post:
+      tags: [Drafts]
+      summary: Create drafts
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/drafts/my:
+    get:
+      tags: [Drafts]
+      summary: Get my
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/drafts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Drafts]
+      summary: Get drafts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Drafts]
+      summary: Update drafts
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Drafts]
+      summary: Delete drafts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/likes:
+    get:
+      tags: [Likes]
+      summary: Get likes
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Likes]
+      summary: Create likes
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/likes/check/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Likes]
+      summary: Get check
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/likes/count/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Likes]
+      summary: Get count
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/likes/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Likes]
+      summary: Delete likes
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: Get notifications
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/notifications/read-all:
+    put:
+      tags: [Notifications]
+      summary: Update read all
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Unread notification count
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/notifications/{id}/read:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Notifications]
+      summary: Update read
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/payments/checkout:
+    post:
+      tags: [Payments & Wallet]
+      summary: Create checkout
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/payments/payout:
+    post:
+      tags: [Payments & Wallet]
+      summary: Request a payout
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/payments/payout-simulation:
+    get:
+      tags: [Payments & Wallet]
+      summary: Get payout simulation
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/payments/payoutable:
+    get:
+      tags: [Payments & Wallet]
+      summary: Get payoutable
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/payments/tip/{authorId}:
+    parameters:
+      - name: authorId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Payments & Wallet]
+      summary: Tip an author in Kori
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/payments/transactions:
+    get:
+      tags: [Payments & Wallet]
+      summary: Own transaction ledger
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/payments/wallet:
+    get:
+      tags: [Payments & Wallet]
+      summary: Current Kori balance
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/payments/webhook/{provider}:
+    parameters:
+      - name: provider
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Payments & Wallet]
+      summary: Payment gateway callback (signature verified)
+      security: []
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/purchases:
+    get:
+      tags: [Purchases]
+      summary: Get purchases
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/purchases/check/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Purchases]
+      summary: Get check
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/purchases/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Purchases]
+      summary: Create purchases
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/push/subscribe:
+    post:
+      tags: [Web Push]
+      summary: Create subscribe
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/push/unsubscribe:
+    post:
+      tags: [Web Push]
+      summary: Create unsubscribe
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/push/vapid-public-key:
+    get:
+      tags: [Web Push]
+      summary: VAPID public key for browser push subscription
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/quizzes:
+    get:
+      tags: [Quizzes]
+      summary: Get quizzes
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/quizzes/admin:
+    post:
+      tags: [Quizzes]
+      summary: Create admin
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/quizzes/admin/all:
+    get:
+      tags: [Quizzes]
+      summary: Get all
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/quizzes/admin/questions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [Quizzes]
+      summary: Update questions
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Quizzes]
+      summary: Delete questions
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/admin/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Quizzes]
+      summary: Get admin
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Quizzes]
+      summary: Update admin
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Quizzes]
+      summary: Delete admin
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/admin/{id}/questions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Quizzes]
+      summary: Create questions
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/admin/{id}/regenerate:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Quizzes]
+      summary: Create regenerate
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/admin/{id}/settle:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Quizzes]
+      summary: Create settle
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/attempts/{attemptId}:
+    parameters:
+      - name: attemptId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Quizzes]
+      summary: Get attempts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/attempts/{attemptId}/submit:
+    parameters:
+      - name: attemptId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Quizzes]
+      summary: Create submit
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/leaderboard:
+    get:
+      tags: [Quizzes]
+      summary: Global quiz leaderboard
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/quizzes/me/attempts:
+    get:
+      tags: [Quizzes]
+      summary: Get attempts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/quizzes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Quizzes]
+      summary: Get quizzes
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/{id}/enter:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Quizzes]
+      summary: Create enter
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/{id}/leaderboard:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Quizzes]
+      summary: Get leaderboard
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/quizzes/{id}/start:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Quizzes]
+      summary: Create start
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/ratings:
+    post:
+      tags: [Ratings]
+      summary: Create ratings
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/ratings/content/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Ratings]
+      summary: Get content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/ratings/my-ratings:
+    get:
+      tags: [Ratings]
+      summary: Get my ratings
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/ratings/stats/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Ratings]
+      summary: Get stats
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/ratings/user/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Ratings]
+      summary: Get user
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/ratings/{ratingId}:
+    parameters:
+      - name: ratingId
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Ratings]
+      summary: Delete ratings
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/reading-preferences:
+    get:
+      tags: [Reading Preferences]
+      summary: Get reading preferences
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [Reading Preferences]
+      summary: Update reading preferences
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/reports:
+    post:
+      tags: [Content Reports]
+      summary: Create content reports
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/reports/admin/pending:
+    get:
+      tags: [Content Reports]
+      summary: Get pending
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/reports/admin/resolve:
+    post:
+      tags: [Content Reports]
+      summary: Create resolve
+      security: [{ bearerAuth: [] }]
+      description: Requires an administrator account (`is_admin`, re-checked against the database).
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/reviews:
+    post:
+      tags: [Reviews (legacy)]
+      summary: Create reviews (legacy)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/reviews/content/{contentId}:
+    parameters:
+      - name: contentId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Reviews (legacy)]
+      summary: Get content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/reviews/user/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Reviews (legacy)]
+      summary: Get user
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/reviews/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Reviews (legacy)]
+      summary: Update reviews (legacy)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Reviews (legacy)]
+      summary: Delete reviews (legacy)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/series:
+    post:
+      tags: [Series]
+      summary: Create series
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/series/author/{authorId}:
+    parameters:
+      - name: authorId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Series]
+      summary: Get author
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/series/published:
+    get:
+      tags: [Series]
+      summary: Get published
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/series/slug/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Series]
+      summary: Get slug
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/series/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Series]
+      summary: Get series
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Series]
+      summary: Update series
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Series]
+      summary: Delete series
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/series/{seriesId}/chapters:
+    parameters:
+      - name: seriesId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Series]
+      summary: Get chapters
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/top-authors:
+    get:
+      tags: [Users & Social]
+      summary: Get top authors
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+  /api/users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      tags: [Users & Social]
+      summary: Update users & social
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{userId}/content:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Users & Social]
+      summary: Get content
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{userId}/follow:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Users & Social]
+      summary: Create follow
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{userId}/followers:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Users & Social]
+      summary: Get followers
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{userId}/following:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Users & Social]
+      summary: Get following
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{userId}/series:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Users & Social]
+      summary: Get series
+      security: []
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{userId}/unfollow:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Users & Social]
+      summary: Create unfollow
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content: { application/json: { schema: { type: object } } }
+      responses:
+        '201':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/users/{username}:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Users & Social]
+      summary: Get users & social
+      security: [{}, { bearerAuth: [] }]
+      description: Works anonymously; returns extra caller-specific fields when a token is sent.
+      responses:
+        '200':
+          description: Success
+          content: { application/json: { schema: { $ref: '#/components/schemas/Success' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
