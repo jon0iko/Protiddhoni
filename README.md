@@ -194,3 +194,36 @@ Set the frontend environment variables for Supabase, the API base URL, and any p
 - `POST /api/push/subscribe`
 - `POST /api/push/unsubscribe`
 
+## Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Tier1 ["Tier 1: Client"]
+        browser["Browser (desktop / mobile)"]
+        sw["Service Worker (sw.js, PWA)"]
+    end
+
+    subgraph Tier2 ["Tier 2: Application (single VPS, pm2)"]
+        next["Next.js 14 server (SSR + App Router)"]
+        api["Express 5 REST API (routes -> controllers -> services)"]
+    end
+
+    subgraph Tier3 ["Tier 3: Data & external services"]
+        pg["Supabase PostgreSQL"]
+        store["Supabase Storage"]
+        gemini["Gemini API (quiz generation)"]
+    end
+
+    browser -- HTTPS --> next
+    browser -- fetch + JWT --> api
+    next -- SQL --> pg
+    api -- SQL / RPC --> pg
+    api --> gemini
+    browser -.-> sw
+    api -. Web Push .-> sw
+    browser -. direct upload .-> store
+```
+
+## Licence
+
+Coursework, all rights reserved.

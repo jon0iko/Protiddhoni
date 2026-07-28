@@ -60,6 +60,7 @@ logs/
 
 # Custom
 /Lab mats
+/Lab report
 QUIZ_FEATURE_DOCUMENTATION.md
 
 # Audiobook source files — served from Supabase Storage, not committed
