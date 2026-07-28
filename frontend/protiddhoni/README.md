@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Protiddhoni Frontend
 
-## Getting Started
+This is the Next.js app for Protiddhoni, our Bengali digital storytelling platform. It is the reader-facing site, the writing workspace, and the admin console in one place. The app is built with the App Router and is designed to carry Bengali text cleanly across reading, publishing, and moderation flows.
 
-First, run the development server:
+The frontend is where the product comes together visually. Readers land here to browse and read Bengali content, authors use it to write and manage their work, and admins use it to review submissions and keep the platform organized. The same app also handles the small details that matter in a reading product: typography, layout, session state, and notification support.
+
+## What Lives Here
+
+The frontend covers the public site and the authenticated product areas:
+
+- Home, about, how-it-works, FAQ, contact, privacy, terms, and guidelines pages
+- Story discovery through search, category pages, story pages, and chapter reading
+- Auth flows for login, register, logout, and password recovery
+- Reader tools like bookmarks, settings, profile pages, and quiz views
+- Writing tools for new drafts, draft continuation, editor settings, and external-link posts
+- Author dashboards for drafts, published stories, and wallet views
+- Admin pages for review queues, review history, and quiz management
+
+## What It Does
+
+The app is where readers browse and read content, writers draft and publish new work, and admins review submissions. It also keeps the smaller pieces of the product together: Bengali typography, PWA support, push notifications, and user session state.
+
+It is also responsible for the reading experience itself. Story pages, chapter pages, category pages, and search all live here, along with the author dashboard and account pages that support the rest of the product.
+
+The root layout wires up the pieces that the rest of the app depends on:
+
+- Bengali font loading and page metadata
+- Auth state
+- Service worker registration
+- Push notification handling
+- Shared layout chrome and navigation
+
+## Stack
+
+- Next.js 14
+- React 18
+- TypeScript
+- Tailwind CSS
+- Supabase client integration
+- Tiptap editor for rich text writing
+
+## Main Areas
+
+- Public pages for introducing the project and explaining how Protiddhoni works
+- Reader pages for browsing categories, searching stories, and opening a story or chapter
+- Auth pages for sign in, registration, logout, and password recovery
+- Writing pages for creating a new post, continuing a draft, and editing content with the rich text editor
+- Dashboard pages for drafts, authored stories, wallet information, and account settings
+- Admin pages for moderation queues, review history, and quiz management
+
+## Runtime Pieces
+
+- `AuthProvider` keeps user session state available across the app
+- `LayoutWrapper` provides the shared shell around page content
+- `BengaliNumberInit` keeps local number formatting consistent for the product
+- `ServiceWorkerRegistration` enables the PWA layer
+- `PushNotificationManager` connects the browser to push notification subscriptions
+
+## Local Development
+
+From this directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in the browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `pnpm dev` - start the development server
+- `pnpm build` - build the app for production
+- `pnpm start` - run the production build
+- `pnpm lint` - run linting
+- `pnpm test` - run the unit test suite
+- `pnpm test:coverage` - run tests with coverage output
+- `pnpm test:e2e` - build and run Playwright end-to-end tests
+- `pnpm test:e2e:ui` - open the Playwright UI runner
+- `pnpm test:e2e:report` - open the latest Playwright report
 
-## Learn More
+## Environment
 
-To learn more about Next.js, take a look at the following resources:
+Set the frontend environment values that the app needs to talk to the backend and Supabase. The exact variables depend on your local setup, but the app expects API and auth configuration to be present before the writing and reader flows will work correctly.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+In practice, the app needs the API base URL, Supabase client values, and any notification or auth settings required by the local environment.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This frontend is meant to stay close to the product language of Protiddhoni. When adding new screens, keep the Bengali reading experience, the author workflow, and the admin tools consistent with the rest of the app.
